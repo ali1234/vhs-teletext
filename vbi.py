@@ -20,7 +20,7 @@ from scipy.ndimage import gaussian_filter1d as gauss
 
 import pylab
 
-from util import paritybytes, setbyte, normalise
+from util import paritybytes, setbyte, normalise, hammbytes
 
 
 class Vbi(object):
