@@ -30,11 +30,11 @@ Run distance.py on the output from vbi.py:
 
 Step 4 - View results
 
-Run the output through demux.py and print.py:
+Run the output through demux.py and printit.py:
 
-	cat output1 | ../demux.py 1 | ../print.py
+	cat output1 | ../demux.py 1 | ../printit.py
 
 This will print all the packets from magazine 1 to the terminal. You can also
 generate html pages instead (you need the teletext2.ttf to view them):
 
-	cat output1 | ../demux.py 1 | ../print.py h > 100.html
+	cat output1 | ../demux.py 1 | ../printit.py h > 100.html
