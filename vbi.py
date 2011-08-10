@@ -21,7 +21,7 @@ from scipy.optimize import fminbound
 
 import pylab
 
-from util import paritybytes, setbyte, normalise, hammbytes
+from util import paritybytes, setbyte, normalise, hammbytes, allbytes
 from printit import do_print
 
 import time
@@ -70,7 +70,9 @@ class Vbi(object):
         self._offset = 0
 
         # params for convolve
-        self._gauss_sd = 6.0
+        self._gauss_sd = 5.5 # TWEAK: amount of gaussian blurring to apply
+                             # this cuts out hi freq. noise in the samples
+                             # but also reduces the amount of data
 
         # interpolation objects
         self._interp_x = np.zeros(376, dtype=np.float)
@@ -105,7 +107,8 @@ class Vbi(object):
         def _inner(offset):
             self.set_offset(offset)
             guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), self._gauss_sd)
-            mask_scaled = gauss(self.mask_scaler(self._guess_x[64:256]), self._gauss_sd)
+            #mask_scaled = gauss(self.mask_scaler(self._guess_x[64:256]), self._gauss_sd)
+            mask_scaled = self.mask_scaler(self._guess_x[64:256]) # not blurring this seems to be better
 
             a = guess_scaled*mask_scaled
             b = np.clip(target*mask_scaled, self.black, 256)
@@ -158,22 +161,24 @@ class Vbi(object):
 
     def possible_bytes(self, n, half=False):
         '''Returns the list of possible values at byte n.'''
+        if n == 42 and half:
+            return [0]
+
         if n < 2:
             bytes = hammbytes
         elif n < 5:
-            bytes = paritybytes
+            bytes = allbytes
         else:
             bytes = paritybytes
 
         ans = filter(lambda x: (x&self._mask0[n])==x==(x|self._mask1[n]), bytes)
         if ans == []:
             ans = bytes
-        if half == True:
-            ans = list(set([x&0x07 for x in ans]))
+        if half:
+            ans = list(set([x&0x1f for x in ans]))
         return ans
 
     def deconvolve(self):
-      #for o in np.arange(-0.5,0.5,0.05):
         self.make_guess_mask()
 
         target = gauss(self.vbi, self._gauss_sd)
@@ -185,8 +190,8 @@ class Vbi(object):
 
         nb = self.possible_bytes(0)
         count = 0
-        for it in range(2):
-            for n in range(41):
+        for it in range(4): # TWEAK: number of passes.
+            for n in range(42):                   
                 nb = self.possible_bytes(n)
                 nnb = self.possible_bytes(n+1, half=True)
                 if len(nb) == 1:
@@ -199,18 +204,15 @@ class Vbi(object):
                         for b2 in nnb:
                             count += 1
                             setbyte(self.guess, n+4, b2)
-                            a = gauss(self.guess_scaler(self._guess_x), 1.0)
+                            a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
                             #a = np.clip(a, self.black*self.scale, 256*self.scale)
-                            a = gauss(a, self._gauss_sd)
                             a = normalise(a)
                             diff = np.sum(np.square(a-target))
                             ans.append((diff,b1,b2))
 
                     ans.sort()
                     setbyte(self.guess, n+3, ans[0][1])
-                    setbyte(self.guess, n+4, ans[0][2])
                     self._bytes[n] = ans[0][1]
-                    self._bytes[n+1] = ans[0][2]
 
         #print count
         #do_print("".join([chr(x) for x in self._bytes]))
