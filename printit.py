@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 
-# * Copyright 2011 Alistair Buxton <a.j.buxton@gmail.com>
-# *
-# * License: This program is free software; you can redistribute it and/or
-# * modify it under the terms of the GNU General Public License as published
-# * by the Free Software Foundation; either version 3 of the License, or (at
-# * your option) any later version. This program is distributed in the hope
-# * that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# * GNU General Public License for more details.
+# Tool to turn a teletext packet stream into something readable.
+# If the first argument begins with 'h' the output will be in html.
+# Otherwise it will be in rtf8.
+# Usage:
+# cat <data> | ./print.py
 
 import sys
+
+from util import mrag
 
 BLACK = '\033[30m'
 RED = '\033[31m'
@@ -157,54 +155,6 @@ def printit(bits, html=True):
     else:
         return ttext(data)
 
-hammtab = [
-    0x0101, 0x100f, 0x0001, 0x0101, 0x100f, 0x0100, 0x0101, 0x100f,
-    0x100f, 0x0102, 0x0101, 0x100f, 0x010a, 0x100f, 0x100f, 0x0107,
-    0x100f, 0x0100, 0x0101, 0x100f, 0x0100, 0x0000, 0x100f, 0x0100,
-    0x0106, 0x100f, 0x100f, 0x010b, 0x100f, 0x0100, 0x0103, 0x100f,
-    0x100f, 0x010c, 0x0101, 0x100f, 0x0104, 0x100f, 0x100f, 0x0107,
-    0x0106, 0x100f, 0x100f, 0x0107, 0x100f, 0x0107, 0x0107, 0x0007,
-    0x0106, 0x100f, 0x100f, 0x0105, 0x100f, 0x0100, 0x010d, 0x100f,
-    0x0006, 0x0106, 0x0106, 0x100f, 0x0106, 0x100f, 0x100f, 0x0107,
-    0x100f, 0x0102, 0x0101, 0x100f, 0x0104, 0x100f, 0x100f, 0x0109,
-    0x0102, 0x0002, 0x100f, 0x0102, 0x100f, 0x0102, 0x0103, 0x100f,
-    0x0108, 0x100f, 0x100f, 0x0105, 0x100f, 0x0100, 0x0103, 0x100f,
-    0x100f, 0x0102, 0x0103, 0x100f, 0x0103, 0x100f, 0x0003, 0x0103,
-    0x0104, 0x100f, 0x100f, 0x0105, 0x0004, 0x0104, 0x0104, 0x100f,
-    0x100f, 0x0102, 0x010f, 0x100f, 0x0104, 0x100f, 0x100f, 0x0107,
-    0x100f, 0x0105, 0x0105, 0x0005, 0x0104, 0x100f, 0x100f, 0x0105,
-    0x0106, 0x100f, 0x100f, 0x0105, 0x100f, 0x010e, 0x0103, 0x100f,
-    0x100f, 0x010c, 0x0101, 0x100f, 0x010a, 0x100f, 0x100f, 0x0109,
-    0x010a, 0x100f, 0x100f, 0x010b, 0x000a, 0x010a, 0x010a, 0x100f,
-    0x0108, 0x100f, 0x100f, 0x010b, 0x100f, 0x0100, 0x010d, 0x100f,
-    0x100f, 0x010b, 0x010b, 0x000b, 0x010a, 0x100f, 0x100f, 0x010b,
-    0x010c, 0x000c, 0x100f, 0x010c, 0x100f, 0x010c, 0x010d, 0x100f,
-    0x100f, 0x010c, 0x010f, 0x100f, 0x010a, 0x100f, 0x100f, 0x0107,
-    0x100f, 0x010c, 0x010d, 0x100f, 0x010d, 0x100f, 0x000d, 0x010d,
-    0x0106, 0x100f, 0x100f, 0x010b, 0x100f, 0x010e, 0x010d, 0x100f,
-    0x0108, 0x100f, 0x100f, 0x0109, 0x100f, 0x0109, 0x0109, 0x0009,
-    0x100f, 0x0102, 0x010f, 0x100f, 0x010a, 0x100f, 0x100f, 0x0109,
-    0x0008, 0x0108, 0x0108, 0x100f, 0x0108, 0x100f, 0x100f, 0x0109,
-    0x0108, 0x100f, 0x100f, 0x010b, 0x100f, 0x010e, 0x0103, 0x100f,
-    0x100f, 0x010c, 0x010f, 0x100f, 0x0104, 0x100f, 0x100f, 0x0109,
-    0x010f, 0x100f, 0x000f, 0x010f, 0x100f, 0x010e, 0x010f, 0x100f,
-    0x0108, 0x100f, 0x100f, 0x0105, 0x100f, 0x010e, 0x010d, 0x100f,
-    0x100f, 0x010e, 0x010f, 0x100f, 0x010e, 0x000e, 0x100f, 0x010e,
-]
-
-
-def unhamm16(d):
-    a = hammtab[ord(d[0])]
-    b = hammtab[ord(d[1])]
-    err = a+b
-    return (a&0xf|((b&0xf)<<4),err)
-
-def mrag(d):
-    a = unhamm16(d)[0]
-    return (a&0x7, a>>3)
-
-
-
 header = """<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>
 @font-face {font-family: teletext2; src: url('teletext2.ttf');}
 pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:black;}
@@ -213,28 +163,35 @@ pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:
 
 footer = """</pre></body></html>"""
 
+def do_print(tt, html=False):
+    (m, r) = mrag(tt[:2])
+    print "%1d %2d" % (m, r),
+    if r == 0:
+        print "       ",
+        sys.stdout.write(printit(tt[10:], html).encode('utf8'))
+        sys.stdout.write('\n')
+    else:
+        sys.stdout.write(printit(tt[2:], html).encode('utf8'))
+        sys.stdout.write('\n')
+    sys.stdout.flush()
 
 if __name__=='__main__':
-        html = False
+        
+        if len(sys.argv) > 1 and sys.argv[1][0] == 'h':
+            html == True
+        else:
+            html = False
+
         if html:
             print header
-        showmags = [int(x, 10) for x in sys.argv[1:]]
+
         while(True):
             tt = sys.stdin.read(42)
             if len(tt) < 42:
                 exit(0)
-            m,r = mrag(tt[:2])
-            if m in showmags:
-              #if r == 0:
-                if r < 25:
-                    print "%1d %2d" % (m, r),
-                if r == 0:
-                    print "       ",
-                    sys.stdout.write(printit(tt[10:], html).encode('utf8'))
-                    sys.stdout.write('\n')
-                elif r < 25:
-                    sys.stdout.write(printit(tt[2:], html).encode('utf8'))
-                    sys.stdout.write('\n')
+            else:
+                do_print(tt, html)
             sys.stdout.flush()
+
         if html:
             print footer

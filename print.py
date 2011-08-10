@@ -163,6 +163,17 @@ pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:
 
 footer = """</pre></body></html>"""
 
+def do_print(tt, html=False):
+    (m, r) = mrag(tt[:2])
+    print "%1d %2d" % (m, r),
+    if r == 0:
+        print "       ",
+        sys.stdout.write(printit(tt[10:], html).encode('utf8'))
+        sys.stdout.write('\n')
+    else:
+        sys.stdout.write(printit(tt[2:], html).encode('utf8'))
+        sys.stdout.write('\n')
+    sys.stdout.flush()
 
 if __name__=='__main__':
         
@@ -179,15 +190,7 @@ if __name__=='__main__':
             if len(tt) < 42:
                 exit(0)
             else:
-                (m, r) = mrag(tt[:2])
-                print "%1d %2d" % (m, r),
-                if r == 0:
-                    print "       ",
-                    sys.stdout.write(printit(tt[10:], html).encode('utf8'))
-                    sys.stdout.write('\n')
-                else:
-                    sys.stdout.write(printit(tt[2:], html).encode('utf8'))
-                    sys.stdout.write('\n')
+                do_print(tt, html)
             sys.stdout.flush()
 
         if html:
