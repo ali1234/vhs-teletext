@@ -1,3 +1,9 @@
+Run against the example data, printing only packets from magazine 1:
+
+./vbi.py example | ./demux.py 1 | ./printit.py
+
+In detail:
+
 Step 1 - Capture teletext packets
 
 Compile dumpvbi:
