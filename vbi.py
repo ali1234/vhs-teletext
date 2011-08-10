@@ -17,11 +17,14 @@ import sys
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d as gauss
+from scipy.optimize import fminbound
 
 import pylab
 
 from util import paritybytes, setbyte, normalise, hammbytes
+from printit import do_print
 
+import time
 
 class Vbi(object):
     '''This class represents a line of raw vbi data and all our attempts to
@@ -82,7 +85,7 @@ class Vbi(object):
         # and has fill value = 1 because we always are interested in the
         # samples outside the signal as they should never change
         self.mask_scaler = interp1d(self._interp_x, self.mask, 
-                                     kind='nearest', copy=False, 
+                                     kind='linear', copy=False, 
                                      bounds_error=False, fill_value=1)
 
     def set_bitwidth(self, bitwidth):
@@ -96,14 +99,13 @@ class Vbi(object):
     def find_offset_and_scale(self):
         '''Tries to find the offset of the vbi data in the raw samples.'''
 
-        # Only consider the first 512 samples of the line.
-        target = gauss(self.vbi[:256], self._gauss_sd)
+        # Only consider the general area of the CRI
+        target = gauss(self.vbi[64:256], self._gauss_sd)
 
-        ans = []
-        for offset in np.arange(90.0,110.0,0.01):
+        def _inner(offset):
             self.set_offset(offset)
-            guess_scaled = gauss(self.guess_scaler(self._guess_x[:256]), self._gauss_sd)
-            mask_scaled = gauss(self.mask_scaler(self._guess_x[:256]), self._gauss_sd)
+            guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), self._gauss_sd)
+            mask_scaled = gauss(self.mask_scaler(self._guess_x[64:256]), self._gauss_sd)
 
             a = guess_scaled*mask_scaled
             b = np.clip(target*mask_scaled, self.black, 256)
@@ -113,18 +115,12 @@ class Vbi(object):
             b *= self.scale
             a = np.clip(a, 0, 256*self.scale)
 
-            diff = np.sum(np.square(a-b))
+            return np.sum(np.square(a-b))
 
-            ans.append((diff, offset, self.scale))
+        offset = fminbound(_inner, 96.0, 110.0)
 
-        ans.sort()
-        self.set_offset(ans[0][1])
-        self.scale = ans[0][2]
-
-        if ans[0][0] > 5.0:
-            return False
-
-        return True
+        # call it also to set self.offset and self.scale
+        return (_inner(offset) < 5.0)
 
     def make_guess_mask(self,o=0):
         a = []
@@ -160,7 +156,7 @@ class Vbi(object):
         self._mask1 = tmp
 
 
-    def possible_bytes(self, n):
+    def possible_bytes(self, n, half=False):
         '''Returns the list of possible values at byte n.'''
         if n < 2:
             bytes = hammbytes
@@ -171,9 +167,10 @@ class Vbi(object):
 
         ans = filter(lambda x: (x&self._mask0[n])==x==(x|self._mask1[n]), bytes)
         if ans == []:
-            return bytes
-        else:
-            return ans
+            ans = bytes
+        if half == True:
+            ans = list(set([x&0x07 for x in ans]))
+        return ans
 
     def deconvolve(self):
       #for o in np.arange(-0.5,0.5,0.05):
@@ -187,10 +184,11 @@ class Vbi(object):
         self._bytes = np.zeros(42, dtype=np.uint8)
 
         nb = self.possible_bytes(0)
+        count = 0
         for it in range(2):
             for n in range(41):
                 nb = self.possible_bytes(n)
-                nnb = self.possible_bytes(n+1)
+                nnb = self.possible_bytes(n+1, half=True)
                 if len(nb) == 1:
                     setbyte(self.guess, n+3, nb[0])
                     self._bytes[n] = nb[0]
@@ -199,9 +197,11 @@ class Vbi(object):
                     for b1 in nb:
                         setbyte(self.guess, n+3, b1)
                         for b2 in nnb:
+                            count += 1
                             setbyte(self.guess, n+4, b2)
-                            a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
+                            a = gauss(self.guess_scaler(self._guess_x), 1.0)
                             #a = np.clip(a, self.black*self.scale, 256*self.scale)
+                            a = gauss(a, self._gauss_sd)
                             a = normalise(a)
                             diff = np.sum(np.square(a-target))
                             ans.append((diff,b1,b2))
@@ -212,6 +212,8 @@ class Vbi(object):
                     self._bytes[n] = ans[0][1]
                     self._bytes[n+1] = ans[0][2]
 
+        #print count
+        #do_print("".join([chr(x) for x in self._bytes]))
         sys.stdout.write("".join([chr(x) for x in self._bytes]))
         sys.stdout.flush()
 
@@ -227,9 +229,14 @@ if __name__ == '__main__':
             offset = line*2048
             vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
             v = Vbi(vbiraw)
+            c0 = time.time()
             if v.find_offset_and_scale():
+                c1 = time.time()
                 if v.deconvolve():
                     pass
+            c2 = time.time()
+            #print v._offset
+            #print c1-c0, c2-c1, c2-c0
       except IOError:
         pass
 
