@@ -234,7 +234,7 @@ if __name__ == '__main__':
       try:
         frame = "%08d" % frame
         f = file(datapath+'/'+frame+'.vbi').read()
-        for line in range(12)+range(16,24):
+        for line in range(12)+range(16,28):
         #for line in [3]:
             offset = line*2048
             vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
@@ -244,7 +244,8 @@ if __name__ == '__main__':
                 c2 = c1 = time.time()
                 if v.deconvolve():
                     c2 = time.time()
-                    sys.stderr.write("%f, %f, %f\n" % (c1-c0, c2-c1, c2-c0))
+            sys.stderr.write("%f, %f\n" % (c1-c0, c2-c1))
+            
 
       except IOError:
         pass
