@@ -191,7 +191,7 @@ if __name__=='__main__':
                 exit(0)
             else:
                 m,r = mrag(tt[:2])
-                if r < 25:
+                if r < 55:
                     do_print(tt, html)
             sys.stdout.flush()
 

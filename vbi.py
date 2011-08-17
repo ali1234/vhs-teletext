@@ -187,10 +187,11 @@ class Vbi(object):
         target = normalise(target)
 
         self._bytes = np.zeros(42, dtype=np.uint8)
+        self._oldbytes = np.zeros(42, dtype=np.uint8)
 
         nb = self.possible_bytes(0)
         count = 0
-        for it in range(4): # TWEAK: number of passes.
+        for it in range(10): # TWEAK: maximum number of iterations.
             for n in range(42):                   
                 nb = self.possible_bytes(n)
                 nnb = self.possible_bytes(n+1, half=True)
@@ -214,10 +215,17 @@ class Vbi(object):
                     setbyte(self.guess, n+3, ans[0][1])
                     self._bytes[n] = ans[0][1]
 
+            # if this iteration didn't produce a change in the answer
+            # then the next one won't either, so stop.
+            if (self._bytes == self._oldbytes).all():
+                break
+            self._oldbytes = self._bytes
+
         #print count
         #do_print("".join([chr(x) for x in self._bytes]))
         sys.stdout.write("".join([chr(x) for x in self._bytes]))
         sys.stdout.flush()
+        return True
 
 
 if __name__ == '__main__':
@@ -231,14 +239,13 @@ if __name__ == '__main__':
             offset = line*2048
             vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
             v = Vbi(vbiraw)
-            c0 = time.time()
+            c2 = c1 = c0 = time.time()
             if v.find_offset_and_scale():
-                c1 = time.time()
+                c2 = c1 = time.time()
                 if v.deconvolve():
-                    pass
-            c2 = time.time()
-            #print v._offset
-            #print c1-c0, c2-c1, c2-c0
+                    c2 = time.time()
+                    sys.stderr.write("%f, %f, %f\n" % (c1-c0, c2-c1, c2-c0))
+
       except IOError:
         pass
 
