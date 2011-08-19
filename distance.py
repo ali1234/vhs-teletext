@@ -19,7 +19,16 @@ from scipy.spatial.distance import hamming
 
 import pylab
 
+from util import mrag
+
 def hamming_all(target, max_diff, filename):
+
+    m,r = mrag("".join([chr(x) for x in target[:2]]))
+    if r == 0:
+        sys.stdout.write(target)
+        sys.stdout.flush()
+        return
+
     f = file(filename)
     ans = []
     while True:
