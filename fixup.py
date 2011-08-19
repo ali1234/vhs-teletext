@@ -20,8 +20,11 @@ if __name__ == '__main__':
         while True:
             packet = [x for x in sys.stdin.read(42)]
             for i in range(1,42):
-                if packet[i] == 'N' and packet[i-1].islower():
-                    packet[i] = '.'
+                a = chr(ord(packet[i-1])&0x7f)
+                b = chr(ord(packet[i])&0x7f)
+                if b == 'N' and a.islower():
+                    packet[i] = chr(ord('.')|0x80)
+
             sys.stdout.write("".join(packet))
             sys.stdout.flush()
 
