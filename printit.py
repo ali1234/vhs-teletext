@@ -178,7 +178,7 @@ def do_print(tt, html=False):
 if __name__=='__main__':
         
         if len(sys.argv) > 1 and sys.argv[1][0] == 'h':
-            html == True
+            html = True
         else:
             html = False
 
