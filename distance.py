@@ -28,7 +28,7 @@ def distance(a, b):
 def check_all(target, max_diff, filename):
 
     m,r = mrag("".join([chr(x) for x in target[:2]]))
-    if r == 0 or (target == ord(' ')).sum() > 32:
+    if r == 0 or r > 24 or (target == ord(' ')).sum() > 32:
         sys.stdout.write(target)
         sys.stdout.flush()
         return
