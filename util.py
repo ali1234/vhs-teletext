@@ -48,8 +48,8 @@ hammtab = [
 ]
 
 def unhamm16(d):
-    a = hammtab[ord(d[0])]
-    b = hammtab[ord(d[1])]
+    a = hammtab[d[0]]
+    b = hammtab[d[1]]
     err = a+b
     return (a&0xf|((b&0xf)<<4),err)
 

@@ -25,7 +25,7 @@ if __name__=='__main__':
         tt = sys.stdin.read(42)
         if len(tt) < 42:
             exit(0)
-        m,r = mrag(tt[:2])
+        m,r = mrag(np.fromstring(tt[:2], dtype=np.uint8))
         if m in showmags:
             sys.stdout.write(tt)
             sys.stdout.flush()

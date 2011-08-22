@@ -164,7 +164,7 @@ pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:
 footer = """</pre></body></html>"""
 
 def do_print(tt, html=False):
-    (m, r) = mrag(tt[:2])
+    (m, r) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
     print "%1d %2d" % (m, r),
     if r == 0:
         print "       ",
