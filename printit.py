@@ -7,6 +7,7 @@
 # cat <data> | ./print.py
 
 import sys
+import numpy as np
 
 from util import mrag
 
@@ -190,7 +191,7 @@ if __name__=='__main__':
             if len(tt) < 42:
                 exit(0)
             else:
-                m,r = mrag(tt[:2])
+                m,r = mrag(np.fromstring(tt[:2], dtype=np.uint8))
                 if r < 25:
                     do_print(tt, html)
             sys.stdout.flush()
