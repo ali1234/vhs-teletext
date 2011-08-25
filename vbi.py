@@ -178,13 +178,6 @@ class Vbi(object):
         self.possible_bytes = [masked(b,n) or b for n,b in enumerate(possible_bytes)]
         self.half_possible_bytes = [list(set([x&0x1f for x in b])) for b in self.possible_bytes]
 
-    def filter_bytes(self, bytes, n):
-        if len(bytes) > 1:
-            ans = filter(lambda x: (x&self._mask0[n])==x==(x|self._mask1[n]), bytes)
-            if ans != []:
-                bytes = ans
-        return bytes
-
     def _deconvolve(self):
 
         #nb = self.possible_bytes[0]
