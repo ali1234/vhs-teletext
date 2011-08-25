@@ -24,18 +24,25 @@ import pylab
 from util import paritybytes, setbyte, normalise, hammbytes, allbytes
 from printit import do_print
 
+from finders import *
+
 import time
 
 class Vbi(object):
     '''This class represents a line of raw vbi data and all our attempts to
         decode it.'''
 
-    def __init__(self, vbi):
+    possible_bytes = [hammbytes]*2 + [paritybytes]*40
+
+    def __init__(self, vbi, finders):
 
         # data arrays
 
         # vbi is the raw line as an array of 2048 floats
         self.vbi = vbi
+
+        # finders find packet 0 based on pattern matching
+        self.finders = finders
 
         # black level of the signal
         self.black = np.mean(self.vbi[:80])
@@ -89,6 +96,9 @@ class Vbi(object):
         self.mask_scaler = interp1d(self._interp_x, self.mask, 
                                      kind='linear', copy=False, 
                                      bounds_error=False, fill_value=1)
+
+        self.count = 0
+        self.it = 0
 
     def set_bitwidth(self, bitwidth):
         self._bitwidth = bitwidth
@@ -158,57 +168,50 @@ class Vbi(object):
         self._mask0 |= self._mask1
         self._mask1 = tmp
 
+    def make_possible_bytes(self, possible_bytes):
+        def masked(b, n):
+            m0 = self._mask0[n]
+            m1 = self._mask1[n]
+            #print n, m0, m1, b
+            return [x for x in b if (x&m0)==x==(x|m1)]
 
-    def possible_bytes(self, n, half=False):
-        '''Returns the list of possible values at byte n.'''
-        if n == 42 and half:
-            return [0]
+        self.possible_bytes = [masked(b,n) or b for n,b in enumerate(possible_bytes)]
+        self.half_possible_bytes = [list(set([x&0x1f for x in b])) for b in self.possible_bytes]
 
-        if n < 2:
-            bytes = hammbytes
-        elif n < 5:
-            bytes = allbytes
-        else:
-            bytes = paritybytes
+    def filter_bytes(self, bytes, n):
+        if len(bytes) > 1:
+            ans = filter(lambda x: (x&self._mask0[n])==x==(x|self._mask1[n]), bytes)
+            if ans != []:
+                bytes = ans
+        return bytes
 
-        ans = filter(lambda x: (x&self._mask0[n])==x==(x|self._mask1[n]), bytes)
-        if ans == []:
-            ans = bytes
-        if half:
-            ans = list(set([x&0x1f for x in ans]))
-        return ans
+    def _deconvolve(self):
 
-    def deconvolve(self):
-        self.make_guess_mask()
+        #nb = self.possible_bytes[0]
 
-        target = gauss(self.vbi, self._gauss_sd)
-        #target -= self.black
-        #target *= self.scale
-        target = normalise(target)
-
-        self._bytes = np.zeros(42, dtype=np.uint8)
-        self._oldbytes = np.zeros(42, dtype=np.uint8)
-
-        nb = self.possible_bytes(0)
-        count = 0
         for it in range(10): # TWEAK: maximum number of iterations.
-            for n in range(42):                   
-                nb = self.possible_bytes(n)
-                nnb = self.possible_bytes(n+1, half=True)
+            self.it += 1
+            for n in range(42):
+                nb = self.possible_bytes[n]
+                
                 if len(nb) == 1:
                     setbyte(self.guess, n+3, nb[0])
                     self._bytes[n] = nb[0]
                 else:
+                    if n < 41:
+                        nnb = self.half_possible_bytes[n+1]
+                    else:
+                        nnb = [0]
                     ans = []
                     for b1 in nb:
                         setbyte(self.guess, n+3, b1)
                         for b2 in nnb:
-                            count += 1
+                            self.count += 1
                             setbyte(self.guess, n+4, b2)
                             a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
                             #a = np.clip(a, self.black*self.scale, 256*self.scale)
                             a = normalise(a)
-                            diff = np.sum(np.square(a-target))
+                            diff = np.sum(np.square(a-self.target))
                             ans.append((diff,b1,b2))
 
                     ans.sort()
@@ -221,34 +224,60 @@ class Vbi(object):
                 break
             self._oldbytes = self._bytes
 
-        #print count
-        #do_print("".join([chr(x) for x in self._bytes]))
-        sys.stdout.write("".join([chr(x) for x in self._bytes]))
+    def deconvolve(self):
+        self.make_guess_mask()
+        self.make_possible_bytes(Vbi.possible_bytes)
+
+        target = gauss(self.vbi, self._gauss_sd)
+        self.target = normalise(target)
+
+        self._bytes = np.zeros(42, dtype=np.uint8)
+        self._oldbytes = np.zeros(42, dtype=np.uint8)
+
+        self._deconvolve()
+
+        packet = "".join([chr(x) for x in self._bytes])
+
+        for F in self.finders:
+            if F.find(packet):
+                self.make_possible_bytes(F.possible_bytes)
+                self._deconvolve()
+                packet = "".join([chr(x) for x in self._bytes])
+                F.find(packet)
+                packet = F.fixup()
+                break
+
+        return packet
+
+def do_file(filename):
+  try:
+    f = file(filename).read()
+    sys.stderr.write(filename+'\n')
+    for line in range(12)+range(16,28):
+        offset = line*2048
+        vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
+        v = Vbi(vbiraw, [BBC1])
+        c2 = c1 = c0 = time.time()
+        v.find_offset_and_scale()
+        c1 = time.time()
+        packet = v.deconvolve()
+        sys.stdout.write(packet)
+        c2 = time.time()
+        sys.stderr.write("%f, %f, %d, %d\n" % (c1-c0, c2-c1, v.it, v.count))
         sys.stdout.flush()
-        return True
+        sys.stderr.flush()
+  except IOError:
+    pass
+
+def listfiles(datapath):
+    for frame in range(0, 200000, 1):
+        frame = "%08d" % frame
+        yield datapath+'/'+frame+'.vbi'
 
 
 if __name__ == '__main__':
     datapath = sys.argv[1]
-    for frame in range(0, 200000, 1):
-      try:
-        frame = "%08d" % frame
-        f = file(datapath+'/'+frame+'.vbi').read()
-        for line in range(12)+range(16,28):
-        #for line in [3]:
-            offset = line*2048
-            vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
-            v = Vbi(vbiraw)
-            c2 = c1 = c0 = time.time()
-            if v.find_offset_and_scale():
-                c2 = c1 = time.time()
-                if v.deconvolve():
-                    c2 = time.time()
-            sys.stderr.write("%f, %f\n" % (c1-c0, c2-c1))
-            
-
-      except IOError:
-        pass
+    map(do_file, listfiles(datapath))
 
 
 
