@@ -27,7 +27,7 @@ def distance(a, b):
 
 def check_all(target, max_diff, filename):
 
-    m,r = mrag("".join([chr(x) for x in target[:2]]))
+    ((m,r),e) = mrag(target[:2])
     if r == 0 or r > 24 or (target == ord(' ')).sum() > 32:
         sys.stdout.write(target)
         sys.stdout.flush()
@@ -51,13 +51,10 @@ def check_all(target, max_diff, filename):
                 counts[count>counts] = count[count>counts] 
             sys.stdout.write("".join([chr(x) for x in mode]))
             sys.stdout.flush()
-
-
-
             return
 
         packet = np.fromstring(packet, dtype=np.uint8)
-        if (m,r) == mrag("".join([chr(x) for x in packet[:2]])):
+        if ((m,r),e) == mrag(packet[:2]):
           if(distance(target, packet) <= max_diff):
             ans.append(packet)
             #sys.stdout.write("".join([chr(x) for x in packet]))
