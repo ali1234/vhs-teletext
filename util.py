@@ -107,6 +107,17 @@ hexbytes = [makeparity(ord(x)) for x in 'abcdefABCDEF0123456789']
 
 allbytes = range(256)
 
+days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+day1bytes = [makeparity(ord(x[0])) for x in days]
+day2bytes = [makeparity(ord(x[1])) for x in days]
+day3bytes = [makeparity(ord(x[2])) for x in days]
+
+month1bytes = [makeparity(ord(x[0])) for x in months]
+month2bytes = [makeparity(ord(x[1])) for x in months]
+month3bytes = [makeparity(ord(x[2])) for x in months]
+
 def setbyte(a, n, v):
     n += 1
     a[n*8:(n+1)*8] = 1&(v>>_le)

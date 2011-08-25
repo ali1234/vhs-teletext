@@ -6,16 +6,6 @@ import numpy as np
 
 from util import *
 
-# BBC packet 0 example:
-# 012345678901234567890123456789012345678901
-# xxyyyyyyyyCEEFAX 1 217 Wed 25 Dec 18:29/53
-# match1   "CEEFAX 1                  :  /  "
-# match2   "eeeeeeeeenhheullenneullennennenn"
-# e = exact
-# n = number
-# u = upper case
-# l = lower case
-
 class Finder(object):
     def __init__(self, match1, match2, pagepos):
         self.match1 = np.fromstring(match1, dtype = np.uint8)
@@ -35,6 +25,22 @@ class Finder(object):
                 self.possible_bytes.append(numberbytes)
             elif c == ord('h'):
                 self.possible_bytes.append(hexbytes)
+            elif c == ord('m'):
+                self.possible_bytes.append(numberbytes[1:9])
+            elif c >= ord('0') and c <= ord('9'):
+                self.possible_bytes.append(numberbytes[:c-ord('0')])
+            elif c == ord('D'):
+                self.possible_bytes.append(day1bytes)
+            elif c == ord('A'):
+                self.possible_bytes.append(day2bytes)
+            elif c == ord('Y'):
+                self.possible_bytes.append(day3bytes)
+            elif c == ord('M'):
+                self.possible_bytes.append(month1bytes)
+            elif c == ord('O'):
+                self.possible_bytes.append(month2bytes)
+            elif c == ord('N'):
+                self.possible_bytes.append(month3bytes)
             else:
                 self.possible_bytes.append(paritybytes)
 
@@ -57,6 +63,16 @@ class Finder(object):
                 (visual >= ord('0')) &
                 (visual <= ord('9'))).sum()
 
+    def findnumrange(self, visual, n):
+        return ((self.match2 == ord('0')+n) & 
+                (visual >= ord('0')) &
+                (visual <= ord('0')+n)).sum()
+
+    def findmag(self, visual):
+        return ((self.match2 == ord('m')) & 
+                (visual >= ord('1')) &
+                (visual <= ord('8'))).sum()
+
     def findhex(self, visual):
         return ((self.match2 == ord('h')) & 
                 (((visual >= ord('0')) & (visual <= ord('9'))) |
@@ -69,6 +85,10 @@ class Finder(object):
         rank += self.findupper(visual)*0.1
         rank += self.findlower(visual)*0.1
         rank += self.findnumber(visual)*0.2
+        rank += self.findnumrange(visual,2)*0.5
+        rank += self.findnumrange(visual,3)*0.3
+        rank += self.findnumrange(visual,5)*0.2
+        rank += self.findmag(visual)*0.2
         rank += self.findhex(visual)*0.1
         return rank
 
@@ -91,7 +111,7 @@ class Finder(object):
 
     
 BBC1 = Finder("CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
-              "eeeeeeeeennneullenneullennennenn", 9)
+              "eeeeeeeeemnneDAYe3neMONe"+"2ne5ne5n", 9)
 
 if __name__=='__main__':
 
