@@ -54,8 +54,43 @@ def unhamm16(d):
     return (a&0xf|((b&0xf)<<4),err)
 
 def mrag(d):
-    a = unhamm16(d)[0]
-    return (a&0x7, a>>3)
+    a = unhamm16(d)
+    return ((a[0]&0x7, a[0]>>3),a[1])
+
+def page(d):
+    return unhamm16(d)
+
+
+
+
+def hamming84(d):
+    d1 = d&1
+    d2 = (d>>1)&1
+    d3 = (d>>2)&1
+    d4 = (d>>3)&1
+
+    p1 = (1 + d1 + d3 + d4) & 1
+    p2 = (1 + d1 + d2 + d4) & 1
+    p3 = (1 + d1 + d2 + d3) & 1
+    p4 = (1 + p1 + d1 + p2 + d2 + p3 + d3 + d4) & 1
+
+    return (p1 | (d1<<1) | (p2<<2) | (d2<<3) 
+     | (p3<<4) | (d3<<5) | (p4<<6) | (d4<<7))
+
+def makemrag(m, r):
+    a = (m&0x7) | ((r&0x1) << 3)
+    b = r>>1
+    return np.array([hamming84(a), hamming84(b)], dtype=np.uint8)
+
+def makeparity(d):
+    d &= 0x7f
+    p = 1
+    t = d
+    for i in range(7):
+        p += t&1
+        t = t>>1
+    p &= 1
+    return d|(p<<7)
 
 
 _le = np.arange(0, 8, 1)
@@ -64,6 +99,11 @@ _be = np.arange(7, -1, -1)
 paritybytes = filter(lambda x: 1&np.sum(1&(x>>_le)), range(256))
 
 hammbytes = [2,21,47,56,73,94,100,115,140,155,161,182,199,208,234,253]
+
+upperbytes = [makeparity(ord(x)) for x in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
+lowerbytes = [makeparity(ord(x)) for x in 'abcdefghijklmnopqrstuvwxyz']
+numberbytes = [makeparity(ord(x)) for x in '0123456789']
+hexbytes = [makeparity(ord(x)) for x in 'abcdefABCDEF0123456789']
 
 allbytes = range(256)
 
