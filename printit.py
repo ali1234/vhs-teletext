@@ -9,7 +9,7 @@
 import sys
 import numpy as np
 
-from util import mrag
+from util import mrag, page
 
 BLACK = '\033[30m'
 RED = '\033[31m'
@@ -165,10 +165,11 @@ pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:
 footer = """</pre></body></html>"""
 
 def do_print(tt, html=False):
-    (m, r) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+    ((m, r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
     print "%1d %2d" % (m, r),
     if r == 0:
-        print "       ",
+        (p,e) = page(np.fromstring(tt[2:4], dtype=np.uint8))
+        print "  P%d%02x " % (m,p),
         sys.stdout.write(printit(tt[10:], html).encode('utf8'))
         sys.stdout.write('\n')
     else:
@@ -191,7 +192,7 @@ if __name__=='__main__':
             if len(tt) < 42:
                 exit(0)
             else:
-                m,r = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+                ((m,r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
                 if r < 25:
                     do_print(tt, html)
             sys.stdout.flush()
