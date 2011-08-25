@@ -14,6 +14,7 @@
 # Usage: cat <data> | ./demux.py <magazines> | ./print.py
 
 import sys
+import numpy as np
 
 from util import mrag
 
@@ -25,7 +26,7 @@ if __name__=='__main__':
         tt = sys.stdin.read(42)
         if len(tt) < 42:
             exit(0)
-        m,r = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+        ((m,r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
         if m in showmags:
             sys.stdout.write(tt)
             sys.stdout.flush()
