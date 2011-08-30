@@ -21,8 +21,10 @@ class Finder(object):
         self.match2 = np.fromstring(match2, dtype = np.uint8)
         self.passrank = (5+self.calculaterank(self.match1))*0.5
         self.pagepos = pagepos
-        self.possible_bytes = [hammbytes]*2 + [allbytes]*8
-        for n in range(32):
+
+        self.possible_bytes = []
+
+        for n in range(42):
             c = self.match2[n]
             if c == ord('e'):
                 self.possible_bytes.append([makeparity(self.match1[n])])
@@ -50,6 +52,8 @@ class Finder(object):
                 self.possible_bytes.append(month2bytes)
             elif c == ord('N'):
                 self.possible_bytes.append(month3bytes)
+            elif c == ord('H'):
+                self.possible_bytes.append(hammbytes)
             else:
                 self.possible_bytes.append(paritybytes)
 
@@ -107,20 +111,20 @@ class Finder(object):
         (self.m,self.r),e = mrag(self.packet[:2])
         if self.r == 0:
             rank += 5
-        rank += self.calculaterank(self.packet[10:]&0x7f)
+        rank += self.calculaterank(self.packet&0x7f)
         return (rank > self.passrank)
 
     def fixup(self):
         self.packet[0:2] = makemrag(self.m, 0)
-        for n in range(0, 32):
+        for n in range(0, 42):
             if self.match2[n] == ord('e'):
-                self.packet[n+10] = makeparity(self.match1[n])
+                self.packet[n] = makeparity(self.match1[n])
         return "".join([chr(x) for x in self.packet])
        
 
     
-BBC1 = Finder("CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
-              "eeeeeeeeemnneDAYe3neMONe"+"2ne5ne5n", 9)
+BBC1 = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
+              "HHHHHHHHHHeeeeeeeeemnneDAYe3neMONe"+"2ne5ne5n", 9)
 
 if __name__=='__main__':
 
