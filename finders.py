@@ -39,7 +39,7 @@ class Finder(object):
             elif c == ord('m'):
                 self.possible_bytes.append(numberbytes[1:9])
             elif c >= ord('0') and c <= ord('9'):
-                self.possible_bytes.append(numberbytes[:c-ord('0')])
+                self.possible_bytes.append(numberbytes[:1+c-ord('0')])
             elif c == ord('D'):
                 self.possible_bytes.append(day1bytes)
             elif c == ord('A'):
