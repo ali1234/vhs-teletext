@@ -21,7 +21,7 @@ from scipy.optimize import fminbound
 
 import pylab
 
-from util import paritybytes, setbyte, normalise, hammbytes, allbytes
+from util import paritybytes, setbyte, normalise, hammbytes, allbytes, mrag, notzero
 from printit import do_print
 
 from finders import *
@@ -178,39 +178,60 @@ class Vbi(object):
         self.possible_bytes = [masked(b,n) or b for n,b in enumerate(possible_bytes)]
         self.half_possible_bytes = [list(set([x&0x1f for x in b])) for b in self.possible_bytes]
 
+    def _deconvolve_make_diff(self):
+        self.count += 1
+        a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
+        a = normalise(a)
+        return np.sum(np.square(a-self.target))
+
+    def _deconvolve_pass(self, first=0, last=42):
+        for n in range(first, last):
+            nb = self.possible_bytes[n]
+            
+            if len(nb) == 1:
+                setbyte(self.guess, n+3, nb[0])
+                self._bytes[n] = nb[0]
+            else:
+                if n < 41:
+                    nnb = self.half_possible_bytes[n+1]
+                else:
+                    nnb = [0]
+                ans = []
+                for b1 in nb:
+                    setbyte(self.guess, n+3, b1)
+                    for b2 in nnb:
+                        setbyte(self.guess, n+4, b2)
+                        ans.append((self._deconvolve_make_diff(),b1,b2))
+
+                ans.sort()
+                setbyte(self.guess, n+3, ans[0][1])
+                self._bytes[n] = ans[0][1]
+
     def _deconvolve(self):
-
-        #nb = self.possible_bytes[0]
-
         for it in range(10): # TWEAK: maximum number of iterations.
             self.it += 1
-            for n in range(42):
-                nb = self.possible_bytes[n]
-                
-                if len(nb) == 1:
-                    setbyte(self.guess, n+3, nb[0])
-                    self._bytes[n] = nb[0]
-                else:
-                    if n < 41:
-                        nnb = self.half_possible_bytes[n+1]
-                    else:
-                        nnb = [0]
-                    ans = []
-                    for b1 in nb:
-                        setbyte(self.guess, n+3, b1)
-                        for b2 in nnb:
-                            self.count += 1
-                            setbyte(self.guess, n+4, b2)
-                            a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
-                            #a = np.clip(a, self.black*self.scale, 256*self.scale)
-                            a = normalise(a)
-                            diff = np.sum(np.square(a-self.target))
-                            ans.append((diff,b1,b2))
+            self._deconvolve_pass()
+            # if this iteration didn't produce a change in the answer
+            # then the next one won't either, so stop.
+            if (self._bytes == self._oldbytes).all():
+                break
+            self._oldbytes = self._bytes
 
-                    ans.sort()
-                    setbyte(self.guess, n+3, ans[0][1])
-                    self._bytes[n] = ans[0][1]
+    def _nzdeconvolve(self):
+        for it in range(10): # TWEAK: maximum number of iterations.
+            self.it += 1
+            ans=[]
+            for nb in notzero:
+                setbyte(self.guess, 3, nb[0])
+                setbyte(self.guess, 4, nb[1])
+                ans.append((self._deconvolve_make_diff(),nb))
+            ans.sort()
+            setbyte(self.guess, 3, ans[0][1][0])
+            setbyte(self.guess, 4, ans[0][1][1])
+            self._bytes[0] = ans[0][1][0]
+            self._bytes[1] = ans[0][1][0]
 
+            self._deconvolve_pass(first=2)
             # if this iteration didn't produce a change in the answer
             # then the next one won't either, so stop.
             if (self._bytes == self._oldbytes).all():
@@ -238,9 +259,22 @@ class Vbi(object):
                 packet = "".join([chr(x) for x in self._bytes])
                 F.find(packet)
                 packet = F.fixup()
-                break
+                return packet
+
+        # if the packet did not match any of the finders then it isn't 
+        # a packet 0. if the packet still claims to be a packet 0 it will mess
+        # up the page splitter. so redo the deconvolution but with packet 0
+        # header removed from possible bytes.
+        ((m,r),e) = mrag(self._bytes[:2])
+        if r == 0:
+            sys.stderr.write("packet falsely claimed to be packet 0\n");
+            sys.stderr.flush()
+            self._nzdeconvolve()
+            packet = "".join([chr(x) for x in self._bytes])
 
         return packet
+            
+        
 
 def do_file(filename):
   try:
@@ -263,7 +297,7 @@ def do_file(filename):
     pass
 
 def listfiles(datapath):
-    for frame in range(0, 200000, 1):
+    for frame in range(781, 200000, 1):
         frame = "%08d" % frame
         yield datapath+'/'+frame+'.vbi'
 

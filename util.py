@@ -118,6 +118,9 @@ month1bytes = [makeparity(ord(x[0])) for x in months]
 month2bytes = [makeparity(ord(x[1])) for x in months]
 month3bytes = [makeparity(ord(x[2])) for x in months]
 
+# possible values for first two bytes of packets that are not r==0
+notzero = [makemrag(m, r) for m in range(8) for r in range(1,32)]
+
 def setbyte(a, n, v):
     n += 1
     a[n*8:(n+1)*8] = 1&(v>>_le)
