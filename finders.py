@@ -16,13 +16,14 @@ import numpy as np
 from util import *
 
 class Finder(object):
-    def __init__(self, match1, match2, pagepos):
+    def __init__(self, match1, match2, name="", pagepos=-1, row=-1):
         self.match1 = np.fromstring(match1, dtype = np.uint8)
         self.match2 = np.fromstring(match2, dtype = np.uint8)
         self.passrank = (5+self.calculaterank(self.match1))*0.5
         self.pagepos = pagepos
-
+        self.row = row
         self.possible_bytes = []
+        self.name = name
 
         for n in range(42):
             c = self.match2[n]
@@ -32,8 +33,6 @@ class Finder(object):
                 self.possible_bytes.append(upperbytes)
             elif c == ord('l'):
                 self.possible_bytes.append(lowerbytes)
-            elif c == ord('n'):
-                self.possible_bytes.append(numberbytes)
             elif c == ord('h'):
                 self.possible_bytes.append(hexbytes)
             elif c == ord('m'):
@@ -54,8 +53,12 @@ class Finder(object):
                 self.possible_bytes.append(month3bytes)
             elif c == ord('H'):
                 self.possible_bytes.append(hammbytes)
-            else:
+            elif c == ord('d'):
+                self.possible_bytes.append(dcbytes)
+            elif c == ord('p'):
                 self.possible_bytes.append(paritybytes)
+            else:
+                self.possible_bytes.append(allbytes)
 
     def findexact(self, visual):
         return ((self.match2 == ord('e')) & 
@@ -72,14 +75,10 @@ class Finder(object):
                 (visual <= ord('z'))).sum()
 
     def findnumber(self, visual):
-        return ((self.match2 == ord('n')) & 
+        return ((self.match2 >= ord('0')) & 
+                (self.match2 <= ord('9')) &
                 (visual >= ord('0')) &
-                (visual <= ord('9'))).sum()
-
-    def findnumrange(self, visual, n):
-        return ((self.match2 == ord('0')+n) & 
-                (visual >= ord('0')) &
-                (visual <= ord('0')+n)).sum()
+                (visual <= self.match2)).sum()
 
     def findmag(self, visual):
         return ((self.match2 == ord('m')) & 
@@ -98,9 +97,6 @@ class Finder(object):
         rank += self.findupper(visual)*0.1
         rank += self.findlower(visual)*0.1
         rank += self.findnumber(visual)*0.2
-        rank += self.findnumrange(visual,2)*0.5
-        rank += self.findnumrange(visual,3)*0.3
-        rank += self.findnumrange(visual,5)*0.2
         rank += self.findmag(visual)*0.2
         rank += self.findhex(visual)*0.1
         return rank
@@ -109,22 +105,34 @@ class Finder(object):
         rank = 0
         self.packet = np.fromstring(packet, dtype=np.uint8)
         (self.m,self.r),e = mrag(self.packet[:2])
-        if self.r == 0:
+        if self.r == self.row:
             rank += 5
         rank += self.calculaterank(self.packet&0x7f)
         return (rank > self.passrank)
 
     def fixup(self):
-        self.packet[0:2] = makemrag(self.m, 0)
+        self.packet[0:2] = makemrag(self.m, self.row)
         for n in range(0, 42):
             if self.match2[n] == ord('e'):
                 self.packet[n] = makeparity(self.match1[n])
         return "".join([chr(x) for x in self.packet])
-       
 
-    
+
+   
 BBC1 = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
-              "HHHHHHHHHHeeeeeeeeemnneDAYe3neMONe"+"2ne5ne5n", 9)
+              "HHHHHHHHHHeeeeeeeeemhheDAYe39eMONe"+"29e59e59", 
+              name="BBC1 Packet 0", pagepos=9, row=0)
+
+# there are two types of broadcast packet. one has 8/4 PDC data and the other
+# has no encoding (not even parity). the latter is almost impossible to 
+# deconvolve so we try for the former to speed up the finder.
+BBC1_BSD = Finder("\x15\xea \x15\x15\xea\xea\xea\x5e              BBC1 CEEFAX        ",
+                  "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeeeeeeeeeeeeeeeeeee", 
+                  name="BBC1 Broadcast Service Data", row=30)
+
+Generic_BSD = Finder("                       BBC1 CEEFAX        ",
+                     "HHdHHHHHH             pppppppppppppppppppp", 
+                     name="Broadcast Service Data", row=30)
 
 if __name__=='__main__':
 
