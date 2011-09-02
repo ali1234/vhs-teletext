@@ -19,7 +19,7 @@
 import sys
 import numpy as np
 
-from util import mrag, page
+from util import mrag, page, unhamm84, subcode
 
 BLACK = '\033[30m'
 RED = '\033[31m'
@@ -176,15 +176,27 @@ footer = """</pre></body></html>"""
 
 def do_print(tt, html=False):
     ((m, r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
-    print "%1d %2d" % (m, r),
+    sys.stdout.write("%1d %2d" % (m, r))
     if r == 0:
         (p,e) = page(np.fromstring(tt[2:4], dtype=np.uint8))
-        print "  P%d%02x " % (m,p),
+        sys.stdout.write("   P%1d%02x " % (m,p))
         sys.stdout.write(printit(tt[10:], html).encode('utf8'))
-        sys.stdout.write('\n')
+    elif r== 30: # broadcast service data
+        # designation code
+        (d,e) = unhamm84(ord(tt[2]))
+        # initial page
+        (p,e) = page(np.fromstring(tt[3:5], dtype=np.uint8))
+        ((s,m),e) = subcode(np.fromstring(tt[5:9], dtype=np.uint8))
+        sys.stdout.write(" %1d I%1d%02x:%04x " % (d, m, p, s))
+        if d&2:
+            sys.stdout.write("(PDC) ")
+        else:
+            sys.stdout.write("(NET) ")
+        sys.stdout.write(printit(tt[22:], html).encode('utf8'))
     else:
         sys.stdout.write(printit(tt[2:], html).encode('utf8'))
-        sys.stdout.write('\n')
+
+    sys.stdout.write('\n')
     sys.stdout.flush()
 
 if __name__=='__main__':
@@ -203,8 +215,7 @@ if __name__=='__main__':
                 exit(0)
             else:
                 ((m,r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
-                if r < 25:
-                    do_print(tt, html)
+                do_print(tt, html)
             sys.stdout.flush()
 
         if html:
