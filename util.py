@@ -11,6 +11,7 @@
 # * GNU General Public License for more details.
 
 import numpy as np
+import datetime
 
 hammtab = [
     0x0101, 0x100f, 0x0001, 0x0101, 0x100f, 0x0100, 0x0101, 0x100f,
@@ -53,6 +54,10 @@ def unhamm16(d):
     err = a+b
     return (a&0xf|((b&0xf)<<4),err)
 
+def unhamm84(d):
+    a = hammtab[d]
+    return (a&0xf,a>>4)
+
 def mrag(d):
     a = unhamm16(d)
     return ((a[0]&0x7, a[0]>>3),a[1])
@@ -60,8 +65,20 @@ def mrag(d):
 def page(d):
     return unhamm16(d)
 
+def subcode(d):
+    s1,e1 = unhamm84(d[0])
+    s2,e2 = unhamm84(d[1])
+    s3,e3 = unhamm84(d[2])
+    s4,e4 = unhamm84(d[3])
 
+    m = (s2>>3) | ((s4>>1)&0x6)
+    
+    s2 &=0x7
+    s4 &=0x3
 
+    subcode = s1 | (s2<<4) | (s3<<8) | (s4<<12)
+
+    return (subcode,m),(e1 or e3)    
 
 def hamming84(d):
     d1 = d&1
@@ -118,8 +135,11 @@ month1bytes = [makeparity(ord(x[0])) for x in months]
 month2bytes = [makeparity(ord(x[1])) for x in months]
 month3bytes = [makeparity(ord(x[2])) for x in months]
 
-# possible values for first two bytes of packets that are not r==0
-notzero = [makemrag(m, r) for m in range(8) for r in range(1,32)]
+# possible values for first two bytes of packets that are not r==0 or r==30
+notzero = [makemrag(m, r) for m in range(8) for r in (range(1,30)+[31])]
+
+# possible bytes for designation code (0-3)
+dcbytes = [hamming84(d) for d in range(4)]
 
 def setbyte(a, n, v):
     n += 1
