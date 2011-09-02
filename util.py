@@ -65,7 +65,7 @@ def mrag(d):
 def page(d):
     return unhamm16(d)
 
-def subcode(d):
+def subcode_bcd(d):
     s1,e1 = unhamm84(d[0])
     s2,e2 = unhamm84(d[1])
     s3,e3 = unhamm84(d[2])
@@ -78,7 +78,13 @@ def subcode(d):
 
     subcode = s1 | (s2<<4) | (s3<<8) | (s4<<12)
 
-    return (subcode,m),(e1 or e3)    
+    return (subcode,m),(e1 or e2 or e3 or e4)    
+
+def subcode(d):
+    ((s,c),e) = subcode_bcd(d[:6])
+    (c1,e1) = unhamm16(d[6:8])
+    c |= c1<<3
+    return ((s,c),(e or e1))
 
 def hamming84(d):
     d1 = d&1

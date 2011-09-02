@@ -19,7 +19,7 @@
 import sys
 import numpy as np
 
-from util import mrag, page, unhamm84, subcode
+from util import mrag, page, unhamm84, subcode, subcode_bcd
 
 BLACK = '\033[30m'
 RED = '\033[31m'
@@ -179,14 +179,16 @@ def do_print(tt, html=False):
     sys.stdout.write("%1d %2d" % (m, r))
     if r == 0:
         (p,e) = page(np.fromstring(tt[2:4], dtype=np.uint8))
+        ((s,c),e) = subcode_bcd(np.fromstring(tt[4:10], dtype=np.uint8))
         sys.stdout.write("   P%1d%02x " % (m,p))
         sys.stdout.write(printit(tt[10:], html).encode('utf8'))
-    elif r== 30: # broadcast service data
+        sys.stdout.write(" %04x %x" % (s,c))
+    elif r == 30: # broadcast service data
         # designation code
         (d,e) = unhamm84(ord(tt[2]))
         # initial page
         (p,e) = page(np.fromstring(tt[3:5], dtype=np.uint8))
-        ((s,m),e) = subcode(np.fromstring(tt[5:9], dtype=np.uint8))
+        ((s,m),e) = subcode_bcd(np.fromstring(tt[5:9], dtype=np.uint8))
         sys.stdout.write(" %1d I%1d%02x:%04x " % (d, m, p, s))
         if d&2:
             sys.stdout.write("(PDC) ")
@@ -215,6 +217,7 @@ if __name__=='__main__':
                 exit(0)
             else:
                 ((m,r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+                #if r == 0 or r == 30:
                 do_print(tt, html)
             sys.stdout.flush()
 
