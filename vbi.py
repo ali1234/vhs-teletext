@@ -254,6 +254,8 @@ class Vbi(object):
 
         for F in self.finders:
             if F.find(packet):
+                sys.stderr.write("matched by finder "+F.name+"\n");
+                sys.stderr.flush()               
                 self.make_possible_bytes(F.possible_bytes)
                 self._deconvolve()
                 packet = "".join([chr(x) for x in self._bytes])
@@ -262,9 +264,9 @@ class Vbi(object):
                 return packet
 
         # if the packet did not match any of the finders then it isn't 
-        # a packet 0. if the packet still claims to be a packet 0 it will mess
-        # up the page splitter. so redo the deconvolution but with packet 0
-        # header removed from possible bytes.
+        # a packet 0 (or 30). if the packet still claims to be a packet 0 it 
+        # will mess up the page splitter. so redo the deconvolution but with 
+        # packet 0 (and 30) header removed from possible bytes.
         ((m,r),e) = mrag(self._bytes[:2])
         if r == 0:
             sys.stderr.write("packet falsely claimed to be packet 0\n");
@@ -283,7 +285,7 @@ def do_file(filename):
     for line in range(12)+range(16,28):
         offset = line*2048
         vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
-        v = Vbi(vbiraw, [BBC1])
+        v = Vbi(vbiraw, [BBC1, BBC1_BSD])
         c2 = c1 = c0 = time.time()
         v.find_offset_and_scale()
         c1 = time.time()
