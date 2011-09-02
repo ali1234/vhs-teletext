@@ -268,8 +268,8 @@ class Vbi(object):
         # will mess up the page splitter. so redo the deconvolution but with 
         # packet 0 (and 30) header removed from possible bytes.
         ((m,r),e) = mrag(self._bytes[:2])
-        if r == 0:
-            sys.stderr.write("packet falsely claimed to be packet 0\n");
+        if r == 0 or r == 30:
+            sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
             sys.stderr.flush()
             self._nzdeconvolve()
             packet = "".join([chr(x) for x in self._bytes])
