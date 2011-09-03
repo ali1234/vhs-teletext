@@ -17,6 +17,7 @@
 # cat <data> | ./print.py
 
 import sys
+import re
 import numpy as np
 
 from util import mrag, page, unhamm84, subcode, subcode_bcd
@@ -110,6 +111,13 @@ html_colours = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'w
 def setfgbg_html(f, b):
     return '</span><span style="color:%s; background:%s;">' % (html_colours[f], html_colours[b])
 
+def linkify(html):
+    e = '([^0-9])([0-9]{3})([^0-9])'
+    def repl(match):
+        return '%s<a href="%s.html">%s</a>%s' % (match.group(1), match.group(2), match.group(2), match.group(3))
+    p = re.compile(e)
+    return p.sub(repl, html)
+
 def ttext_html(data):
     fg = 7
     bg = 0
@@ -149,7 +157,7 @@ def ttext_html(data):
         else:
             output += ttchar(chr(c), mosaic, solid)
     output += '</span>'
-    return output
+    return linkify(output)
 
 
 def printit(bits, html=True):
@@ -168,7 +176,8 @@ def printit(bits, html=True):
 
 header = """<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>
 @font-face {font-family: teletext2; src: url('teletext2.ttf');}
-pre {font-family:teletext2;font-size:20px;line-height:20px;color:red;background:black;}
+pre {font-family:teletext2;font-size:20px;line-height:20px;color:white;background:black;}
+a {color: inherit; text-decoration: inherit;} a:hover {color: orange;} a:active {color: red;}
 </style></head><body><pre>
 """
 
