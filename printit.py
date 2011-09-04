@@ -204,6 +204,15 @@ def do_print(tt, html=False):
         else:
             sys.stdout.write("(NET) ")
         sys.stdout.write(printit(tt[22:], html).encode('utf8'))
+    elif r == 27: # broadcast service data
+        # designation code
+        (d,e) = unhamm84(ord(tt[2]))
+        sys.stdout.write(" %1d " % (d))
+        for n in range(6):
+            nn = n*6
+            (p,e) = page(np.fromstring(tt[nn+3:nn+5], dtype=np.uint8))
+            ((s,m),e) = subcode_bcd(np.fromstring(tt[nn+5:nn+9], dtype=np.uint8))
+            sys.stdout.write(" %1d%02x:%04x " % (m,p,s))
     else:
         sys.stdout.write(printit(tt[2:], html).encode('utf8'))
 
