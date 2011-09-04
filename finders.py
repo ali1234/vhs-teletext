@@ -130,8 +130,8 @@ BBC1_BSD = Finder("\x15\xea \x15\x15\xea\xea\xea\x5e              BBC1 CEEFAX   
                   "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeeeeeeeeeeeeeeeeeee", 
                   name="BBC1 Broadcast Service Data", row=30)
 
-Generic_BSD = Finder("                       BBC1 CEEFAX        ",
-                     "HHdHHHHHH             pppppppppppppppppppp", 
+Generic_BSD = Finder(" \xea                     BBC1 CEEFAX        ",
+                     "He"+"dHHHHHH             pppppppppppppppppppp", 
                      name="Broadcast Service Data", row=30)
 
 if __name__=='__main__':
