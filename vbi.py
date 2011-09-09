@@ -277,6 +277,11 @@ class Vbi(object):
             sys.stderr.flush()
             self._nzdeconvolve()
             packet = "".join([chr(x) for x in self._bytes])
+        # if it's a link packet, it is completely hammed
+        elif r == 27:
+            self.make_possible_bytes([hammbytes]*42)
+            self._deconvolve()
+            packet = "".join([chr(x) for x in self._bytes])
 
         return packet
             
