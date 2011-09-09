@@ -1,12 +1,16 @@
 body {background: black;}
 
-.subpage {white-space: pre; font-family: teletext2; src: url('teletext2.ttf');
-	font-size:20px;line-height:20px;color:white;background:black;float:left;margin: 4px 4px 4px 4px;border: solid black 10px; border-left: 0px;}
+a {color: inherit; text-decoration: inherit;}
+a:hover {color: orange;} a:active {color: red;}
 
-.f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;} 
+.subpage {float:left; white-space: pre; color:white;background:black;
+	font-family: teletext2; src: url('teletext2.ttf');
+	font-size:20px; line-height:20px;
+	border: solid black 10px; border-left: 0px;}
+
+.f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;}
 .f4{color:blue;} .f5{color:magenta;} .f6{color:cyan;} .f7{color:white;}
 
-.b0{background:black;} .b1{background:red;} .b2{background:#00ff00;} .b3{background:yellow;} 
+.b0{background:black;} .b1{background:red;} .b2{background:#00ff00;} .b3{background:yellow;}
 .b4{background:blue;} .b5{background:magenta;} .b6{background:cyan;} .b7{background:white;}
 
-a {color: inherit; text-decoration: inherit;} a:hover {color: orange;} a:active {color: red;}
