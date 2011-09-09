@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 
 import re
-from util import page, subcode_bcd
+from util import mrag, page, subcode_bcd, unhamm84
 
 class Printer(object):
 
@@ -23,7 +24,6 @@ class Printer(object):
             nn = n*6
             (p,e) = page(data[nn+3:nn+5])
             ((s,m),e) = subcode_bcd(data[nn+5:nn+9])
-            print m, mag
             m = (mag^m)&0x7
             if m == 0:
                 m = 8
@@ -34,9 +34,11 @@ class Printer(object):
             return unichr(c+0xee00) if self.solid else unichr(ord(c)+0xede0)
         else:
             if c == ord('#'):
-                return unichr(ord('#'))
+                return unichr(0xa3) # pound sign
             elif c == ord('_'):
                 return unichr(ord('#'))
+            elif c == ord('`'):
+                return unichr(0x2014) # em dash
             else:
                 return unichr(c)
 
@@ -116,5 +118,65 @@ class Printer(object):
     def string_ansi(self):
         head = self.setstyle(html=False, fg=7, bg=0)
         body = "".join([self.transform(x, html=False) for x in self.tt])
-        return head+"".body.encode('utf8')+'\033[0m'
+        return head+body.encode('utf8')+'\033[0m'
+
+
+
+
+
+
+
+
+def do_print(tt):
+    ret = ""
+    ((m, r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+    ret += "%1d %2d" % (m, r)
+    if r == 0:
+        (p,e) = page(np.fromstring(tt[2:4], dtype=np.uint8))
+        ((s,c),e) = subcode_bcd(np.fromstring(tt[4:10], dtype=np.uint8))
+        ret += "   P%1d%02x " % (m,p)
+        ret += Printer(tt[10:]).string_ansi()
+        ret += " %04x %x" % (s,c)
+    elif r == 30: # broadcast service data
+        # designation code
+        (d,e) = unhamm84(tt[2])
+        # initial page
+        (p,e) = page(np.fromstring(tt[3:5], dtype=np.uint8))
+        ((s,m),e) = subcode_bcd(np.fromstring(tt[5:9], dtype=np.uint8))
+        ret += " %1d I%1d%02x:%04x " % (d, m, p, s)
+        if d&2:
+            ret += "(PDC) "
+        else:
+            ret += "(NET) "
+        ret += Printer(tt[22:]).string_ansi()
+    elif r == 27: # broadcast service data
+        # designation code
+        (d,e) = unhamm84(tt[2])
+        ret += " %1d " % (d)
+        for n in range(6):
+            nn = n*6
+            (p,e) = page(np.fromstring(tt[nn+3:nn+5], dtype=np.uint8))
+            ((s,m),e) = subcode_bcd(np.fromstring(tt[nn+5:nn+9], dtype=np.uint8))
+            ret += " %1d%02x:%04x " % (m,p,s)
+    else:
+        ret += Printer(tt[2:]).string_ansi()
+
+    return ret
+
+
+
+if __name__=='__main__':
+    import sys
+    import numpy as np
+
+    while(True):
+        tt = sys.stdin.read(42)
+        if len(tt) < 42:
+            exit(0)
+        else:
+            tt = np.fromstring(tt, dtype=np.uint8)
+            ((m,r),e) = mrag(tt[:2])
+            #if r == 0 or r == 30:
+            print do_print(tt)
+
 
