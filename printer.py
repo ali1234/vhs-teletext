@@ -16,13 +16,17 @@ class Printer(object):
         # ignored for now
         self.codepage = codepage
 
-    def set_fasttext(self, data):
+    def set_fasttext(self, data, mag):
         self.fasttext = True
         self.links = []
         for n in range(4):
             nn = n*6
             (p,e) = page(data[nn+3:nn+5])
             ((s,m),e) = subcode_bcd(data[nn+5:nn+9])
+            print m, mag
+            m = (mag^m)&0x7
+            if m == 0:
+                m = 8
             self.links.append("%1d%02x" % (m,p))
 
     def ttchar(self, c):

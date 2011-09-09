@@ -40,7 +40,7 @@ class Page(object):
         for i in range(2,26):
             p = Printer(self.array[i][2:])
             if i == 25 and self.rows[1] == 27:
-                p.set_fasttext(self.array[1])
+                p.set_fasttext(self.array[1], self.m)
             body.append(p.string_html())
 
         head = '<div class="subpage" id="%d">' % self.s
