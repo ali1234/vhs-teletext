@@ -104,7 +104,7 @@ class Finder(object):
     def find(self, packet):
         rank = 0
         self.packet = np.fromstring(packet, dtype=np.uint8)
-        (self.m,self.r),e = mrag(self.packet[:2])
+        (self.m,self.r),self.me = mrag(self.packet[:2])
         if self.r == self.row:
             rank += 5
         rank += self.calculaterank(self.packet&0x7f)
@@ -117,11 +117,22 @@ class Finder(object):
                 self.packet[n] = makeparity(self.match1[n])
         return "".join([chr(x) for x in self.packet])
 
-
+    def check_page_info(self):
+        self.p,self.pe = page(self.packet[2:4])
+        
+        hpage = [int(chr(self.packet[n+self.pagepos]&0x7f), 16) for n in range(3)]
+        self.hm = hpage[0]
+        self.hp = (hpage[1]<<4)|hpage[2]
+        self.me = (self.hm != self.m) and self.me
+        self.pe = (self.hp != self.p) and self.pe
+        #if self.me or self.pe:
+        #    print("P%1d%02x " % (self.m,self.p)),
+        #    print("P%1d%02x " % (self.hm,self.hp))
+                    
    
 BBC1 = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
               "HHHHHHHHHHeeeeeeeeemhheDAYe39eMONe"+"29e59e59", 
-              name="BBC1 Packet 0", pagepos=9, row=0)
+              name="BBC1 Packet 0", pagepos=19, row=0)
 
 # there are two types of broadcast packet. one has 8/4 PDC data and the other
 # has no encoding (not even parity). the latter is almost impossible to 
@@ -143,5 +154,4 @@ if __name__=='__main__':
         if len(tt) < 42:
             exit(0)
         if F.find(tt):
-            sys.stdout.write(F.fixup())
-            sys.stdout.flush()
+            print "found"
