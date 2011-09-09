@@ -1,5 +1,6 @@
 
 import re
+from util import page, subcode_bcd
 
 class Printer(object):
 
@@ -11,11 +12,18 @@ class Printer(object):
         self.mosaic = False
         self.solid = True
         self.fasttext = False
+        self.flinkopen = False
         # ignored for now
         self.codepage = codepage
 
     def set_fasttext(self, data):
         self.fasttext = True
+        self.links = []
+        for n in range(4):
+            nn = n*6
+            (p,e) = page(data[nn+3:nn+5])
+            ((s,m),e) = subcode_bcd(data[nn+5:nn+9])
+            self.links.append("%1d%02x" % (m,p))
 
     def ttchar(self, c):
         if self.mosaic and (c < ord('@') or c > ord('_')):
@@ -33,7 +41,18 @@ class Printer(object):
 
     def setstyle(self, html, fg=None, bg=None):
         if html:
-            return '</span>'+self.htmlspanstyle()
+            link = ''
+            linkclose = ''
+            if self.fasttext:
+                if self.flinkopen:
+                    linkclose = '</a>'
+                    self.flinkopen = False
+                if self.fg in [1,2,3,6]:
+                    link = '<a href="%s.html">' % self.links[[1,2,3,6].index(self.fg)]
+                    self.flinkopen = True
+                
+            return linkclose+'</span>'+self.htmlspanstyle()+link
+
         else:
             return '\033[3%dm\033[4%dm' % ((fg or self.fg), (bg or self.bg))
 
@@ -84,7 +103,8 @@ class Printer(object):
         body = "".join([self.transform(x, html=True) for x in self.tt])
         foot = '</span>'
         if self.fasttext:
-            pass
+            if self.flinkopen:
+                foot += '</a>'
         else:
             body = self.linkify(body)
         return head+body.encode('utf8')+foot+'\n'
