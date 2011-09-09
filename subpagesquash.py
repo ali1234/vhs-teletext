@@ -3,16 +3,15 @@
 import sys, os
 import numpy as np
 
-from printit import do_print
 from util import subcode_bcd, mrag, page
-from printer import Printer
+from printer import Printer, do_print
 
 class Page(object):
     rows = np.array([0, 27, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24])
     def __init__(self, a):
         
         self.array = a.reshape((26,42))
-        #do_print("".join([chr(x) for x in self.array[0]]))
+        #do_print(self.array[0])
         ((self.m,self.r),e) = mrag(self.array[0][:2])
         (self.p,e) = page(self.array[0][2:4])
         (self.s,self.c),self.e = subcode_bcd(self.array[0][4:10])
@@ -27,7 +26,7 @@ class Page(object):
     def hamming(self, other):
         h = (self.array != other.array).sum(axis=1)
         h *= self.goodrows
-        return (h < 20).all() and h.sum() < 200
+        return (h < 30).all() and h.sum() < 300
         #return h.sum() < 200
 
     def to_html(self):
@@ -70,6 +69,9 @@ class Squasher(object):
 
         self.subcodes = self.guess_subcodes()
         self.subcode_count = len(self.subcodes)
+
+        self.m = self.pages[0].m
+        self.p = self.pages[0].p
 
         unique_pages = self.hamming()
         squashed_pages = []
@@ -120,8 +122,8 @@ class Squasher(object):
         sorttmp.sort(reverse=True)
         unique_pages = [x[1] for x in sorttmp]
 
-        if len(unique_pages) > self.subcode_count:
-            unique_pages = unique_pages[:self.subcode_count]
+        #if len(unique_pages) > self.subcode_count:
+        #    unique_pages = unique_pages[:self.subcode_count]
         self.print_this = (len(unique_pages) != self.subcode_count)
 
         return unique_pages
@@ -140,7 +142,7 @@ class Squasher(object):
         final = mode.reshape((26,42))
         #if self.print_this:
         #  for i in [0]+range(2,26):
-        #    do_print("".join([chr(x) for x in final[i]]))
+        #    do_print(final[i]])
         return final
 
     def to_str(self):
@@ -165,11 +167,20 @@ def main_work_subdirs(gl):
 if __name__=='__main__':
     indir = sys.argv[1]
     outdir = sys.argv[2]
-    of = file(outdir, 'wb')
+
+    outpath = os.path.join('.', outdir)
+    if not os.path.isdir(outpath):
+        os.makedirs(outpath)
+
     for root, dirs, files in os.walk(indir):
         dirs.sort()
         files.sort()
         for f in files:
             s = Squasher(os.path.join('.', root, f))
+            m = s.m
+            if m == 0:
+                m = 8
+            outfile = "%d%02x.html" % (m, s.p)
+            of = file(os.path.join(outpath, outfile), 'wb')
             of.write(s.to_html())
-            exit(0)
+
