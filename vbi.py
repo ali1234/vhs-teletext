@@ -267,6 +267,10 @@ class Vbi(object):
         # a packet 0 (or 30). if the packet still claims to be a packet 0 it 
         # will mess up the page splitter. so redo the deconvolution but with 
         # packet 0 (and 30) header removed from possible bytes.
+
+        # note: this doesn't work. i am not sure why. a packet in 63322
+        # does not match the finders but still passes through this next check
+        # with r=0. which should be impossible.
         ((m,r),e) = mrag(self._bytes[:2])
         if r == 0 or r == 30:
             sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
@@ -303,7 +307,7 @@ def listfiles(datapath):
         frame = "%08d" % frame
         yield datapath+'/'+frame+'.vbi'
 
-
+#../0008//00063322.vbi
 if __name__ == '__main__':
     datapath = sys.argv[1]
     map(do_file, listfiles(datapath))
