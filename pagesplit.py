@@ -5,7 +5,7 @@ import numpy as np
 
 from util import mrag, page
 from finders import BBC1
-from printit import do_print
+from printer import do_print
 
 def splitlist(l, s):
     t = [0]+[n for n,i in enumerate(l) if i[0] == s]+[len(l)]
@@ -32,7 +32,7 @@ class PageWriter(object):
             of.close()
             if self.count % 10 == 0:
                 print "%08d" % self.count, f, '- ',
-                do_print(ps[0].tt)
+                do_print(np.fromstring(ps[0].tt, dtype=np.uint8))
             self.count += 1
 
     def write_page_2(self, ps):
