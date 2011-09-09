@@ -22,7 +22,6 @@ from scipy.optimize import fminbound
 import pylab
 
 from util import paritybytes, setbyte, normalise, hammbytes, allbytes, mrag, notzero
-from printit import do_print
 
 from finders import *
 
