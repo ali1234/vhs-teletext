@@ -202,9 +202,9 @@ class Vbi(object):
                         setbyte(self.guess, n+4, b2)
                         ans.append((self._deconvolve_make_diff(),b1,b2))
 
-                ans.sort()
-                setbyte(self.guess, n+3, ans[0][1])
-                self._bytes[n] = ans[0][1]
+                best = min(ans)
+                setbyte(self.guess, n+3, best[1])
+                self._bytes[n] = best[1]
 
     def _deconvolve(self):
         for it in range(10): # TWEAK: maximum number of iterations.
@@ -224,11 +224,11 @@ class Vbi(object):
                 setbyte(self.guess, 3, nb[0])
                 setbyte(self.guess, 4, nb[1])
                 ans.append((self._deconvolve_make_diff(),nb))
-            ans.sort()
-            setbyte(self.guess, 3, ans[0][1][0])
-            setbyte(self.guess, 4, ans[0][1][1])
-            self._bytes[0] = ans[0][1][0]
-            self._bytes[1] = ans[0][1][0]
+            best = min(ans)
+            setbyte(self.guess, 3, best[1][0])
+            setbyte(self.guess, 4, best[1][1])
+            self._bytes[0] = best[1][0]
+            self._bytes[1] = best[1][0]
 
             self._deconvolve_pass(first=2)
             # if this iteration didn't produce a change in the answer
