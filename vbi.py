@@ -175,7 +175,6 @@ class Vbi(object):
             return [x for x in b if (x&m0)==x==(x|m1)]
 
         self.possible_bytes = [masked(b,n) or b for n,b in enumerate(possible_bytes)]
-        self.half_possible_bytes = [list(set([x&0x1f for x in b])) for b in self.possible_bytes]
 
     def _deconvolve_make_diff(self):
         self.count += 1
@@ -191,16 +190,10 @@ class Vbi(object):
                 setbyte(self.guess, n+3, nb[0])
                 self._bytes[n] = nb[0]
             else:
-                if n < 41:
-                    nnb = self.half_possible_bytes[n+1]
-                else:
-                    nnb = [0]
                 ans = []
                 for b1 in nb:
                     setbyte(self.guess, n+3, b1)
-                    for b2 in nnb:
-                        setbyte(self.guess, n+4, b2)
-                        ans.append((self._deconvolve_make_diff(),b1))
+                    ans.append((self._deconvolve_make_diff(),b1))
 
                 best = min(ans)
                 setbyte(self.guess, n+3, best[1])
