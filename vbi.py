@@ -200,7 +200,7 @@ class Vbi(object):
                     setbyte(self.guess, n+3, b1)
                     for b2 in nnb:
                         setbyte(self.guess, n+4, b2)
-                        ans.append((self._deconvolve_make_diff(),b1,b2))
+                        ans.append((self._deconvolve_make_diff(),b1))
 
                 best = min(ans)
                 setbyte(self.guess, n+3, best[1])

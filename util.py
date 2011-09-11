@@ -149,7 +149,13 @@ dcbytes = [hamming84(d) for d in range(4)]
 
 def setbyte(a, n, v):
     n += 1
-    a[n*8:(n+1)*8] = 1&(v>>_le)
+    n *= 8
+    a[n:n+8] = 1&(v>>_le)
+
+def sethalfbyte(a, n, v):
+    n += 1
+    n *= 8
+    a[n:n+5] = 1&(v>>_le[:5])
 
 def normalise(a):
     return (a-a.mean())/a.std()
