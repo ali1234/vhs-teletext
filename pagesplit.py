@@ -32,7 +32,7 @@ class PageWriter(object):
             of.close()
             if self.count % 10 == 0:
                 print "%08d" % self.count, f, '- ',
-                do_print(np.fromstring(ps[0].tt, dtype=np.uint8))
+                print do_print(np.fromstring(ps[0].tt, dtype=np.uint8))
             self.count += 1
 
     def write_page_2(self, ps):
