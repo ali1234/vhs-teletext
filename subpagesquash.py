@@ -15,6 +15,7 @@ class Page(object):
         ((self.m,self.r),e) = mrag(self.array[0][:2])
         (self.p,e) = page(self.array[0][2:4])
         (self.s,self.c),self.e = subcode_bcd(self.array[0][4:10])
+        self.blanks = ((self.array == ord(' ')).sum(axis=1) > 35).sum()
 
         try:
             self.ds = int("%x" % self.s, 10)
@@ -26,7 +27,8 @@ class Page(object):
     def hamming(self, other):
         h = (self.array != other.array).sum(axis=1)
         h *= self.goodrows
-        return (h < 30).all() and h.sum() < 300
+        hh = (h > 20).sum()
+        return hh < (2 if self.blanks < 15 else 1) and h.sum() < 200 # up to 1 completely messed up line
         #return h.sum() < 200
 
     def to_html(self):
@@ -73,10 +75,20 @@ class Squasher(object):
         self.m = self.pages[0].m
         self.p = self.pages[0].p
 
+        for i in range(5):
+         unique_pages = self.hamming()
+         squashed_pages = []
+         for pl in unique_pages:
+             page = Page(self.squash(pl))
+             squashed_pages += [page]*len(pl)
+         self.pages = squashed_pages
+
         unique_pages = self.hamming()
         squashed_pages = []
         for pl in unique_pages:
-            squashed_pages.append(Page(self.squash(pl)))
+          if len(pl) > 1:
+            squashed_pages += [Page(self.squash(pl))]
+
 
         # sort it
         sorttmp = [(p.s, p) for p in squashed_pages]
@@ -91,9 +103,13 @@ class Squasher(object):
         us = set(subpages)
         sc = [(s,subpages.count(s)) for s in us]
         sc.sort()
-        if sc[0][0] == 0 and sc[0][1] > (len(subpages)*0.8):
-            good = [0]
+
+        if len(sc) < 2:
+          return sc
         else:
+          if sc[0][0] == 0 and sc[0][1] > (len(subpages)*0.8):
+            good = [0]
+          else:
             good = []
             bad = []
             for n in range(len(sc)):
@@ -151,7 +167,7 @@ class Squasher(object):
     def to_html(self):
         header = """<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Page %d%02x</title><link rel="stylesheet" type="text/css" href="teletext.css" /></head>
-<body><pre>""" % (self.squashed_pages[0].m, self.squashed_pages[0].p)
+<body><pre>""" % (self.m, self.p)
         body = "".join([p.to_html() for p in self.squashed_pages])
         footer = "</body>"
 
