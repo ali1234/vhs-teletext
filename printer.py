@@ -2,6 +2,7 @@
 
 import re
 from util import mrag, page, subcode_bcd, unhamm84
+import numpy as np
 
 class Printer(object):
 
