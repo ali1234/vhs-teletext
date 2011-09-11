@@ -171,10 +171,18 @@ class Vbi(object):
         def masked(b, n):
             m0 = self._mask0[n]
             m1 = self._mask1[n]
-            #print n, m0, m1, b
-            return [x for x in b if (x&m0)==x==(x|m1)]
+            m = [x for x in b if (x&m0)==x==(x|m1)]
+            if m != []:
+                return m
+            else:
+                mm0 = [x for x in b if (x&m0)==x]
+                mm1 = [x for x in b if (x|m1)==x]
+                if len(mm0) < len(mm1):
+                    return mm0 or mm1 or b
+                else:
+                    return mm1 or mm0 or b
 
-        self.possible_bytes = [masked(b,n) or b for n,b in enumerate(possible_bytes)]
+        self.possible_bytes = [masked(b,n) for n,b in enumerate(possible_bytes)]
 
     def _deconvolve_make_diff(self):
         self.count += 1
