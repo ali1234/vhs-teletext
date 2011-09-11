@@ -214,7 +214,7 @@ class Vbi(object):
             # then the next one won't either, so stop.
             if (self._bytes == self._oldbytes).all():
                 break
-            self._oldbytes = self._bytes
+            self._oldbytes[:] = self._bytes
 
     def _nzdeconvolve(self):
         for it in range(10): # TWEAK: maximum number of iterations.
@@ -235,7 +235,7 @@ class Vbi(object):
             # then the next one won't either, so stop.
             if (self._bytes == self._oldbytes).all():
                 break
-            self._oldbytes = self._bytes
+            self._oldbytes[:] = self._bytes
 
     def deconvolve(self):
         self.make_guess_mask()
