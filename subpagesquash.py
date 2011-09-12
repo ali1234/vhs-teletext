@@ -42,13 +42,18 @@ class Page(object):
         line = '   <span class="pgnum">P%d%02x</span> ' % (self.m,self.p) + p.string_html()
         body.append(line)
 
-        for i in range(2,26):
+        i = 2
+        while i < 26:
             # if previous line contains double height chars, skip this one
-            if i == 2 or ((self.array[i-1][2:]&0x7f) != 0x0d).all():
-                p = Printer(self.array[i][2:])
-                if i == 25 and self.rows[1] == 27:
-                    p.set_fasttext(self.array[1], self.m)
-                body.append(p.string_html())
+            p = Printer(self.array[i][2:])
+            if i == 25 and self.rows[1] == 27:
+                p.set_fasttext(self.array[1], self.m)
+            body.append(p.string_html())
+            # skip a line if this packet contained double height chars
+            if ((self.array[i][2:]&0x7f) == 0x0d).any():
+                i += 2
+            else:
+                i += 1
 
         head = '<div class="subpage" id="%d">' % self.s
 
