@@ -89,7 +89,8 @@ class MagHandler(object):
         self.packets = []
 
     def check_page(self):
-        if len(self.packets) == MagHandler.pol:
+        if len(self.packets) >= MagHandler.pol:
+            self.packets = self.packets[:MagHandler.pol]
             rows = [p.r for p in self.packets]
             c = [a1 == b1 for a1,b1 in zip(rows,MagHandler.packet_order)].count(True)
             if c == MagHandler.pol: # flawless subpage
