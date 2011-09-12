@@ -245,7 +245,7 @@ class Vbi(object):
         target = gauss(self.vbi, self._gauss_sd)
         self.target = normalise(target)
 
-        self._bytes = np.zeros(42, dtype=np.uint8)
+        self._bytes = np.zeros(42, dtype=np.uint8) | 0x55
         self._oldbytes = np.zeros(42, dtype=np.uint8)
 
         self._deconvolve()
