@@ -4,6 +4,7 @@ a {color: inherit; text-decoration: inherit;}
 a:hover {color: orange;} a:active {color: red;}
 
 @font-face {font-family:teletext2; src:url('teletext2.ttf')}
+@font-face {font-family:teletext4; src:url('teletext4.ttf')}
 
 .subpage {float:left; white-space: pre; color:white;background:black;
 	font-family: teletext2;	font-size:20px; line-height:20px;
@@ -15,3 +16,6 @@ a:hover {color: orange;} a:active {color: red;}
 .b0{background:black;} .b1{background:red;} .b2{background:#00ff00;} .b3{background:yellow;}
 .b4{background:blue;} .b5{background:magenta;} .b6{background:cyan;} .b7{background:white;}
 
+.dh{font-family: teletext4; font-size:40px; line-height:40px;}
+
+.fl{text-decoration: blink}

@@ -42,10 +42,12 @@ class Page(object):
         body.append(line)
 
         for i in range(2,26):
-            p = Printer(self.array[i][2:])
-            if i == 25 and self.rows[1] == 27:
-                p.set_fasttext(self.array[1], self.m)
-            body.append(p.string_html())
+            # if previous line contains double height chars, skip this one
+            if i == 2 or ((self.array[i-1][2:]&0x7f) != 0x0d).all():
+                p = Printer(self.array[i][2:])
+                if i == 25 and self.rows[1] == 27:
+                    p.set_fasttext(self.array[1], self.m)
+                body.append(p.string_html())
 
         head = '<div class="subpage" id="%d">' % self.s
 

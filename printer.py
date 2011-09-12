@@ -13,6 +13,8 @@ class Printer(object):
         self.bg = 0
         self.mosaic = False
         self.solid = True
+        self.double = False
+        self.flash = False
         self.fasttext = False
         self.flinkopen = False
         # ignored for now
@@ -44,7 +46,7 @@ class Printer(object):
                 return unichr(c)
 
     def htmlspanstyle(self, fg=None, bg=None):
-        return '<span class="f%d b%d">' % ((fg or self.fg), (bg or self.bg))
+        return '<span class="f%d b%d%s%s">' % ((fg or self.fg), (bg or self.bg), (" dh" if self.double else ""), (" fl" if self.flash else ""))
 
     def setstyle(self, html, fg=None, bg=None):
         if html:
@@ -78,6 +80,20 @@ class Printer(object):
                 self.fg = l
                 ret = ' '+self.setstyle(html)
                 self.mosaic = False
+            elif l == 0x8: # flashing
+                self.flash = True
+                ret = ' '+self.setstyle(html)
+                print 'flash'
+            elif l == 0x9: # steady
+                self.flash = False
+                ret = ' '+self.setstyle(html)
+            elif l == 0xc: # single height
+                self.double = False
+                ret = ' '+self.setstyle(html)
+            elif l == 0xd: # double height
+                self.double = True
+                ret = ' '+self.setstyle(html)
+                print 'double'
             else:
                 ret = ' '
         elif h == 0x10:
