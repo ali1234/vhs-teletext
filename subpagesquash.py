@@ -155,7 +155,7 @@ class Squasher(object):
 
         return unique_pages
 
-    def squash(self, pages):
+    def squash1(self, pages):
         ans = np.column_stack([x.array.reshape((26*42)) for x in pages])
 
         auni = np.unique(ans)
@@ -171,6 +171,15 @@ class Squasher(object):
         #  for i in [0]+range(2,26):
         #    do_print(final[i]])
         return final
+
+    def squash(self, pages):
+        _le = np.arange(0, 8, 1)
+        ans = np.array([x.array for x in pages])
+        a = ans.transpose()[np.newaxis].transpose()
+        b = (1&(a>>_le)).sum(0) > (len(pages)/2)
+        c = (b<<_le).sum(-1)
+        #exit(0)
+        return c
 
     def to_str(self):
         return "".join([p.to_str() for p in self.squashed_pages])
