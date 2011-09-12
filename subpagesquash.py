@@ -17,6 +17,10 @@ class Page(object):
         (self.s,self.c),self.e = subcode_bcd(self.array[0][4:10])
         self.blanks = ((self.array == ord(' ')).sum(axis=1) > 35).sum()
 
+        # remove parity
+        for n in range(2, 26):
+            self.array[n][2:] &= 0x7f
+
         try:
             self.ds = int("%x" % self.s, 10)
         except ValueError:
@@ -27,8 +31,7 @@ class Page(object):
     def hamming(self, other):
         h = (self.array != other.array).sum(axis=1)
         h *= self.goodrows
-        hh = (h > 20).sum()
-        return hh < (2 if self.blanks < 15 else 1) and h.sum() < 200 # up to 1 completely messed up line
+        return (h < 20).all() and h.sum() < 100
         #return h.sum() < 200
 
     def to_html(self):
@@ -75,7 +78,7 @@ class Squasher(object):
         self.m = self.pages[0].m
         self.p = self.pages[0].p
 
-        for i in range(5):
+        for i in range(3):
          unique_pages = self.hamming()
          squashed_pages = []
          for pl in unique_pages:
