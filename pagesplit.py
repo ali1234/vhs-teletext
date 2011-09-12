@@ -13,10 +13,11 @@ class PageWriter(object):
     def __init__(self, outdir):
         self.outdir = outdir
         self.count = 0
+        self.bad = 0
 
     def write_page(self, ps):
         if ps[0].me or ps[0].pe:
-            pass
+            self.bad += 1
         else:
             m = str(ps[0].m)
             p = '%02x' % ps[0].p
@@ -28,9 +29,9 @@ class PageWriter(object):
             for p in ps:
                 of.write(p.tt)
             of.close()
-            if self.count % 10 == 0:
-                print "%08d" % self.count, f, '- ',
-                print do_print(np.fromstring(ps[0].tt, dtype=np.uint8))
+            if self.count % 50 == 0:
+                print f, '- ',
+                print do_print(np.fromstring(ps[0].tt, dtype=np.uint8)), "%4.1f" % (100.0*self.count/(self.count+self.bad))
             self.count += 1
 
 
@@ -86,6 +87,7 @@ class MagHandler(object):
         self.packets = []
 
     def bad_page(self):
+        self.pagewriter.bad += 1
         self.packets = []
 
     def check_page(self):
