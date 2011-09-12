@@ -83,7 +83,6 @@ class Printer(object):
             elif l == 0x8: # flashing
                 self.flash = True
                 ret = ' '+self.setstyle(html)
-                print 'flash'
             elif l == 0x9: # steady
                 self.flash = False
                 ret = ' '+self.setstyle(html)
@@ -93,7 +92,6 @@ class Printer(object):
             elif l == 0xd: # double height
                 self.double = True
                 ret = ' '+self.setstyle(html)
-                print 'double'
             else:
                 ret = ' '
         elif h == 0x10:
