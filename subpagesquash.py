@@ -34,10 +34,11 @@ class Page(object):
         return (h < 20).all() and h.sum() < 100
         #return h.sum() < 200
 
-    def to_html(self):
+    def to_html(self, anchor):
         body = []
 
         p = Printer(self.array[0][10:])
+        p.anchor = anchor
         line = '   <span class="pgnum">P%d%02x</span> ' % (self.m,self.p) + p.string_html()
         body.append(line)
 
@@ -173,7 +174,7 @@ class Squasher(object):
         header = """<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Page %d%02x</title><link rel="stylesheet" type="text/css" href="teletext.css" /></head>
 <body><pre>""" % (self.m, self.p)
-        body = "".join([p.to_html() for p in self.squashed_pages])
+        body = "".join([p.to_html("#%d" % n) for n,p in enumerate(self.squashed_pages)])
         footer = "</body>"
 
         return header+body+footer

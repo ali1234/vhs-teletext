@@ -20,6 +20,9 @@ class Printer(object):
         # ignored for now
         self.codepage = codepage
 
+        # anchor for header links so we can bookmark a subpage
+        self.anchor = ""
+
     def set_fasttext(self, data, mag):
         self.fasttext = True
         self.links = []
@@ -68,7 +71,7 @@ class Printer(object):
     def linkify(self, html):
         e = '([^0-9])([0-9]{3})([^0-9]|$)'
         def repl(match):
-            return '%s<a href="%s.html">%s</a>%s' % (match.group(1), match.group(2), match.group(2), match.group(3))
+            return '%s<a href="%s.html%s">%s</a>%s' % (match.group(1), match.group(2), self.anchor, match.group(2), match.group(3))
         p = re.compile(e)
         return p.sub(repl, html)
 
