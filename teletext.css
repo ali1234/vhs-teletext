@@ -3,9 +3,10 @@ body {background: black;}
 a {color: inherit; text-decoration: inherit;}
 a:hover {color: orange;} a:active {color: red;}
 
+@font-face {font-family:teletext2; src:url('teletext2.ttf')}
+
 .subpage {float:left; white-space: pre; color:white;background:black;
-	font-family: teletext2; src: url('teletext2.ttf');
-	font-size:20px; line-height:20px;
+	font-family: teletext2;	font-size:20px; line-height:20px;
 	border: solid black 10px; border-left: 0px;}
 
 .f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;}
