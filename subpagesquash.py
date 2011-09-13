@@ -156,21 +156,18 @@ class Squasher(object):
         return unique_pages
 
     def squash1(self, pages):
-        ans = np.column_stack([x.array.reshape((26*42)) for x in pages])
+        ans = np.array([x.array for x in pages])
+        s = pages[0].array.shape
 
         auni = np.unique(ans)
-        mode = np.zeros(42*26, dtype=np.uint8)
-        counts = np.zeros(42*26)
+        mode = np.zeros(s, dtype=np.uint8)
+        counts = np.zeros(s)
         for k in auni:
-            count = (ans==k).sum(-1)
+            count = (ans==k).sum(0)
             mode[count>counts] = k
             counts[count>counts] = count[count>counts] 
 
-        final = mode.reshape((26,42))
-        #if self.print_this:
-        #  for i in [0]+range(2,26):
-        #    do_print(final[i]])
-        return final
+        return mode
 
     def squash(self, pages):
         _le = np.arange(0, 8, 1)
