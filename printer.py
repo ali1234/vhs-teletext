@@ -37,7 +37,7 @@ class Printer(object):
 
     def ttchar(self, c):
         if self.mosaic and (c < ord('@') or c > ord('_')):
-            return unichr(c+0xee00) if self.solid else unichr(ord(c)+0xede0)
+            return unichr(c+0xee00) if self.solid else unichr(c+0xede0)
         else:
             if c == ord('#'):
                 return unichr(0xa3) # pound sign
@@ -103,16 +103,16 @@ class Printer(object):
                 ret = ' '+self.setstyle(html)
                 self.mosaic = True
                 self.solid = True
-            elif l == 0x09:
+            elif l == 0x9:
                 self.solid = True
                 ret = ' '
-            elif l == 0x10:
+            elif l == 0xa:
                 self.solid = False
                 ret = ' '
             elif l == 0xc:
                 self.bg = 0
-                ret = ' '+self.setstyle(html)
-            elif l == 0x0d:
+                ret = self.setstyle(html)+' '
+            elif l == 0xd:
                 self.bg = self.fg
                 ret = self.setstyle(html)+' '
             else:
