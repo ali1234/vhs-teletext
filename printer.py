@@ -15,6 +15,8 @@ class Printer(object):
         self.solid = True
         self.double = False
         self.flash = False
+        self.conceal = False
+        self.boxed = False
         self.fasttext = False
         self.flinkopen = False
         # ignored for now
@@ -49,7 +51,9 @@ class Printer(object):
                 return unichr(c)
 
     def htmlspanstyle(self, fg=None, bg=None):
-        return '<span class="f%d b%d%s%s">' % ((fg or self.fg), (bg or self.bg), (" dh" if self.double else ""), (" fl" if self.flash else ""))
+        return '<span class="f%d b%d%s%s%s%s">' % ((fg or self.fg), (bg or self.bg), 
+                      (" dh" if self.double else ""), (" fl" if self.flash else ""),
+                      (" cn" if self.conceal else ""), (" bx" if self.boxed else " nx"))
 
     def setstyle(self, html, fg=None, bg=None):
         if html:
@@ -81,6 +85,7 @@ class Printer(object):
         if h == 0x0:
             if l < 8:
                 self.fg = l
+                self.conceal = False
                 ret = ' '+self.setstyle(html)
                 self.mosaic = False
             elif l == 0x8: # flashing
@@ -88,6 +93,12 @@ class Printer(object):
                 ret = ' '+self.setstyle(html)
             elif l == 0x9: # steady
                 self.flash = False
+                ret = ' '+self.setstyle(html)
+            elif l == 0xa: # flashing
+                self.boxed = True
+                ret = ' '+self.setstyle(html)
+            elif l == 0xb: # steady
+                self.boxed = False
                 ret = ' '+self.setstyle(html)
             elif l == 0xc: # single height
                 self.double = False
@@ -97,12 +108,17 @@ class Printer(object):
                 ret = ' '+self.setstyle(html)
             else:
                 ret = ' '
+                print hex(int(c&0xff))
         elif h == 0x10:
             if l < 8:
                 self.fg = l
+                self.conceal = False
                 ret = ' '+self.setstyle(html)
                 self.mosaic = True
                 self.solid = True
+            elif l == 0x8: # conceal
+                self.conceal = True
+                ret = ' '+self.setstyle(html)
             elif l == 0x9:
                 self.solid = True
                 ret = ' '
@@ -117,6 +133,7 @@ class Printer(object):
                 ret = self.setstyle(html)+' '
             else:
                 ret = ' '
+                print hex(int(c&0xff))
         else:
             ret = self.ttchar(c)
 
