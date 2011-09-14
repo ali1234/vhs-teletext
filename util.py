@@ -159,3 +159,11 @@ def sethalfbyte(a, n, v):
 
 def normalise(a):
     return (a-a.mean())/a.std()
+
+
+def bitwise_mode(fragments):
+    ans = np.array(fragments)
+    a = ans.transpose()[np.newaxis].transpose()
+    b = (1&(a>>_le)).sum(0) > (len(fragments)/2)
+    c = (b<<_le).sum(-1)
+    return c
