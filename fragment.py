@@ -545,6 +545,12 @@ Fragment(np.array([[  4,  29,  18,  32,  32, 112, 112, 112,  96, 112, 112,  48, 
          47]], dtype=np.uint8), (15,2,27,4), 'RACING index, 4 line'),
 
 ],
+
+# big fragments
+
+[
+Fragment(np.zeros((17,40), dtype=np.uint8)|0x20, (2,2,40,17), 'Newsflash page'),
+]
 ]
 
 
@@ -611,7 +617,7 @@ def build():
     if not os.path.isdir(outpath):
         os.makedirs(outpath)
 
-    fb = [FragmentBuilder((15,2,27,4))]
+    fb = [FragmentBuilder((2,2,40,17))]
 
     for root, dirs, files in os.walk(indir):
         dirs.sort()
