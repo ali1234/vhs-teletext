@@ -1,18 +1,18 @@
 If you want to try it I suggest starting with Ubuntu in a virtual machine. You'll need to install some packages:
 
-sudo apt-get install python-numpy python-scipy tv-fonts xterm git
+	sudo apt-get install python-numpy python-scipy tv-fonts xterm git
 
 Then run an xterm like this:
 
-/usr/bin/xterm -fg white -bg black -fn teletext &
+	/usr/bin/xterm -fg white -bg black -fn teletext &
 
 Then checkout source and run on the example data like this:
 
-git clone git://github.com/ali1234/vhs-teletext.git
-cd vhs-teletext
-./vbi.py example | ./printer.py
+	git clone git://github.com/ali1234/vhs-teletext.git
+	cd vhs-teletext
+	./vbi.py example | ./printer.py
 
-You should now see some packets output.
+You should now see some recognizable packets output, which means everything is set up correctly.
 
 All the things you need should be available to run this on Windows, but I have not tried it.
 
@@ -21,10 +21,16 @@ All the things you need should be available to run this on Windows, but I have n
 In detail:
 
 
+
+
 Step 1 - Capture teletext packets
+
+(If you are running in a VM you probably won't be able to use capture hardware.
+In that case you must capture in the host OS and then copy in the vbi files.)
 
 Compile dumpvbi:
 
+	sudo apt-get install build-essential
 	gcc -o dumpvbi dumpvbi.c
 
 Create a folder for captures:
@@ -36,6 +42,7 @@ Do capture:
 
 	../dumpvbi
 
+You will need at least 15-30 minutes for good results. 
 End capture with ctrl-c and then go back to previous directory:
 
 	cd ..
@@ -44,26 +51,39 @@ This produces raw binary files starting at 00000000.vbi. Each file contains 32
 vbi lines sampled from a single frame. Each line is 2048 samples.
 
 
+
+
 Step 2 - Run recovery
 
 Run vbi.py on the sampled data:
 
 	./vbi.py cap0001/ | ./pagesplitter.py cap0001/pages/
 
-This runs the deconvolver and pipes the output into the page splitter, which creates a subfolder with directories for each magazine, and file for each page.
+This runs the deconvolver and pipes the output into the page splitter, which 
+creates a subfolder with directories for each magazine, and file for each page. 
+It will take several days. You can leave it running and open a new terminal 
+to run the following steps at any time.
+
+
 
 
 Step 3 - Squash subpages to html:
 
 	./subpagesquash.py cap0001/pages/ cap0001/html-pages/
 
-Outputs hyperlinked html files for each page
+Outputs hyperlinked html files for each page. You can run this while the page
+splitter is still working, and you can run it over and over to get the newest
+results.
+
+
 
 
 Step 4 - Copy font and CSS:
 
 	cp teletext2.ttf teletext4.tff teletext.css cap0001/html-pages/
 
-Now you can view the html files properly:
+This is needed to make the html files render properly. You can now open 100.html
+in firefox from the file manager, or open it from the terminal with:
 
 	xdg-open cap0001/html-pages/100.html
+
