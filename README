@@ -1,8 +1,25 @@
-Run against the example data, printing only packets from magazine 1:
+If you want to try it I suggest starting with Ubuntu in a virtual machine. You'll need to install some packages:
 
-./vbi.py example | ./demux.py 1 | ./printit.py
+sudo apt-get install python-numpy python-scipy tv-fonts xterm git
+
+Then run an xterm like this:
+
+/usr/bin/xterm -fg white -bg black -fn teletext &
+
+Then checkout source and run on the example data like this:
+
+git clone git://github.com/ali1234/vhs-teletext.git
+cd vhs-teletext
+./vbi.py example | ./printer.py
+
+You should now see some packets output.
+
+All the things you need should be available to run this on Windows, but I have not tried it.
+
+
 
 In detail:
+
 
 Step 1 - Capture teletext packets
 
@@ -19,28 +36,34 @@ Do capture:
 
 	../dumpvbi
 
+End capture with ctrl-c and then go back to previous directory:
+
+	cd ..
+
 This produces raw binary files starting at 00000000.vbi. Each file contains 32 
 vbi lines sampled from a single frame. Each line is 2048 samples.
+
 
 Step 2 - Run recovery
 
 Run vbi.py on the sampled data:
 
-	../vbi.py . > output
+	./vbi.py cap0001/ | ./pagesplitter.py cap0001/pages/
 
-Step 3 - Run hamming distance correlation (optional)
+This runs the deconvolver and pipes the output into the page splitter, which creates a subfolder with directories for each magazine, and file for each page.
 
-Run distance.py on the output from vbi.py:
 
-	../distance.py output > output1
+Step 3 - Squash subpages to html:
 
-Step 4 - View results
+	./subpagesquash.py cap0001/pages/ cap0001/html-pages/
 
-Run the output through demux.py and printit.py:
+Outputs hyperlinked html files for each page
 
-	cat output1 | ../demux.py 1 | ../printit.py
 
-This will print all the packets from magazine 1 to the terminal. You can also
-generate html pages instead (you need the teletext2.ttf to view them):
+Step 4 - Copy font and CSS:
 
-	cat output1 | ../demux.py 1 | ../printit.py h > 100.html
+	cp teletext2.ttf teletext4.tff teletext.css cap0001/html-pages/
+
+Now you can view the html files properly:
+
+	xdg-open cap0001/html-pages/100.html
