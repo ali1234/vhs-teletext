@@ -122,12 +122,18 @@ class Finder(object):
 
     def check_page_info(self):
         self.p,self.pe = page(self.packet[2:4])
-        
-        hpage = [int(chr(self.packet[n+self.pagepos]&0x7f), 16) for n in range(3)]
-        self.hm = hpage[0]
-        self.hp = (hpage[1]<<4)|hpage[2]
-        self.me = (self.hm != self.m) and self.me
-        self.pe = (self.hp != self.p) and self.pe
+        try:
+            hpage = [int(chr(self.packet[n+self.pagepos]&0x7f), 16) for n in range(3)]
+            self.hm = hpage[0]
+            self.hp = (hpage[1]<<4)|hpage[2]
+            self.me = (self.hm != self.m) and self.me
+            self.pe = (self.hp != self.p) and self.pe
+        except ValueError:
+            self.hm = -1
+            self.hp = -1
+            self.me = True
+            self.pe = True
+
         #if self.me or self.pe:
         #    print("P%1d%02x " % (self.m,self.p)),
         #    print("P%1d%02x " % (self.hm,self.hp))
