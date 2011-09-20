@@ -4,7 +4,7 @@ import sys, os
 import numpy as np
 
 from util import mrag, page
-from finders import BBC1
+from finders import *
 from printer import do_print
 
 
@@ -40,20 +40,25 @@ class PacketHolder(object):
 
     sequence = 0
 
+    finders = [BBC1, TeletextLtd, FourTel]
+
     def __init__(self, tt):
 
         self.sequence = PacketHolder.sequence
         PacketHolder.sequence += 1
 
         (self.m,self.r),e = mrag(np.fromstring(tt[:2], dtype=np.uint8))
-        if BBC1.find(tt):
+        match = False
+        for F in PacketHolder.finders:
+          if F.find(tt):
             self.r = 0
-            BBC1.check_page_info()
-            self.me = BBC1.me
-            self.pe = BBC1.pe
-            self.p = BBC1.p
-                
-        elif self.r == 0:
+            F.check_page_info()
+            self.me = False #F.me
+            self.pe = False #F.pe
+            self.p = F.p
+            match = True
+            break    
+        if not match and self.r == 0:
             self.r = -1
             self.m = -1
         self.tt = tt
