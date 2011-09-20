@@ -308,7 +308,7 @@ def do_file(filename):
     pass
 
 def listfiles(datapath):
-    for frame in range(0, 200000, 1):
+    for frame in range(0, 400000, 1):
         frame = "%08d" % frame
         yield datapath+'/'+frame+'.vbi'
 
