@@ -108,7 +108,7 @@ class Printer(object):
                 ret = ' '+self.setstyle(html)
             else:
                 ret = ' '
-                print hex(int(c&0xff))
+                #print hex(int(c&0xff))
         elif h == 0x10:
             if l < 8:
                 self.fg = l
@@ -133,7 +133,7 @@ class Printer(object):
                 ret = self.setstyle(html)+' '
             else:
                 ret = ' '
-                print hex(int(c&0xff))
+                #print hex(int(c&0xff))
         else:
             ret = self.ttchar(c)
 
@@ -163,12 +163,14 @@ class Printer(object):
 
 
 def do_print(tt):
+    if type(tt) == type(''):
+        tt = np.fromstring(tt, dtype=np.uint8)
     ret = ""
-    ((m, r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
+    ((m, r),e) = mrag(tt[:2])
     ret += "%1d %2d" % (m, r)
     if r == 0:
-        (p,e) = page(np.fromstring(tt[2:4], dtype=np.uint8))
-        ((s,c),e) = subcode_bcd(np.fromstring(tt[4:10], dtype=np.uint8))
+        (p,e) = page(tt[2:4])
+        ((s,c),e) = subcode_bcd(tt[4:10])
         ret += "   P%1d%02x " % (m,p)
         ret += Printer(tt[10:]).string_ansi()
         ret += " %04x %x" % (s,c)
@@ -176,7 +178,7 @@ def do_print(tt):
         # designation code
         (d,e) = unhamm84(tt[2])
         # initial page
-        (p,e) = page(np.fromstring(tt[3:5], dtype=np.uint8))
+        (p,e) = page(tt[3:5])
         ((s,m),e) = subcode_bcd(np.fromstring(tt[5:9], dtype=np.uint8))
         ret += " %1d I%1d%02x:%04x " % (d, m, p, s)
         if d&2:
@@ -190,8 +192,8 @@ def do_print(tt):
         ret += " %1d " % (d)
         for n in range(6):
             nn = n*6
-            (p,e) = page(np.fromstring(tt[nn+3:nn+5], dtype=np.uint8))
-            ((s,m),e) = subcode_bcd(np.fromstring(tt[nn+5:nn+9], dtype=np.uint8))
+            (p,e) = page(tt[nn+3:nn+5])
+            ((s,m),e) = subcode_bcd(tt[nn+5:nn+9])
             ret += " %1d%02x:%04x " % (m,p,s)
     else:
         ret += Printer(tt[2:]).string_ansi()
