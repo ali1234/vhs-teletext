@@ -16,11 +16,14 @@ import numpy as np
 from util import *
 
 class Finder(object):
-    def __init__(self, match1, match2, name="", pagepos=-1, row=-1):
+    def __init__(self, match1, match2, name="", row=-1):
         self.match1 = np.fromstring(match1, dtype = np.uint8)
         self.match2 = np.fromstring(match2, dtype = np.uint8)
         self.passrank = (5+self.calculaterank(self.match1))*0.5
-        self.pagepos = pagepos
+        try:
+            self.pagepos = match2.index('m')
+        except ValueError:
+            self.pagepos = -1
         self.row = row
         self.possible_bytes = []
         self.name = name
@@ -131,15 +134,28 @@ class Finder(object):
                     
    
 BBC1 = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
-              "HHHHHHHHHHeeeeeeeeemhheDAYe39eMONe"+"29e59e59", 
-              name="BBC1 Packet 0", pagepos=19, row=0)
+              "HHHHHHHHHHeeeeeee2emhheDAYe39eMONe"+"29e59e59", 
+              name="BBC Packet 0", row=0)
+
+BBCOld = Finder("          CEEFAX 217  Wed 25 Dec \x0318:29/53",
+                "HHHHHHHHHHeeeeeeemhheeDAYe39eMONee"+"29e59e59", 
+                name="BBC Old Packet 0", row=0)
 
 # there are two types of broadcast packet. one has 8/4 PDC data and the other
 # has no encoding (not even parity). the latter is almost impossible to 
 # deconvolve so we try for the former to speed up the finder.
 BBC1_BSD = Finder("\x15\xea \x15\x15\xea\xea\xea\x5e              BBC1 CEEFAX        ",
-                  "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeeeeeeeeeeeeeeeeeee", 
-                  name="BBC1 Broadcast Service Data", row=30)
+                  "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeee2eeeeeeeeeeeeeee", 
+                  name="BBC Broadcast Service Data", row=30)
+
+TeletextLtd = Finder("          \x04\x1d\x03Teletext\x07 \x1c100 May05\x0318:29:53",
+                     "HHHHHHHHHHe"+"e"+"e"+"eeeeeeeee"+"ee"+"mhheMON39e"+"29e59e59", 
+                     name="Teletext Ltd Packet 0", row=0)
+
+FourTel = Finder("          4-Tel 307 Sun 26 May\x03C4\x0718:29:53",
+                 "HHHHHHHHHHeeeeeemhheDAYe39eMONe"+"eee"+"29e59e59", 
+                  name="4Tel Packet 0", row=0)
+
 
 Generic_BSD = Finder(" \xea                     BBC1 CEEFAX        ",
                      "He"+"dHHHHHH             pppppppppppppppppppp", 
