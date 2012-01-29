@@ -54,14 +54,14 @@ class Vbi(object):
         # correctly. setbyte and bitstobytes take this into account.
 
         # guess is the best guess at what the vbi contains
-        self.guess = np.zeros(47*8, dtype=np.float)
+        self.guess = np.zeros(47*8, dtype=np.float32)
         setbyte(self.guess, -1, 0x0)
         setbyte(self.guess, 0, 0x55)
         setbyte(self.guess, 1, 0x55)
         setbyte(self.guess, 2, 0x27)
 
         # mask is used to mark regions of interest in the interpolated guess
-        self.mask = np.zeros(47*8, dtype=np.float)
+        self.mask = np.zeros(47*8, dtype=np.float32)
         setbyte(self.mask, -1, 0xff)
         setbyte(self.mask, 0, 0xff)
         setbyte(self.mask, 1, 0xff)
@@ -81,8 +81,8 @@ class Vbi(object):
                              # but also reduces the amount of data
 
         # interpolation objects
-        self._interp_x = np.zeros(376, dtype=np.float)
-        self._guess_x = np.zeros(2048, dtype=np.float)
+        self._interp_x = np.zeros(376, dtype=np.float32)
+        self._guess_x = np.zeros(2048, dtype=np.float32)
         self.set_bitwidth(self._bitwidth)
         self.set_offset(self._offset)
 
@@ -158,9 +158,9 @@ class Vbi(object):
             avgi = avgs[i*8:(i+1)*8]
             self._mask0[i] = 0xff
             for j in range(8):
-                if mini[j] < self.black+10.0:
+                if mini[j] < self.black+15.0:
                     self._mask0[i] &= ~(1<<j)
-                if maxi[j] > self.black*2.5:
+                if maxi[j] > self.black*2.35:
                     self._mask1[i] |= (1<<j)
 
         tmp = self._mask1 & self._mask0
@@ -287,35 +287,50 @@ class Vbi(object):
             
         
 
-def do_file(filename):
+
+def process_file(filename):
+  ans = []
   try:
     f = file(filename).read()
-    sys.stderr.write(filename+'\n')
-    for line in range(12)+range(16,28):
+    for line in range(32):
         offset = line*2048
-        vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float)
-        v = Vbi(vbiraw, [BBC1, BBC1_BSD])
+        vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float32)
+        v = Vbi(vbiraw, [BBC1, TeletextLtd, FourTel, BBC1_BSD])
         c2 = c1 = c0 = time.time()
-        v.find_offset_and_scale()
+        tmp = v.find_offset_and_scale()
         c1 = time.time()
-        packet = v.deconvolve()
-        sys.stdout.write(packet)
+        if tmp:
+            packet = v.deconvolve()
+        else:
+            packet = None
         c2 = time.time()
-        sys.stderr.write("%f, %f, %d, %d\n" % (c1-c0, c2-c1, v.it, v.count))
-        sys.stdout.flush()
-        sys.stderr.flush()
+        timing = (c1-c0, c2-c1, v.it, v.count)
+
+        ans.append((packet, timing))
+        
   except IOError:
     pass
 
-def listfiles(datapath):
-    for frame in range(0, 400000, 1):
+  return (filename, ans)  
+
+def list_files(datapath):
+    for frame in range(1000, 1001, 1):
         frame = "%08d" % frame
         yield datapath+'/'+frame+'.vbi'
 
 #../0008//00063322.vbi
 if __name__ == '__main__':
+
+    def do_file(filename):
+        sys.stderr.write(filename+'\n')
+        ans = process_file(filename)[1]
+        for p,t in ans:
+            if p:
+                sys.stdout.write(p)
+        sys.stdout.flush()
+
     datapath = sys.argv[1]
-    map(do_file, listfiles(datapath))
+    map(do_file, list_files(datapath))
 
 
 
