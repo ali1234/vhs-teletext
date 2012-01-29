@@ -12,7 +12,7 @@ from printer import do_print
 class PageWriter(object):
     def __init__(self, outdir):
         self.outdir = outdir
-        self.count = 0
+        self.count = 1
         self.bad = 0
 
     def write_page(self, ps):
@@ -40,7 +40,7 @@ class PacketHolder(object):
 
     sequence = 0
 
-    finders = [BBC1, TeletextLtd, FourTel]
+    finders = [BBCOld, TeletextLtd, FourTel]
 
     def __init__(self, tt):
 
@@ -95,21 +95,58 @@ class MagHandler(object):
         self.pagewriter.bad += 1
         self.packets = []
 
-    def check_page(self):
+    def check_page1(self):
         if len(self.packets) >= MagHandler.pol:
             self.packets = self.packets[:MagHandler.pol]
             rows = [p.r for p in self.packets]
             c = [a1 == b1 for a1,b1 in zip(rows,MagHandler.packet_order)].count(True)
-            if c == MagHandler.pol: # flawless subpage
+            if c >= (MagHandler.pol - 2): # flawless subpage
                 self.good_page()
                 return
                 
         self.bad_page()
 
+    def fill_missing(self):
+        rows = [p.r for p in self.packets]
+        ans = []
+        for n in MagHandler.packet_order:
+            try:
+                ans.append(self.packets[rows.index(n)])
+            except ValueError:
+                ans.append(PacketHolder("\x00"*42))
+        self.packets = ans
+
+    def check_page(self):
+        self.packets[0].good = True
+        highgood = 0
+        badcount = 0
+        for n in range(1, len(self.packets)-1):
+            a = (self.packets[n].ro - self.packets[n-1].ro)
+            b = (self.packets[n+1].ro - self.packets[n].ro)
+            c = (self.packets[n].r == MagHandler.packet_order[-1])
+            if badcount < 20 and self.packets[n].ro > highgood and (c or a == 1 or b == 1 or (a > 0 and b > 0)):
+                self.packets[n].good = True
+                highgood = self.packets[n].ro
+            else:
+                self.packets[n].good = False
+                badcount += 1
+        self.packets[-1].good = self.packets[-1].ro > highgood
+
+        self.packets = [p for p in self.packets if p.good]
+        if len(self.packets) > (MagHandler.pol*0.5):
+            self.fill_missing()
+            self.good_page()
+        else:
+            self.bad_page()
+
     def add_packet(self, p):
         if p.r == 0:
-            self.check_page()
+            if self.seen_header:
+                self.check_page()
+            else:
+                self.bad_page()
             self.seen_header = True
+        p.ro = MagHandler.packet_order.index(p.r)
         self.packets.append(p)
 
 
@@ -118,6 +155,10 @@ if __name__=='__main__':
 
     w = PageWriter(sys.argv[1])
 
+    # BBC1
+    #mags = [MagHandler(n, w) if n in [1,3,4,5,6] else NullHandler() for n in range(8)]
+
+    # C4
     mags = [MagHandler(n, w) if n in [1,3,4,5,6] else NullHandler() for n in range(8)]
 
     packet_list = []
