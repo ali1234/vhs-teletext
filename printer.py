@@ -47,6 +47,10 @@ class Printer(object):
                 return unichr(ord('#'))
             elif c == ord('`'):
                 return unichr(0x2014) # em dash
+            elif c == ord('~'):
+                return unichr(0xf7) # division symbol
+            elif c == 0x7f:
+                return unichr(0xe65f) # rectangle
             else:
                 return unichr(c)
 
@@ -213,7 +217,7 @@ if __name__=='__main__':
         else:
             tt = np.fromstring(tt, dtype=np.uint8)
             ((m,r),e) = mrag(tt[:2])
-            #if r == 0 or r == 30:
+            #if r == 0 or r == 30: # to only print headers etc
             print do_print(tt)
 
 
