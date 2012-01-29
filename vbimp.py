@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 from vbi import list_files, process_file
-#from vbi import Vbi
-from vbicl import VbiCL as Vbi
-from finders import *
+from vbi import Vbi
+
+import config
 
 if __name__ == '__main__':
     from multiprocessing.pool import IMapIterator
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     from multiprocessing import Pool
 
     datapath = sys.argv[1]
-    p = Pool(1)
+    p = Pool(config.procs)
 
     it = p.imap(process_file, list_files(datapath))
     for f,i in it:

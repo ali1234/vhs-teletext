@@ -23,9 +23,11 @@ import pylab
 
 from util import paritybytes, setbyte, normalise, hammbytes, allbytes, mrag, notzero
 
-from finders import *
+import config
 
 import time
+
+np.seterr(invalid= 'raise')
 
 class Vbi(object):
     '''This class represents a line of raw vbi data and all our attempts to
@@ -46,8 +48,10 @@ class Vbi(object):
         # black level of the signal
         self.black = np.mean(self.vbi[:80])
 
-        # scale factor of the vbi, calculated later
-        self.scale = 0
+        # thresholds - anything above / below these are 1 or 0 respectively
+        # tweaking these values can improve results.
+        self.thresh_low = self.black*config.thresh_low
+        self.thresh_high = self.black*config.thresh_high
 
         # note: guess and mask are 376 "bits" long because an extra "byte" is 
         # needed at the beginning and the end for interpolation to work 
@@ -72,13 +76,11 @@ class Vbi(object):
         self._mask1 = np.zeros(42, dtype=np.uint8)
 
         # parameters for interpolation
-        self._bitwidth = 5.112
+        self._bitwidth = config.bitwidth
         self._offset = 0
 
         # params for convolve
-        self._gauss_sd = 5.5 # TWEAK: amount of gaussian blurring to apply
-                             # this cuts out hi freq. noise in the samples
-                             # but also reduces the amount of data
+        self._gauss_sd = config.gauss_sd
 
         # interpolation objects
         self._interp_x = np.zeros(376, dtype=np.float32)
@@ -113,6 +115,10 @@ class Vbi(object):
         # Only consider the general area of the CRI
         target = gauss(self.vbi[64:256], self._gauss_sd)
 
+        # If the standard deviation is low there is nothing interesting here.
+	if np.std(target) < 5:
+            return False
+
         def _inner(offset):
             self.set_offset(offset)
             guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), self._gauss_sd)
@@ -122,14 +128,14 @@ class Vbi(object):
             a = guess_scaled*mask_scaled
             b = np.clip(target*mask_scaled, self.black, 256)
 
-            self.scale = a.std()/b.std()
+            scale = a.std()/b.std()
             b -= self.black
-            b *= self.scale
-            a = np.clip(a, 0, 256*self.scale)
+            b *= scale
+            a = np.clip(a, 0, 256*scale)
 
             return np.sum(np.square(a-b))
 
-        offset = fminbound(_inner, 96.0, 110.0)
+        offset = fminbound(_inner, config.offset_low, config.offset_high)
 
         # call it also to set self.offset and self.scale
         return (_inner(offset) < 5.0)
@@ -158,9 +164,9 @@ class Vbi(object):
             avgi = avgs[i*8:(i+1)*8]
             self._mask0[i] = 0xff
             for j in range(8):
-                if mini[j] < self.black+15.0:
+                if mini[j] < self.thresh_low:
                     self._mask0[i] &= ~(1<<j)
-                if maxi[j] > self.black*2.35:
+                if maxi[j] > self.thresh_high:
                     self._mask1[i] |= (1<<j)
 
         tmp = self._mask1 & self._mask0
@@ -208,7 +214,7 @@ class Vbi(object):
                 self._bytes[n] = best[1]
 
     def _deconvolve(self):
-        for it in range(10): # TWEAK: maximum number of iterations.
+        for it in range(10):
             self.it += 1
             self._deconvolve_pass()
             # if this iteration didn't produce a change in the answer
@@ -218,7 +224,7 @@ class Vbi(object):
             self._oldbytes[:] = self._bytes
 
     def _nzdeconvolve(self):
-        for it in range(10): # TWEAK: maximum number of iterations.
+        for it in range(10):
             self.it += 1
             ans=[]
             for nb in notzero:
@@ -292,10 +298,10 @@ def process_file(filename):
   ans = []
   try:
     f = file(filename).read()
-    for line in range(32):
+    for line in config.rows:
         offset = line*2048
         vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float32)
-        v = Vbi(vbiraw, [BBC1, TeletextLtd, FourTel, BBC1_BSD])
+        v = Vbi(vbiraw, config.finders)
         c2 = c1 = c0 = time.time()
         tmp = v.find_offset_and_scale()
         c1 = time.time()
@@ -314,7 +320,7 @@ def process_file(filename):
   return (filename, ans)  
 
 def list_files(datapath):
-    for frame in range(1000, 1001, 1):
+    for frame in range(0, 100001, 1):
         frame = "%08d" % frame
         yield datapath+'/'+frame+'.vbi'
 

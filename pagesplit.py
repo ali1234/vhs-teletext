@@ -155,11 +155,7 @@ if __name__=='__main__':
 
     w = PageWriter(sys.argv[1])
 
-    # BBC1
-    #mags = [MagHandler(n, w) if n in [1,3,4,5,6] else NullHandler() for n in range(8)]
-
-    # C4
-    mags = [MagHandler(n, w) if n in [1,3,4,5,6] else NullHandler() for n in range(8)]
+    mags = [MagHandler(n, w) if n in config.magazines else NullHandler() for n in range(8)]
 
     packet_list = []
 
