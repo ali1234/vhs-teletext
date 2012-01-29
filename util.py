@@ -158,7 +158,7 @@ def sethalfbyte(a, n, v):
     a[n:n+5] = 1&(v>>_le[:5])
 
 def normalise(a):
-    return (a-a.mean())/a.std()
+    return (a-a.mean())*(1/a.std())
 
 
 def bitwise_mode(fragments):
