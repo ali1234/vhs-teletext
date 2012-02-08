@@ -80,7 +80,6 @@ class Vbi(object):
         self._offset = 0
 
         # params for convolve
-        self._gauss_sd = config.gauss_sd
 
         # interpolation objects
         self._interp_x = np.zeros(376, dtype=np.float32)
@@ -113,7 +112,7 @@ class Vbi(object):
         '''Tries to find the offset of the vbi data in the raw samples.'''
 
         # Only consider the general area of the CRI
-        target = gauss(self.vbi[64:256], self._gauss_sd)
+        target = gauss(self.vbi[64:256], config.gauss_sd)
 
         # If the standard deviation is low there is nothing interesting here.
 	if np.std(target) < 5:
@@ -121,7 +120,7 @@ class Vbi(object):
 
         def _inner(offset):
             self.set_offset(offset)
-            guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), self._gauss_sd)
+            guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), config.gauss_sd_offset)
             #mask_scaled = gauss(self.mask_scaler(self._guess_x[64:256]), self._gauss_sd)
             mask_scaled = self.mask_scaler(self._guess_x[64:256]) # not blurring this seems to be better
 
@@ -192,7 +191,7 @@ class Vbi(object):
 
     def _deconvolve_make_diff(self):
         self.count += 1
-        a = gauss(self.guess_scaler(self._guess_x), self._gauss_sd)
+        a = gauss(self.guess_scaler(self._guess_x), config.gauss_sd_guess)
         a = normalise(a)
         return np.sum(np.square(a-self.target))
 
@@ -248,7 +247,7 @@ class Vbi(object):
         self.make_guess_mask()
         self.make_possible_bytes(Vbi.possible_bytes)
 
-        target = gauss(self.vbi, self._gauss_sd)
+        target = gauss(self.vbi, config.gauss_sd)
         self.target = normalise(target)
 
         self._bytes = np.zeros(42, dtype=np.uint8) | 0x55
