@@ -50,5 +50,5 @@ offset_high = 119.0
 # to give the low/high thresholds. Anything outside
 # this range is assumed to be a 0 or a 1. Tweaking these
 # can improve results, but often at a speed cost.
-thresh_low = 1.0
-thresh_high = 2.35
+thresh_low = 1.1
+thresh_high = 2.36

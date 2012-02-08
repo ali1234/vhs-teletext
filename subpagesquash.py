@@ -47,7 +47,7 @@ class Squasher(object):
         unique_pages = self.hamming()
         squashed_pages = []
         for pl in unique_pages:
-          if len(pl) > 1:
+          if len(pl) > 1 or len(unique_pages) == 1:
             squashed_pages += [Page(self.squash(pl))]
 
 
