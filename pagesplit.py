@@ -7,7 +7,7 @@ from util import mrag, page
 from finders import *
 from printer import do_print
 
-
+import config
 
 class PageWriter(object):
     def __init__(self, outdir):
