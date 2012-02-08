@@ -6,23 +6,25 @@ from finders import *
 
 # Which magazines are present in the broadcast?
 # eg 100, 200 etc. Magazine 800 is 0.
-magazines = [1,3,4,5,6]
+magazines = [1,2,3,4,5,6]
 
 # Which finders should be used?
 # Note you could just throw all finders at it if
 # you don't know, or if the tape has a lot of short
 # clips - but this will slow it down.
-finders = [BBC1, BBC1_BSD]
+finders = [TeletextLtd]
 
 # Which VBI rows contain data?
 # Again, you can check all rows. I have implemented a 
 # check that discards empty rows based on the content
 # so it shouldn't affect the speed too much.
-rows = range(32)
+rows = range(12) + range(16, 28)
 
 # How much blurring to apply?
 # Tweaking this can help. Values between 2 and 8?
-gauss_sd = 5.5
+gauss_sd = 2.0         # applied to signal to remove noise
+gauss_sd_offset = 5.5  # applied to offset guess
+gauss_sd_guess = 5.5   # applied to deconvolver guess
 
 # How many samples per bit from capture hardware?
 # If you are using bt8*8 hardware this is unlikely to 
@@ -39,8 +41,8 @@ procs = 4
 # The offset finder is very fast (it uses bisection)
 # so this range can be relatively large. But not too
 # large or you get false positives.
-offset_low = 96.0
-offset_high = 110.0
+offset_low = 90.0
+offset_high = 119.0
 
 # Threshold multipliers. The black level of the signal 
 # is derived from the mean of the area before the VBI 
@@ -48,5 +50,5 @@ offset_high = 110.0
 # to give the low/high thresholds. Anything outside
 # this range is assumed to be a 0 or a 1. Tweaking these
 # can improve results, but often at a speed cost.
-thresh_low = 1.1
+thresh_low = 1.0
 thresh_high = 2.35
