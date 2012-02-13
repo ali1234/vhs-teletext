@@ -13,6 +13,10 @@ magazines = [1,2,3,4,5,6]
 # you don't know, or if the tape has a lot of short
 # clips - but this will slow it down.
 finders = [TeletextLtd]
+# Allow vbi.py to emitt packet 0's that don't match
+# any finder? Set to false when you have finders
+# for all headers in the data.
+allow_unmatched = True
 
 # Which VBI rows contain data?
 # Again, you can check all rows. I have implemented a 

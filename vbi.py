@@ -280,7 +280,8 @@ class Vbi(object):
         if r == 0 or r == 30:
             sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
             sys.stderr.flush()
-            self._nzdeconvolve()
+            if not config.allow_unmatched:
+                self._nzdeconvolve()
             packet = "".join([chr(x) for x in self._bytes])
         # if it's a link packet, it is completely hammed
         elif r == 27:
