@@ -20,7 +20,17 @@ from util import mrag
 
 if __name__=='__main__':
 
-    showmags = [int(x, 10) for x in sys.argv[1:]]
+    showmags = []
+    onlyheaders = False
+    for x in sys.argv[1:]:
+      try:
+        showmags.append(int(x, 10))
+      except ValueError:
+        if x == 'h':
+          onlyheaders = True
+
+    if showmags == []:
+      showmags = [0, 1, 2, 3, 4, 5, 6, 7]
 
     while(True):
         tt = sys.stdin.read(42)
@@ -28,6 +38,7 @@ if __name__=='__main__':
             exit(0)
         ((m,r),e) = mrag(np.fromstring(tt[:2], dtype=np.uint8))
         if m in showmags:
+          if (not onlyheaders) or r == 0:
             sys.stdout.write(tt)
             sys.stdout.flush()
 
