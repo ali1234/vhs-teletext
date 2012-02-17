@@ -111,12 +111,14 @@ class Vbi(object):
     def find_offset_and_scale(self):
         '''Tries to find the offset of the vbi data in the raw samples.'''
 
-        # Only consider the general area of the CRI
-        target = gauss(self.vbi[64:256], config.gauss_sd)
-
-        # If the standard deviation is low there is nothing interesting here.
-	if np.std(target) < 5:
+        # Split into chunks and ensure there is something "interesting" in each
+        target = gauss(self.vbi, config.gauss_sd)
+        d = [np.std(target[x:x+128]) < 10.0 for x in range(64, 2048, 128)]
+        if any(d):
             return False
+
+        # Now consider the general area of the CRI
+        target = target[64:256]
 
         def _inner(offset):
             self.set_offset(offset)
