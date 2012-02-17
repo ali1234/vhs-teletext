@@ -28,7 +28,7 @@ def main():
     offset= 0
     end = width+offset
 
-    screen = pygame.display.set_mode((width,108), DOUBLEBUF)
+    screen = pygame.display.set_mode((width,216), DOUBLEBUF)
     pygame.display.set_caption('Teletext')
 
     running = 1
@@ -39,16 +39,16 @@ def main():
         buff = ""
         for i in range(32):
             if i == 16:
-                buff += "\x00"*width*3
+                buff += "\x00"*width*6
             start = width*i
-            for n in range(1):
-                buff += "\x00"*width
             for n in range(2):
+                buff += "\x00"*width
+            for n in range(4):
                 buff += data[start+offset:start+end]
 
 
         #print len(buff)
-        surface = pygame.image.frombuffer(buff, (width, 33*3), "P")
+        surface = pygame.image.frombuffer(buff, (width, 33*6), "P")
         surface.set_palette(palette)
         screen.blit(surface, (0,2))
         pygame.display.flip()        
