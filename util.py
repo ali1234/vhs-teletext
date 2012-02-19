@@ -177,5 +177,4 @@ def m1set(m1):
 
 m1s = [m1set(x) for x in range(256)]
 m0s = [m0set(x) for x in range(256)]
-print "sets done"
 
