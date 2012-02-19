@@ -31,7 +31,7 @@ class Finder(object):
         for n in range(42):
             c = self.match2[n]
             if c == ord('e'):
-                self.possible_bytes.append([makeparity(self.match1[n])])
+                self.possible_bytes.append(set([makeparity(self.match1[n])]))
             elif c == ord('u'):
                 self.possible_bytes.append(upperbytes)
             elif c == ord('l'):
@@ -39,9 +39,9 @@ class Finder(object):
             elif c == ord('h'):
                 self.possible_bytes.append(hexbytes)
             elif c == ord('m'):
-                self.possible_bytes.append(numberbytes[1:9])
+                self.possible_bytes.append(set(numberbytes[1:9]))
             elif c >= ord('0') and c <= ord('9'):
-                self.possible_bytes.append(numberbytes[:1+c-ord('0')])
+                self.possible_bytes.append(set(numberbytes[:1+c-ord('0')]))
             elif c == ord('D'):
                 self.possible_bytes.append(day1bytes)
             elif c == ord('A'):

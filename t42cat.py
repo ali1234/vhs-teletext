@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-from printer import do_print
 
 def do_raw(filename):
     try:

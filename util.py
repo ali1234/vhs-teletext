@@ -119,33 +119,33 @@ def makeparity(d):
 _le = np.arange(0, 8, 1)
 _be = np.arange(7, -1, -1)
 
-paritybytes = filter(lambda x: 1&np.sum(1&(x>>_le)), range(256))
+paritybytes = set(filter(lambda x: 1&np.sum(1&(x>>_le)), range(256)))
 
-hammbytes = [2,21,47,56,73,94,100,115,140,155,161,182,199,208,234,253]
+hammbytes = set([2,21,47,56,73,94,100,115,140,155,161,182,199,208,234,253])
 
-upperbytes = [makeparity(ord(x)) for x in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
-lowerbytes = [makeparity(ord(x)) for x in 'abcdefghijklmnopqrstuvwxyz']
+upperbytes = set([makeparity(ord(x)) for x in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'])
+lowerbytes = set([makeparity(ord(x)) for x in 'abcdefghijklmnopqrstuvwxyz'])
 numberbytes = [makeparity(ord(x)) for x in '0123456789']
-hexbytes = [makeparity(ord(x)) for x in 'abcdefABCDEF0123456789']
+hexbytes = set([makeparity(ord(x)) for x in 'abcdefABCDEF0123456789'])
 
-allbytes = range(256)
+allbytes = set(range(256))
 
 days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-day1bytes = [makeparity(ord(x[0])) for x in days]
-day2bytes = [makeparity(ord(x[1])) for x in days]
-day3bytes = [makeparity(ord(x[2])) for x in days]
+day1bytes = set([makeparity(ord(x[0])) for x in days])
+day2bytes = set([makeparity(ord(x[1])) for x in days])
+day3bytes = set([makeparity(ord(x[2])) for x in days])
 
-month1bytes = [makeparity(ord(x[0])) for x in months]
-month2bytes = [makeparity(ord(x[1])) for x in months]
-month3bytes = [makeparity(ord(x[2])) for x in months]
+month1bytes = set([makeparity(ord(x[0])) for x in months])
+month2bytes = set([makeparity(ord(x[1])) for x in months])
+month3bytes = set([makeparity(ord(x[2])) for x in months])
 
 # possible values for first two bytes of packets that are not r==0 or r==30
 notzero = [makemrag(m, r) for m in range(8) for r in (range(1,30)+[31])]
 
 # possible bytes for designation code (0-3)
-dcbytes = [hamming84(d) for d in range(4)]
+dcbytes = set([hamming84(d) for d in range(4)])
 
 def setbyte(a, n, v):
     n += 1
@@ -167,3 +167,15 @@ def bitwise_mode(fragments):
     b = (1&(a>>_le)).sum(0) > (len(fragments)/2)
     c = (b<<_le).sum(-1)
     return c
+
+def m0set(m0):
+    return set([y for y in range(256) if (y&m0)==y])
+
+def m1set(m1):
+    return set([y for y in range(256) if (y|m1)==y])
+
+
+m1s = [m1set(x) for x in range(256)]
+m0s = [m0set(x) for x in range(256)]
+print "sets done"
+

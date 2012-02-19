@@ -15,7 +15,6 @@
 import sys
 import os
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d as gauss
 from scipy.optimize import fminbound
 
@@ -23,11 +22,15 @@ import pylab
 
 from util import paritybytes, setbyte, normalise, hammbytes, allbytes, mrag, notzero
 
+import util
+
 import config
+from guess import Guess
 
 import time
 
 import finders
+import math
 
 np.seterr(invalid= 'raise')
 
@@ -56,56 +59,12 @@ class Vbi(object):
         # needed at the beginning and the end for interpolation to work 
         # correctly. setbyte and bitstobytes take this into account.
 
-        # guess is the best guess at what the vbi contains
-        self.guess = np.zeros(47*8, dtype=np.float32)
-        setbyte(self.guess, -1, 0x0)
-        setbyte(self.guess, 0, 0x55)
-        setbyte(self.guess, 1, 0x55)
-        setbyte(self.guess, 2, 0x27)
-
-        # mask is used to mark regions of interest in the interpolated guess
-        self.mask = np.zeros(47*8, dtype=np.float32)
-        setbyte(self.mask, -1, 0xff)
-        setbyte(self.mask, 0, 0xff)
-        setbyte(self.mask, 1, 0xff)
-        setbyte(self.mask, 2, 0xff)
-
         # vbi packet bytewise
         self._mask0 = np.zeros(42, dtype=np.uint8)
         self._mask1 = np.zeros(42, dtype=np.uint8)
 
-        # parameters for interpolation
-        self._bitwidth = config.bitwidth
-        self._offset = 0
+        self.g = Guess()
 
-        # params for convolve
-
-        # interpolation objects
-        self._interp_x = np.zeros(376, dtype=np.float32)
-        self._guess_x = np.zeros(2048, dtype=np.float32)
-        self.set_bitwidth(self._bitwidth)
-        self.set_offset(self._offset)
-
-        self.guess_scaler = interp1d(self._interp_x, self.guess, 
-                                     kind='linear', copy=False, 
-                                     bounds_error=False, fill_value=0)
-        # note that mask_scaler uses the same offsets as guess_scaler
-        # and has fill value = 1 because we always are interested in the
-        # samples outside the signal as they should never change
-        self.mask_scaler = interp1d(self._interp_x, self.mask, 
-                                     kind='linear', copy=False, 
-                                     bounds_error=False, fill_value=1)
-
-        self.count = 0
-        self.it = 0
-
-    def set_bitwidth(self, bitwidth):
-        self._bitwidth = bitwidth
-        self._interp_x[:] = (np.arange(0,47*8,1.0) * bitwidth) - bitwidth*8
-
-    def set_offset(self, offset):
-        self._offset = offset
-        self._guess_x[:] = np.arange(0,2048,1.0) - offset
 
     def find_offset_and_scale(self):
         '''Tries to find the offset of the vbi data in the raw samples.'''
@@ -116,43 +75,35 @@ class Vbi(object):
         if any(d):
             return False
 
-        # Now consider the general area of the CRI
-        target = target[64:256]
-
         def _inner(offset):
-            self.set_offset(offset)
-            guess_scaled = gauss(self.guess_scaler(self._guess_x[64:256]), config.gauss_sd_offset)
-            #mask_scaled = gauss(self.mask_scaler(self._guess_x[64:256]), self._gauss_sd)
-            mask_scaled = self.mask_scaler(self._guess_x[64:256]) # not blurring this seems to be better
+            self.g.set_offset(offset)
+            self.g.set_update_range(0,5)
+            self.g.update()
+            (low, high) = self.g.get_cri_range()
+            
+            guess_scaled = self.g.convolved[low:high]
 
-            a = guess_scaled*mask_scaled
-            b = np.clip(target*mask_scaled, self.black, 256)
+            a = guess_scaled
+            b = np.clip(target[low:high], self.black, 256)
 
             scale = a.std()/b.std()
             b -= self.black
             b *= scale
             a = np.clip(a, 0, 256*scale)
 
-            return np.sum(np.square(a-b))
+            return np.sum(np.square(b-a))
 
         offset = fminbound(_inner, config.offset_low, config.offset_high)
 
         # call it also to set self.offset and self.scale
-        return (_inner(offset) < 5.0)
+        return (_inner(offset) < 10)
 
     def make_guess_mask(self,o=0):
         a = []
+
         for i in range(42*8):
-            a.append([])
-        b = 4*8
-
-        gx = self._guess_x + (self._bitwidth*0.5) + o
-
-        for i in range(2048):
-            while b < 368 and gx[i] > self._interp_x[b+1]:
-                b += 1
-            if self._interp_x[b] < gx[i] and b < 368:
-                a[b-4*8].append(self.vbi[i])
+            (low, high) = self.g.get_bit_pos(i)
+            a.append(self.vbi[low:high])
 
         mins = np.array([min(x) for x in a])
         maxs = np.array([max(x) for x in a])
@@ -175,14 +126,14 @@ class Vbi(object):
 
     def make_possible_bytes(self, possible_bytes):
         def masked(b, n):
-            m0 = self._mask0[n]
-            m1 = self._mask1[n]
-            m = [x for x in b if (x&m0)==x==(x|m1)]
-            if m != []:
+            m0 = util.m0s[self._mask0[n]]
+            m1 = util.m1s[self._mask1[n]]
+            m = m0 & m1 & b
+            if m:
                 return m
             else:
-                mm0 = [x for x in b if (x&m0)==x]
-                mm1 = [x for x in b if (x|m1)==x]
+                mm0 = m0 & b
+                mm1 = m1 & b
                 if len(mm0) < len(mm1):
                     return mm0 or mm1 or b
                 else:
@@ -190,73 +141,68 @@ class Vbi(object):
 
         self.possible_bytes = [masked(b,n) for n,b in enumerate(possible_bytes)]
 
-    def _deconvolve_make_diff(self):
-        self.count += 1
-        a = gauss(self.guess_scaler(self._guess_x), config.gauss_sd_guess)
-        a = normalise(a)
-        return np.sum(np.square(a-self.target))
+    def _deconvolve_make_diff(self, (low, high)):
+        a = normalise(self.g.convolved)
+        return np.sum(np.square(a[low:high]-self.target[low:high]))
 
     def _deconvolve_pass(self, first=0, last=42):
         for n in range(first, last):
             nb = self.possible_bytes[n]
-            
-            if len(nb) == 1:
-                setbyte(self.guess, n+3, nb[0])
-                self._bytes[n] = nb[0]
+
+            changed = self.g.set_update_range(n+4, 1)
+
+            if len(nb) == 100000:
+                self.g.set_byte(n, nb[0])
             else:
                 ans = []
                 for b1 in nb:
-                    setbyte(self.guess, n+3, b1)
-                    ans.append((self._deconvolve_make_diff(),b1))
+                    self.g.set_byte(n, b1)
+                    ans.append((self._deconvolve_make_diff(changed),b1))
 
                 best = min(ans)
-                setbyte(self.guess, n+3, best[1])
-                self._bytes[n] = best[1]
+                self.g.set_byte(n, best[1])
+        self.g.update_all()
 
     def _deconvolve(self):
         for it in range(10):
-            self.it += 1
             self._deconvolve_pass()
             # if this iteration didn't produce a change in the answer
             # then the next one won't either, so stop.
-            if (self._bytes == self._oldbytes).all():
+            if (self.g.bytes == self._oldbytes).all():
+                #print it
                 break
-            self._oldbytes[:] = self._bytes
+            self._oldbytes[:] = self.g.bytes
 
     def _nzdeconvolve(self):
         for it in range(10):
-            self.it += 1
             ans=[]
+            changed = self.g.set_update_range(4, 2)
             for nb in notzero:
-                setbyte(self.guess, 3, nb[0])
-                setbyte(self.guess, 4, nb[1])
-                ans.append((self._deconvolve_make_diff(),nb))
+                self.g.set_two_bytes(0, nb[0], nb[1])
+                ans.append((self._deconvolve_make_diff(changed),nb))
             best = min(ans)
-            setbyte(self.guess, 3, best[1][0])
-            setbyte(self.guess, 4, best[1][1])
-            self._bytes[0] = best[1][0]
-            self._bytes[1] = best[1][0]
+            self.g.set_two_bytes(0, best[1][0], best[1][1])
 
             self._deconvolve_pass(first=2)
             # if this iteration didn't produce a change in the answer
             # then the next one won't either, so stop.
-            if (self._bytes == self._oldbytes).all():
+            if (self.g.bytes == self._oldbytes).all():
+                #print it
                 break
-            self._oldbytes[:] = self._bytes
+            self._oldbytes[:] = self.g.bytes
 
     def deconvolve(self):
-        self.make_guess_mask()
-        self.make_possible_bytes(Vbi.possible_bytes)
-
         target = gauss(self.vbi, config.gauss_sd)
         self.target = normalise(target)
 
-        self._bytes = np.zeros(42, dtype=np.uint8) | 0x55
+        self.make_guess_mask()
+        self.make_possible_bytes(Vbi.possible_bytes)
+
         self._oldbytes = np.zeros(42, dtype=np.uint8)
 
         self._deconvolve()
 
-        packet = "".join([chr(x) for x in self._bytes])
+        packet = "".join([chr(x) for x in self.g.bytes])
 
         F = finders.test(finders.all_headers, packet)
         if F:
@@ -264,7 +210,7 @@ class Vbi(object):
                 sys.stderr.flush()               
                 self.make_possible_bytes(F.possible_bytes)
                 self._deconvolve()
-                F.find(self._bytes)
+                F.find(self.g.bytes)
                 packet = F.fixup()
                 return packet
 
@@ -276,18 +222,18 @@ class Vbi(object):
         # note: this doesn't work. i am not sure why. a packet in 63322
         # does not match the finders but still passes through this next check
         # with r=0. which should be impossible.
-        ((m,r),e) = mrag(self._bytes[:2])
+        ((m,r),e) = mrag(self.g.bytes[:2])
         if r == 0:
             sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
             sys.stderr.flush()
             if not config.allow_unmatched:
                 self._nzdeconvolve()
-            packet = "".join([chr(x) for x in self._bytes])
+            packet = "".join([chr(x) for x in self.g.bytes])
         # if it's a link packet, it is completely hammed
         elif r == 27:
             self.make_possible_bytes([hammbytes]*42)
             self._deconvolve()
-            packet = "".join([chr(x) for x in self._bytes])
+            packet = "".join([chr(x) for x in self.g.bytes])
 
         return packet
             
@@ -297,19 +243,18 @@ class Vbi(object):
 def process_file((inname, outname)):
   print inname, outname
   try:
-    f = file(inname).read()
+    data = np.fromstring(file(inname).read(), dtype=np.uint8)
     outfile = file(outname, 'wb')
     for line in range(32):
         offset = line*2048
-        vbiraw = np.array(np.fromstring(f[offset:offset+2048], 
-                          dtype=np.uint8), dtype=np.float32)
+        vbiraw = data[offset:offset+2048]
         v = Vbi(vbiraw)
         tmp = v.find_offset_and_scale()
         if tmp:
             outfile.write(v.deconvolve())
         else:
             outfile.write("\xff"*42)
-        
+    outfile.close()
   except IOError:
     pass
 
@@ -331,7 +276,8 @@ def list_files(inputpath, outputpath, first, count):
 if __name__ == '__main__':
     import multiprocessing
     from multiprocessing.pool import IMapIterator, Pool
-
+    import cProfile
+    import pstats
     def wrapper(func):
       def wrap(self, timeout=None):
         # Note: the timeout of 1 googol seconds introduces a rather subtle
@@ -364,8 +310,11 @@ if __name__ == '__main__':
             pass
 
     else: # single thread mode for debugging
-        map(process_file, list_files(path+'/vbi/', path+'/t42/', first, count))
-
+        def doit():
+            map(process_file, list_files(path+'/vbi/', path+'/t42/', first, count))
+        cProfile.run('doit()', 'myprofile')
+        p = pstats.Stats('myprofile')
+        p.sort_stats('cumulative').print_stats(50)
 
 
 
