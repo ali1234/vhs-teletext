@@ -3,18 +3,11 @@
 import sys
 from printer import do_print
 
-def do_file(filename):
-    f = file(filename).read()
-    for l in range(32):
-        if l == 16:
-            print ' -- '
-        offset = 42*l
-        print do_print(f[offset:offset+42])
-
-
-
 def do_raw(filename):
-    f = file(filename).read()
+    try:
+        f = file(filename).read()
+    except:
+        return (0, 0)
     f1count = 0
     f2count = 0
 
