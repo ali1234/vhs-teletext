@@ -40,8 +40,6 @@ class PacketHolder(object):
 
     sequence = 0
 
-    finders = [BBCOld, TeletextLtd, FourTel]
-
     def __init__(self, tt):
 
         self.sequence = PacketHolder.sequence
@@ -49,8 +47,8 @@ class PacketHolder(object):
 
         (self.m,self.r),e = mrag(np.fromstring(tt[:2], dtype=np.uint8))
         match = False
-        for F in PacketHolder.finders:
-          if F.find(tt):
+        F = finders.test(finders.all_headers, tt)
+        if F:
             self.r = 0
             F.check_page_info()
             self.me = False #F.me

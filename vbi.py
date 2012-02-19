@@ -13,7 +13,7 @@
 # This is the main data analyser.
 
 import sys
-
+import os
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d as gauss
@@ -27,6 +27,8 @@ import config
 
 import time
 
+import finders
+
 np.seterr(invalid= 'raise')
 
 class Vbi(object):
@@ -35,15 +37,12 @@ class Vbi(object):
 
     possible_bytes = [hammbytes]*2 + [paritybytes]*40
 
-    def __init__(self, vbi, finders):
+    def __init__(self, vbi):
 
         # data arrays
 
         # vbi is the raw line as an array of 2048 floats
         self.vbi = vbi
-
-        # finders find packet 0 based on pattern matching
-        self.finders = finders
 
         # black level of the signal
         self.black = np.mean(self.vbi[:80])
@@ -259,14 +258,13 @@ class Vbi(object):
 
         packet = "".join([chr(x) for x in self._bytes])
 
-        for F in self.finders:
-            if F.find(packet):
+        F = finders.test(finders.all_headers, packet)
+        if F:
                 sys.stderr.write("matched by finder "+F.name+"\n");
                 sys.stderr.flush()               
                 self.make_possible_bytes(F.possible_bytes)
                 self._deconvolve()
-                packet = "".join([chr(x) for x in self._bytes])
-                F.find(packet)
+                F.find(self._bytes)
                 packet = F.fixup()
                 return packet
 
@@ -279,7 +277,7 @@ class Vbi(object):
         # does not match the finders but still passes through this next check
         # with r=0. which should be impossible.
         ((m,r),e) = mrag(self._bytes[:2])
-        if r == 0 or r == 30:
+        if r == 0:
             sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
             sys.stderr.flush()
             if not config.allow_unmatched:
@@ -296,50 +294,77 @@ class Vbi(object):
         
 
 
-def process_file(filename):
-  ans = []
+def process_file((inname, outname)):
+  print inname, outname
   try:
-    f = file(filename).read()
-    for line in config.rows:
+    f = file(inname).read()
+    outfile = file(outname, 'wb')
+    for line in range(32):
         offset = line*2048
-        vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float32)
-        v = Vbi(vbiraw, config.finders)
-        c2 = c1 = c0 = time.time()
+        vbiraw = np.array(np.fromstring(f[offset:offset+2048], 
+                          dtype=np.uint8), dtype=np.float32)
+        v = Vbi(vbiraw)
         tmp = v.find_offset_and_scale()
-        c1 = time.time()
         if tmp:
-            packet = v.deconvolve()
+            outfile.write(v.deconvolve())
         else:
-            packet = None
-        c2 = time.time()
-        timing = (c1-c0, c2-c1, v.it, v.count)
-
-        ans.append((packet, timing))
+            outfile.write("\xff"*42)
         
   except IOError:
     pass
 
-  return (filename, ans)  
 
-def list_files(datapath):
-    for frame in range(0, 100001, 1):
+def test_file(outfile):
+    return os.path.isfile(outfile) and (os.path.getsize(outfile) == (42 * 32))
+
+def list_files(inputpath, outputpath, first, count):
+    for frame in range(first, first+count, 1):
         frame = "%08d" % frame
-        yield datapath+'/'+frame+'.vbi'
+        if test_file(outputpath + '/' + frame + '.t42'):
+            #print "skipping %s\n" % (outputpath + '/' + frame + '.t42')
+            pass
+        else:
+            yield (inputpath + '/' + frame + '.vbi', 
+                  outputpath + '/' + frame + '.t42')
 
-#../0008//00063322.vbi
+
 if __name__ == '__main__':
+    import multiprocessing
+    from multiprocessing.pool import IMapIterator, Pool
 
-    def do_file(filename):
-        sys.stderr.write(filename+'\n')
-        ans = process_file(filename)[1]
-        for p,t in ans:
-            if p:
-                sys.stdout.write(p)
-        sys.stdout.flush()
+    def wrapper(func):
+      def wrap(self, timeout=None):
+        # Note: the timeout of 1 googol seconds introduces a rather subtle
+        # bug for Python scripts intended to run many times the age of the universe.
+        return func(self, timeout=timeout if timeout is not None else 1e100)
+      return wrap
+    IMapIterator.next = wrapper(IMapIterator.next)
 
-    datapath = sys.argv[1]
-    map(do_file, list_files(datapath))
 
+    try:
+        path = sys.argv[1]
+    except:
+        print "Usage:", sys.argv[0], "<path> [<first> <count>]\n"
+        print "  path: directory with VBI files to process"
+        print "  first: first file to process"
+        print "  count: maximum number of files to process\n"
+        exit(-1)
+
+    try:
+        first = int(sys.argv[2], 10)
+        count = int(sys.argv[3], 10)
+    except:
+        first = 0
+        count = 10000000
+
+    if 1:
+        p = Pool(multiprocessing.cpu_count())
+        it = p.imap(process_file, list_files(path+'/vbi/', path+'/t42/', first, count), chunksize=1)
+        for i in it:
+            pass
+
+    else: # single thread mode for debugging
+        map(process_file, list_files(path+'/vbi/', path+'/t42/', first, count))
 
 
 

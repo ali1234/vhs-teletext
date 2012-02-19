@@ -106,12 +106,12 @@ class Finder(object):
 
     def find(self, packet):
         rank = 0
-        self.packet = np.fromstring(packet, dtype=np.uint8)
+        self.packet = packet # np.fromstring(packet, dtype=np.uint8)
         (self.m,self.r),self.me = mrag(self.packet[:2])
         if self.r == self.row:
             rank += 5
         rank += self.calculaterank(self.packet&0x7f)
-        return (rank > self.passrank)
+        return rank if (rank > self.passrank) else 0
 
     def fixup(self):
         self.packet[0:2] = makemrag(self.m, self.row)
@@ -139,20 +139,13 @@ class Finder(object):
         #    print("P%1d%02x " % (self.hm,self.hp))
                     
    
-BBC1 = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
-              "HHHHHHHHHHeeeeeee2emhheDAYe39eMONe"+"29e59e59", 
-              name="BBC Packet 0", row=0)
+BBC = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
+             "HHHHHHHHHHeeeeeee2emhheDAYe39eMONe"+"29e59e59", 
+             name="BBC Packet 0", row=0)
 
 BBCOld = Finder("          CEEFAX 217  Wed 25 Dec \x0318:29/53",
                 "HHHHHHHHHHeeeeeeemhheeDAYe39eMONee"+"29e59e59", 
                 name="BBC Old Packet 0", row=0)
-
-# there are two types of broadcast packet. one has 8/4 PDC data and the other
-# has no encoding (not even parity). the latter is almost impossible to 
-# deconvolve so we try for the former to speed up the finder.
-BBC1_BSD = Finder("\x15\xea \x15\x15\xea\xea\xea\x5e              BBC1 CEEFAX        ",
-                  "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeee2eeeeeeeeeeeeeee", 
-                  name="BBC Broadcast Service Data", row=30)
 
 TeletextLtd = Finder("          \x04\x1d\x03Teletext\x07 \x1c100 May05\x0318:29:53",
                      "HHHHHHHHHHe"+"e"+"e"+"eeeeeeeee"+"ee"+"mhheMON39e"+"29e59e59", 
@@ -162,10 +155,28 @@ FourTel = Finder("          4-Tel 307 Sun 26 May\x03C4\x0718:29:53",
                  "HHHHHHHHHHeeeeeemhheDAYe39eMONe"+"eee"+"29e59e59", 
                   name="4Tel Packet 0", row=0)
 
+all_headers = [BBC, BBCOld, TeletextLtd, FourTel]
+
+# there are two types of broadcast packet. one has 8/4 PDC data and the other
+# has no encoding (not even parity). the latter is almost impossible to 
+# deconvolve so we try for the former to speed up the finder.
+BBC_BSD = Finder("\x15\xea \x15\x15\xea\xea\xea\x5e              BBC1 CEEFAX        ",
+                 "e"+"e"+"de"+"e"+"e"+"e"+"e"+"e"+"HHHHHHHHHHHHHeeee2eeeeeeeeeeeeeee", 
+                 name="BBC Broadcast Service Data", row=30)
 
 Generic_BSD = Finder(" \xea                     BBC1 CEEFAX        ",
                      "He"+"dHHHHHH             pppppppppppppppppppp", 
-                     name="Broadcast Service Data", row=30)
+                     name="Generic Broadcast Service Data", row=30)
+
+all_bsd = [BBC_BSD, Generic_BSD]
+
+def test(finders, packet):
+    a_packet = np.fromstring(packet, dtype=np.uint8)
+    ans = []
+    for f in finders:
+        ans.append((f.find(a_packet), f))
+    t = max(ans)
+    return t[1] if t[0] > 0 else None
 
 if __name__=='__main__':
 
