@@ -8,6 +8,7 @@ from finders import *
 from printer import do_print
 
 import config
+import finders
 
 class PageWriter(object):
     def __init__(self, outdir):
@@ -55,7 +56,7 @@ class PacketHolder(object):
             self.pe = False #F.pe
             self.p = F.p
             match = True
-            break    
+                
         if not match and self.r == 0:
             self.r = -1
             self.m = -1
