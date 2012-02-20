@@ -78,7 +78,7 @@ class Vbi(object):
         def _inner(offset):
             self.g.set_offset(offset)
             self.g.set_update_range(0,5)
-            self.g.update()
+            self.g.update_cri()
             (low, high) = self.g.get_cri_range()
             
             guess_scaled = self.g.convolved[low:high]

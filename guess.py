@@ -42,6 +42,7 @@ def calc_kernel(sigma):
     return np.array(weights)
 
 _kernel = calc_kernel(5.5)
+_lk = len(_kernel)
 
 class Guess(object):
 
@@ -81,8 +82,10 @@ class Guess(object):
 
     def set_update_range(self, which, n):
         (self.low, self.high) = self.get_range(which, n)
-        #self.low = max(0, self.low - 20)
-        #self.high = min(self._width, self.high + 20)
+        self.low -= _lk
+        self.high += _lk
+        self.olow = self.low - _lk
+        self.ohigh = self.high + _lk
         return (self.low, self.high)
 
     def get_cri_range(self):
@@ -90,7 +93,11 @@ class Guess(object):
         return (low, int(high+self._bitwidth*2.8))
 
     def update(self):
-        self.convolved[self.low:self.high] = correlate1d(self._guess_scaler(self._guess_x[self.low:self.high]), _kernel)
+        self.convolved[self.low:self.high] = correlate1d(self._guess_scaler(self._guess_x[self.olow:self.ohigh]), _kernel)[_lk:-_lk]
+
+    def update_cri(self):
+        (low, high) = self.get_range(0, 5)
+        self.convolved[:high] = correlate1d(self._guess_scaler(self._guess_x[:high]), _kernel)
 
     def update_all(self):
         self.convolved = correlate1d(self._guess_scaler(self._guess_x), _kernel)
