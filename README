@@ -9,10 +9,6 @@ Then run an xterm like this:
 Then checkout source and run on the example data like this:
 
 	git clone git://github.com/ali1234/vhs-teletext.git
-	cd vhs-teletext
-	./vbi.py example | ./printer.py
-
-You should now see some recognizable packets output, which means everything is set up correctly.
 
 All the things you need should be available to run this on Windows, but I have not tried it.
 
@@ -37,15 +33,17 @@ Create a folder for captures:
 
 	mkdir cap0001
 	cd cap0001
+        mkdir vbi
+        cd vbi
 
 Do capture:
 
-	../dumpvbi
+	../../dumpvbi
 
 You will need at least 15-30 minutes for good results. 
 End capture with ctrl-c and then go back to previous directory:
 
-	cd ..
+	cd ../..
 
 This produces raw binary files starting at 00000000.vbi. Each file contains 32 
 vbi lines sampled from a single frame. Each line is 2048 samples.
@@ -57,17 +55,14 @@ Step 2 - Run recovery
 
 Run vbi.py on the sampled data:
 
-	./vbi.py cap0001/ | ./pagesplitter.py cap0001/pages/
+	./vbi.py cap0001/
 
-This runs the deconvolver and pipes the output into the page splitter, which 
-creates a subfolder with directories for each magazine, and file for each page. 
-It will take several days. You can leave it running and open a new terminal 
-to run the following steps at any time.
+Step 3 - Page splitter
 
+	./t42cat.py cap0001/t42/ 2> /dev/null | ./pagesplit.py cap0001/pages/
 
 
-
-Step 3 - Squash subpages to html:
+Step 4 - Squash subpages to html:
 
 	./subpagesquash.py cap0001/pages/ cap0001/html-pages/
 
@@ -78,7 +73,7 @@ results.
 
 
 
-Step 4 - Copy font and CSS:
+Step 5 - Copy font and CSS:
 
 	cp teletext2.ttf teletext4.tff teletext.css cap0001/html-pages/
 
