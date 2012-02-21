@@ -4,55 +4,13 @@ from finders import *
 # You will likely need one of these per recording,
 # or at the very least per channel.
 
+# I'm trying to remove this file and parameterize
+# everything in preparation for clustering.
+
+# Removed values are either no longer needed or
+# passed into Vbi() as optional keyword arguments.
+
 # Which magazines are present in the broadcast?
 # eg 100, 200 etc. Magazine 800 is 0.
 magazines = [1,2,3,4,5,6]
 
-# Which finders should be used?
-# Note you could just throw all finders at it if
-# you don't know, or if the tape has a lot of short
-# clips - but this will slow it down.
-finders = [TeletextLtd]
-# Allow vbi.py to emitt packet 0's that don't match
-# any finder? Set to false when you have finders
-# for all headers in the data.
-allow_unmatched = True
-
-# Which VBI rows contain data?
-# Again, you can check all rows. I have implemented a 
-# check that discards empty rows based on the content
-# so it shouldn't affect the speed too much.
-rows = range(12) + range(16, 28)
-
-# How much blurring to apply?
-# Tweaking this can help. Values between 2 and 8?
-gauss_sd = 2.0         # applied to signal to remove noise
-gauss_sd_offset = 5.5  # applied to offset guess
-gauss_sd_guess = 5.5   # applied to deconvolver guess
-
-# How many samples per bit from capture hardware?
-# If you are using bt8*8 hardware this is unlikely to 
-# ever change.
-bitwidth = 5.112
-
-# How many processes to use in multiprocessor mode?
-# Set this to how many CPU cores you have and then use
-# vbimp.py instead of vbi.py (usage is identical.)
-procs = 4
-
-# Offset range to check for signal drift, in samples.
-# The algorithm will check with sub sample accuracy.
-# The offset finder is very fast (it uses bisection)
-# so this range can be relatively large. But not too
-# large or you get false positives.
-offset_low = 90.0
-offset_high = 119.0
-
-# Threshold multipliers. The black level of the signal 
-# is derived from the mean of the area before the VBI 
-# begins. This is multiplied by the following factors 
-# to give the low/high thresholds. Anything outside
-# this range is assumed to be a 0 or a 1. Tweaking these
-# can improve results, but often at a speed cost.
-thresh_low = 1.1
-thresh_high = 2.36

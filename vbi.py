@@ -24,7 +24,6 @@ from util import paritybytes, setbyte, normalise, hammbytes, allbytes, mrag, not
 
 import util
 
-import config
 from guess import Guess
 
 import time
@@ -40,37 +39,57 @@ class Vbi(object):
 
     possible_bytes = [hammbytes]*2 + [paritybytes]*40
 
-    def __init__(self, vbi):
+    def __init__(self, vbi, bitwidth=5.112, gauss_sd=4.0, gauss_sd_offset=4.0,
+                 offset_low = 75.0, offset_high = 119.0,
+                 thresh_low = 1.1, thresh_high = 2.36,
+                 allow_unmatched = False):
 
         # data arrays
 
         # vbi is the raw line as an array of 2048 floats
         self.vbi = vbi
 
+        # blurring amounts
+        self.gauss_sd = gauss_sd
+        self.gauss_sd_offset = gauss_sd_offset
+
+        # Offset range to check for signal drift, in samples.
+        # The algorithm will check with sub sample accuracy.
+        # The offset finder is very fast (it uses bisection)
+        # so this range can be relatively large. But not too
+        # large or you get false positives.
+        self.offset_low = offset_low
+        self.offset_high = offset_high
+
         # black level of the signal
         self.black = np.mean(self.vbi[:80])
 
-        # thresholds - anything above / below these are 1 or 0 respectively
-        # tweaking these values can improve results.
-        self.thresh_low = self.black*config.thresh_low
-        self.thresh_high = self.black*config.thresh_high
+        # Threshold multipliers. The black level of the signal 
+        # is derived from the mean of the area before the VBI 
+        # begins. This is multiplied by the following factors 
+        # to give the low/high thresholds. Anything outside
+        # this range is assumed to be a 0 or a 1. Tweaking these
+        # can improve results, but often at a speed cost.
+        self.thresh_low = self.black*thresh_low
+        self.thresh_high = self.black*thresh_high
 
-        # note: guess and mask are 376 "bits" long because an extra "byte" is 
-        # needed at the beginning and the end for interpolation to work 
-        # correctly. setbyte and bitstobytes take this into account.
+        # Allow vbi.py to emitt packet 0's that don't match
+        # any finder? Set to false when you have finders
+        # for all headers in the data.
+        self.allow_unmatched = allow_unmatched
 
         # vbi packet bytewise
         self._mask0 = np.zeros(42, dtype=np.uint8)
         self._mask1 = np.zeros(42, dtype=np.uint8)
 
-        self.g = Guess()
+        self.g = Guess(bitwidth=bitwidth)
 
 
     def find_offset_and_scale(self):
         '''Tries to find the offset of the vbi data in the raw samples.'''
 
         # Split into chunks and ensure there is something "interesting" in each
-        target = gauss(self.vbi, config.gauss_sd)
+        target = gauss(self.vbi, self.gauss_sd_offset)
         d = [np.std(target[x:x+128]) < 10.0 for x in range(64, 2048, 128)]
         if any(d):
             return False
@@ -93,7 +112,7 @@ class Vbi(object):
 
             return np.sum(np.square(b-a))
 
-        offset = fminbound(_inner, config.offset_low, config.offset_high)
+        offset = fminbound(_inner, self.offset_low, self.offset_high)
 
         # call it also to set self.offset and self.scale
         return (_inner(offset) < 10)
@@ -192,7 +211,7 @@ class Vbi(object):
             self._oldbytes[:] = self.g.bytes
 
     def deconvolve(self):
-        target = gauss(self.vbi, config.gauss_sd)
+        target = gauss(self.vbi, self.gauss_sd)
         self.target = normalise(target)
 
         self.make_guess_mask()
@@ -226,7 +245,7 @@ class Vbi(object):
         if r == 0:
             sys.stderr.write("packet falsely claimed to be packet %d\n" % r);
             sys.stderr.flush()
-            if not config.allow_unmatched:
+            if not self.allow_unmatched:
                 self._nzdeconvolve()
             packet = "".join([chr(x) for x in self.g.bytes])
         # if it's a link packet, it is completely hammed
