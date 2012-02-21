@@ -41,7 +41,7 @@ def calc_kernel(sigma):
 
     return np.array(weights)
 
-_kernel = calc_kernel(5.5)
+_kernel = calc_kernel(5.112)
 _lk = len(_kernel)
 
 class Guess(object):
@@ -56,7 +56,7 @@ class Guess(object):
         self._set_bits(3, 0x27)
 
         self._interp_x = (np.arange(0,47*8,1.0) * bitwidth) - (bitwidth*8)
-        self._guess_x = np.zeros(2048, dtype=np.float32)
+        self._guess_x = np.zeros(2100, dtype=np.float32)
         
         self._guess_scaler = interp1d(self._interp_x, self._bits, 
                                       kind='linear', copy=False, 
@@ -67,7 +67,7 @@ class Guess(object):
 
     def set_offset(self, offset):
         self._offset = offset
-        self._guess_x[:] = np.arange(0,2048,1.0) - offset
+        self._guess_x[:] = np.arange(0,2100,1.0) - offset
 
     def get_bit_pos(self, bit):
         bit += 32
@@ -100,7 +100,7 @@ class Guess(object):
         self.convolved[:high] = correlate1d(self._guess_scaler(self._guess_x[:high]), _kernel)
 
     def update_all(self):
-        self.convolved = correlate1d(self._guess_scaler(self._guess_x), _kernel)
+        self.convolved[0:self._width] = correlate1d(self._guess_scaler(self._guess_x)[0:self._width], _kernel)
         
 
     def _set_bits(self, which, value):
