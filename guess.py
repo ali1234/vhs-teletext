@@ -44,6 +44,10 @@ def calc_kernel(sigma):
 _kernel = calc_kernel(5.112)
 _lk = len(_kernel)
 
+_mask_bits = np.zeros(47*8, dtype=np.float32)
+_mask_bits[0:32] += 1
+
+
 class Guess(object):
 
     def __init__(self, width=2048, bitwidth=5.112):
@@ -63,6 +67,15 @@ class Guess(object):
                                       bounds_error=False, fill_value=0)
 
         self.convolved = np.zeros(width, dtype=np.float32)
+
+
+
+
+        self._mask_scaler = interp1d(self._interp_x, _mask_bits, 
+                                      kind='linear', copy=False, 
+                                      bounds_error=False, fill_value=0)
+
+        self.mask = np.zeros(width, dtype=np.float32)
 
 
     def set_offset(self, offset):
@@ -88,16 +101,12 @@ class Guess(object):
         self.ohigh = self.high + _lk
         return (self.low, self.high)
 
-    def get_cri_range(self):
-        (low, high) = self.get_range(0,3)
-        return (low, int(high+self._bitwidth*2.8))
-
     def update(self):
         self.convolved[self.low:self.high] = correlate1d(self._guess_scaler(self._guess_x[self.olow:self.ohigh]), _kernel)[_lk:-_lk]
 
-    def update_cri(self):
-        (low, high) = self.get_range(0, 5)
-        self.convolved[:high] = correlate1d(self._guess_scaler(self._guess_x[:high]), _kernel)
+    def update_cri(self, low, high):
+        self.convolved[low:high] = correlate1d(self._guess_scaler(self._guess_x[low:high]), _kernel)
+        self.mask[low:high] = self._mask_scaler(self._guess_x[low:high])
 
     def update_all(self):
         self.convolved[0:self._width] = correlate1d(self._guess_scaler(self._guess_x)[0:self._width], _kernel)

@@ -94,16 +94,16 @@ class Vbi(object):
         if any(d):
             return False
 
+        low = 64
+        high = 256
         def _inner(offset):
             self.g.set_offset(offset)
-            self.g.set_update_range(0,5)
-            self.g.update_cri()
-            (low, high) = self.g.get_cri_range()
-            
+
+            self.g.update_cri(low, high)
             guess_scaled = self.g.convolved[low:high]
 
             a = guess_scaled
-            b = np.clip(target[low:high], self.black, 256)
+            b = np.clip(target[low:high]*self.g.mask[low:high], self.black, 256)
 
             scale = a.std()/b.std()
             b -= self.black
