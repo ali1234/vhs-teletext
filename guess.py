@@ -59,7 +59,9 @@ class Guess(object):
         self._set_bits(2, 0x55)
         self._set_bits(3, 0x27)
 
-        self._interp_x = (np.arange(0,47*8,1.0) * bitwidth) - (bitwidth*8)
+        self._interp_x = np.zeros(376, dtype=np.float32)
+        self._interp_x[:] = (np.arange(0,47*8,1.0) * bitwidth) - bitwidth*8
+
         self._guess_x = np.zeros(2100, dtype=np.float32)
         
         self._guess_scaler = interp1d(self._interp_x, self._bits, 
@@ -68,12 +70,9 @@ class Guess(object):
 
         self.convolved = np.zeros(width, dtype=np.float32)
 
-
-
-
         self._mask_scaler = interp1d(self._interp_x, _mask_bits, 
                                       kind='linear', copy=False, 
-                                      bounds_error=False, fill_value=0)
+                                      bounds_error=False, fill_value=1)
 
         self.mask = np.zeros(width, dtype=np.float32)
 
@@ -87,16 +86,10 @@ class Guess(object):
         low = max(0, int(self._interp_x[bit] + self._offset - (self._bitwidth*0.5)))
         return (low, 1+int(low+(self._bitwidth)))
 
-    def get_range(self, which, n):
-        which *= 8
-        low = max(0, int(self._interp_x[which] + self._offset))
-        high = min(self._width, int(self._interp_x[which+(n*8)] + self._offset))
-        return (low, high)
-
     def set_update_range(self, which, n):
-        (self.low, self.high) = self.get_range(which, n)
-        self.low -= _lk
-        self.high += _lk
+        which *= 8
+        self.low = int(self._interp_x[which] + self._offset) - _lk
+        self.high = int(self._interp_x[which+(n*8)] + self._offset) + _lk
         self.olow = self.low - _lk
         self.ohigh = self.high + _lk
         return (self.low, self.high)
@@ -110,7 +103,6 @@ class Guess(object):
 
     def update_all(self):
         self.convolved[0:self._width] = correlate1d(self._guess_scaler(self._guess_x)[0:self._width], _kernel)
-        
 
     def _set_bits(self, which, value):
         which *= 8
