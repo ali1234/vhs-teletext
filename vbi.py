@@ -96,14 +96,17 @@ class Vbi(object):
 
         low = 64
         high = 256
+        target = gauss(self.vbi[low:high], self.gauss_sd_offset)
+
         def _inner(offset):
             self.g.set_offset(offset)
 
             self.g.update_cri(low, high)
             guess_scaled = self.g.convolved[low:high]
+            mask_scaled = self.g.mask[low:high]
 
-            a = guess_scaled
-            b = np.clip(target[low:high]*self.g.mask[low:high], self.black, 256)
+            a = guess_scaled*mask_scaled
+            b = np.clip(target*mask_scaled, self.black, 256)
 
             scale = a.std()/b.std()
             b -= self.black
@@ -162,7 +165,11 @@ class Vbi(object):
 
     def _deconvolve_make_diff(self, (low, high)):
         a = normalise(self.g.convolved)
-        return np.sum(np.square(a[low:high]-self.target[low:high]))
+        diff_sq = np.square(a - self.target)
+        return np.sum(diff_sq)
+        # an interesting trick I discovered. 
+        # bias the result towards the curent area of interest
+        return np.sum(diff_sq[:low]) + 2.6*np.sum(diff_sq[low:high]) + np.sum(diff_sq[high:])
 
     def _deconvolve_pass(self, first=0, last=42):
         for n in range(first, last):
