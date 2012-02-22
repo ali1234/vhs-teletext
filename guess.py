@@ -83,8 +83,8 @@ class Guess(object):
 
     def get_bit_pos(self, bit):
         bit += 32
-        low = max(0, int(self._interp_x[bit] + self._offset - (self._bitwidth*0.5)))
-        return (low, 1+int(low+(self._bitwidth)))
+        low = max(0, self._interp_x[bit] + self._offset - (self._bitwidth*0.5))
+        return (int(low)+1, int(low+self._bitwidth)+1)
 
     def set_update_range(self, which, n):
         which *= 8
