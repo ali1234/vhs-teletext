@@ -120,7 +120,7 @@ class Vbi(object):
         # call it also to set self.offset and self.scale
         return (_inner(offset) < 10)
 
-    def make_guess_mask(self,o=0):
+    def make_guess_mask(self):
         a = []
 
         for i in range(42*8):
