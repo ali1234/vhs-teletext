@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     int fd;
     FILE *f;
     char vbi_name[] = "/dev/vbi0";
-    int c, n;
+    int c, n, err=0;
     char filename[20];
 
     u8 rawbuf[0x10000]; /* 2048*32 */
@@ -91,13 +91,17 @@ int main(int argc, char *argv[]) {
     for(c = 0; ; c++) {
         n = read(fd, rawbuf, 0x10000);
 
-        sprintf(filename, "%08d.vbi", c);
+        if (n != 0x10000) err++;
+        else {
+            sprintf(filename, "%08d.vbi", c);
 
-        f = fopen(filename, "w");
-        fwrite(rawbuf, n, 1, f);
-        fclose(f);
+            f = fopen(filename, "w");
+            fwrite(rawbuf, n, 1, f);
+            fclose(f);
 
-        printf("%s\r", filename);
+            if ((c&0x1f)==0)
+                printf("%s - %d\r", filename, err);
+        }
     }
 
     err_query:
