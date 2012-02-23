@@ -111,7 +111,7 @@ class Finder(object):
         if self.r == self.row:
             rank += 5
         rank += self.calculaterank(self.packet&0x7f)
-        return rank if (rank > self.passrank) else 0
+        return rank/self.passrank if (rank > self.passrank) else 0
 
     def fixup(self):
         self.packet[0:2] = makemrag(self.m, self.row)
@@ -147,6 +147,10 @@ BBCOld = Finder("          CEEFAX 217  Wed 25 Dec \x0318:29/53",
                 "HHHHHHHHHHeeeeeeemhheeDAYe39eMONee"+"29e59e59", 
                 name="BBC Old Packet 0", row=0)
 
+Central = Finder("          Central  217 Wed 25 Dec 18:29/53",
+                 "HHHHHHHHHHeeeeeeeppmhhpDAYp39pMONp29e59p59", 
+                 name="Central Packet 0", row=0)
+
 TeletextLtd = Finder("          \x04\x1d\x03Teletext\x07 \x1c100 May05\x0318:29:53",
                      "HHHHHHHHHHe"+"e"+"e"+"eeeeeeeee"+"ee"+"mhheMON39e"+"29e59e59", 
                      name="Teletext Ltd Packet 0", row=0)
@@ -155,7 +159,7 @@ FourTel = Finder("          4-Tel 307 Sun 26 May\x03C4\x0718:29:53",
                  "HHHHHHHHHHeeeeeemhheDAYe39eMONe"+"eee"+"29e59e59", 
                   name="4Tel Packet 0", row=0)
 
-all_headers = [BBC, BBCOld, TeletextLtd, FourTel]
+all_headers = [BBC, BBCOld, Central, TeletextLtd, FourTel]
 
 # there are two types of broadcast packet. one has 8/4 PDC data and the other
 # has no encoding (not even parity). the latter is almost impossible to 
