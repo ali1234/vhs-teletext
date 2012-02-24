@@ -99,8 +99,7 @@ int main(int argc, char *argv[]) {
             fwrite(rawbuf, n, 1, f);
             fclose(f);
 
-            if ((c&0x1f)==0)
-                printf("%s - %d\r", filename, err);
+            printf("%s - %d\r", filename, err);
         }
     }
 
