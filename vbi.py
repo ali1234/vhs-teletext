@@ -39,10 +39,10 @@ class Vbi(object):
 
     possible_bytes = [hammbytes]*2 + [paritybytes]*40
 
-    def __init__(self, vbi, bitwidth=5.112, gauss_sd=4.0, gauss_sd_offset=4.0,
+    def __init__(self, vbi, bitwidth=5.112, gauss_sd=1.1, gauss_sd_offset=2.0,
                  offset_low = 75.0, offset_high = 119.0,
                  thresh_low = 1.1, thresh_high = 2.36,
-                 allow_unmatched = False):
+                 allow_unmatched = True):
 
         # data arrays
 
@@ -90,7 +90,7 @@ class Vbi(object):
 
         # Split into chunks and ensure there is something "interesting" in each
         target = gauss(self.vbi, self.gauss_sd_offset)
-        d = [np.std(target[x:x+128]) < 10.0 for x in range(64, 2048, 128)]
+        d = [np.std(target[x:x+128]) < 5.0 for x in range(64, 2048, 128)]
         if any(d):
             return False
 
@@ -288,8 +288,8 @@ def process_file((inname, outname)):
 def test_file(outfile):
     return os.path.isfile(outfile) and (os.path.getsize(outfile) == (42 * 32))
 
-def list_files(inputpath, outputpath, first, count):
-    for frame in range(first, first+count, 1):
+def list_files(inputpath, outputpath, first, count, skip):
+    for frame in range(first, first+count, skip):
         frame = "%08d" % frame
         if test_file(outputpath + '/' + frame + '.t42'):
             #print "skipping %s\n" % (outputpath + '/' + frame + '.t42')
@@ -325,19 +325,21 @@ if __name__ == '__main__':
     try:
         first = int(sys.argv[2], 10)
         count = int(sys.argv[3], 10)
+        skip = int(sys.argv[4], 10)
     except:
         first = 0
         count = 10000000
+        skip = 1
 
     if 1:
         p = Pool(multiprocessing.cpu_count())
-        it = p.imap(process_file, list_files(path+'/vbi/', path+'/t42/', first, count), chunksize=1)
+        it = p.imap(process_file, list_files(path+'/vbi/', path+'/t42/', first, count, skip), chunksize=1)
         for i in it:
             pass
 
     else: # single thread mode for debugging
         def doit():
-            map(process_file, list_files(path+'/vbi/', path+'/t42/', first, count))
+            map(process_file, list_files(path+'/vbi/', path+'/t42/', first, count, skip))
         cProfile.run('doit()', 'myprofile')
         p = pstats.Stats('myprofile')
         p.sort_stats('cumulative').print_stats(50)
