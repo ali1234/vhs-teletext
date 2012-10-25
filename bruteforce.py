@@ -29,6 +29,8 @@ import time
 import printer
 from vbi import Vbi
 
+import guessview
+
 def process_file(filename):
   ans = []
   try:
@@ -41,10 +43,12 @@ def process_file(filename):
          for th in np.arange(2.1,2.4,0.05):
           for g in np.arange(1.1,5.2,1.0):
            for go in np.arange(1.1,5.2,1.0):
+            #thresh_low=1.15 thresh_high=2.10 gauss_sd=1.10 gauss_sd_offset=1.10
             v = Vbi(vbiraw, thresh_low=tl, thresh_high=th, gauss_sd=g, gauss_sd_offset=go)
             tmp = v.find_offset_and_scale()
             if tmp:
                 packet = v.deconvolve()
+                guessview.draw(vbiraw, v.g.convolved*256)
                 print printer.do_print(packet), "thresh_low=%1.2f thresh_high=%1.2f gauss_sd=%1.2f gauss_sd_offset=%1.2f" % (tl, th, g, go)
             else:
                 packet = None
@@ -57,6 +61,7 @@ def process_file(filename):
 
 if __name__ == '__main__':
 
+    guessview.main()
 
     #do_file('data/0022/vbi/00171104.vbi')
     process_file(sys.argv[1])
