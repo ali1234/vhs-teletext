@@ -24,8 +24,26 @@ def do_raw(filename):
     return (f1count, f2count)
 
 if __name__ == '__main__':
-    path = sys.argv[1]
 
-    for i in range(10000000):
+    try:
+        path = sys.argv[1]
+    except:
+        print "Usage:", sys.argv[0], "<path> [<first> <count>]\n"
+        print "  path: directory with VBI files to process"
+        print "  first: first file to process"
+        print "  count: maximum number of files to process\n"
+        exit(-1)
+
+    try:
+        first = int(sys.argv[2], 10)
+        count = int(sys.argv[3], 10)
+        skip = int(sys.argv[4], 10)
+    except:
+        first = 0
+        count = 10000000
+        skip = 1
+
+
+    for i in range(first, first+count, skip):
         (a,b) = do_raw(path + '/' + ('%08d.t42' % i))
         sys.stderr.write(path + '/' + ('%08d.t42\t%d\t%d\n' % (i, a, b)))
