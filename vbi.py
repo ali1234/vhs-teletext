@@ -90,7 +90,7 @@ class Vbi(object):
 
         # Split into chunks and ensure there is something "interesting" in each
         target = gauss(self.vbi, self.gauss_sd_offset)
-        d = [np.std(target[x:x+128]) < 5.0 for x in range(64, 2048, 128)]
+        d = [np.std(target[x:x+128]) < 5.0 for x in range(64, 1440, 128)]
         if any(d):
             return False
 

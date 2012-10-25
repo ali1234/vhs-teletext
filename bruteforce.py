@@ -36,7 +36,6 @@ def process_file(filename):
   try:
     f = file(filename).read()
     for line in range(32):
-        print line
         offset = line*2048
         vbiraw = np.array(np.fromstring(f[offset:offset+2048], dtype=np.uint8), dtype=np.float32)
         for tl in np.arange(1.05,1.2,0.05):
@@ -49,10 +48,10 @@ def process_file(filename):
             if tmp:
                 packet = v.deconvolve()
                 guessview.draw(vbiraw, v.g.convolved*256)
-                print printer.do_print(packet), "thresh_low=%1.2f thresh_high=%1.2f gauss_sd=%1.2f gauss_sd_offset=%1.2f" % (tl, th, g, go)
+                print printer.do_print(packet), "thresh_low=%1.2f thresh_high=%1.2f gauss_sd=%1.2f gauss_sd_offset=%1.2f" % (tl, th, g, go), line
             else:
                 packet = None
-        
+                print "no teletext in line", line        
         
   except IOError:
     pass
