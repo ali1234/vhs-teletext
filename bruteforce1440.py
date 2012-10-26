@@ -45,7 +45,7 @@ def process_file(filename):
   try:
     f = file(filename).read()
     for line in range(10032):
-      if (line % 12) in [6,7,8]:
+      # if (line % 12) in [6,7,8]:
         offset = line*1440
         interp_y[:] = np.fromstring(f[offset:offset+1440], dtype=np.uint8)
         vbiraw = scaler(np.arange(0, 2048, 1)) + 20
