@@ -163,7 +163,43 @@ FourTel = Finder("          4-Tel 307 Sun 26 May\x03C4\x0718:29:53",
                  "HHHHHHHHHHeeeeeemhheDAYe39eMONe"+"eee"+"29e59e59", 
                   name="4Tel Packet 0", row=0)
 
+Kalejdoskop = Finder("          100 KALEJDOSKOP         18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeeeeeppppppppp29e59e59", 
+                     name="KALEJDOSKOP", row=0)
+
+Medicina    = Finder("          100 MEDICINA            18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeepppppppppppp29e59e59", 
+                     name="MEDICINA", row=0)
+
+Komentarii  = Finder("          100 KOMMENTARII         18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeeeeeppppppppp29e59e59", 
+                     name="KOMENTARII", row=0)
+
+Finans      = Finder("          100   FINANS            18:29:53",
+                     "HHHHHHHHHHmhhpppeeeeeepppppppppppp29e59e59", 
+                     name="FINANS", row=0)
+
+Ekonomika   = Finder("          100 EKONOMIKA           18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeeeppppppppppp29e59e59", 
+                     name="EKONOMIKA", row=0)
+
+Teleinf     = Finder("          100 TELEINF             18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeppppppppppppp29e59e59", 
+                     name="TELEINF", row=0)
+
+Automagazin = Finder("          100 AUTOMAGAZIN         18:29:53",
+                     "HHHHHHHHHHmhhpeeeeeeeeeeeppppppppp29e59e59", 
+                     name="EKONOMIKA", row=0)
+
+Generic     = Finder("          100 MEDICINA            18:29:53",
+                     "HHHHHHHHHHmhhppppppppppppppppppppp29e59e59", 
+                     name="Generic", row=0)
+
+
+
 all_headers = [BBC, BBCOld, Central, TeletextLtd, FourTel, FiveText]
+#all_headers = [Kalejdoskop, Medicina, Komentarii, Finans, Ekonomika, Teleinf, Automagazin]
+#all_headers = [Generic]
 
 # there are two types of broadcast packet. one has 8/4 PDC data and the other
 # has no encoding (not even parity). the latter is almost impossible to 
