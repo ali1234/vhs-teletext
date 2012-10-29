@@ -42,7 +42,7 @@ class Vbi(object):
     def __init__(self, vbi, bitwidth=5.112, gauss_sd=1.1, gauss_sd_offset=2.0,
                  offset_low = 75.0, offset_high = 119.0,
                  thresh_low = 1.1, thresh_high = 2.36,
-                 allow_unmatched = True):
+                 allow_unmatched = True, find=finders.all_headers):
 
         # data arrays
 
@@ -77,6 +77,7 @@ class Vbi(object):
         # any finder? Set to false when you have finders
         # for all headers in the data.
         self.allow_unmatched = allow_unmatched
+        self.finders = find
 
         # vbi packet bytewise
         self._mask0 = np.zeros(42, dtype=np.uint8)
@@ -230,7 +231,7 @@ class Vbi(object):
 
         packet = "".join([chr(x) for x in self.g.bytes])
 
-        F = finders.test(finders.all_headers, packet)
+        F = finders.test(self.finders, packet)
         if F:
                 sys.stderr.write("matched by finder "+F.name+"\n");
                 sys.stderr.flush()               
