@@ -29,6 +29,8 @@ import time
 import printer
 from vbi import Vbi
 
+from finders import *
+
 import guessview
 
 def process_file(filename):
@@ -36,33 +38,37 @@ def process_file(filename):
 
   vbiraw = np.zeros((2048,), dtype=np.uint8)
 
-  interp_x = (np.arange(0,1440,1.0) * 5.112 / 3.95) + 50
+  interp_x = (np.arange(0,1440,1.0) * 5.112 / 4.05) + 50
   interp_y = np.zeros(1440, dtype=np.float32)
   scaler = interp1d(interp_x, interp_y, 
                    kind='linear', copy=False, 
-                   bounds_error=False, fill_value=0)
+                   bounds_error=False, fill_value=50)
 
   try:
     f = file(filename).read()
-    for line in range(10032):
-      # if (line % 12) in [6,7,8]:
-        offset = line*1440
+    for line in range(0,1000000):
+       if (line % 17) in [9]:
+        offset = line*1600
         interp_y[:] = np.fromstring(f[offset:offset+1440], dtype=np.uint8)
-        vbiraw = scaler(np.arange(0, 2048, 1)) + 20
-        for tl in np.arange(0.01,2.1,1.0):
-         for th in np.arange(0.01,2.1,1.0):
-          for g in np.arange(0.01,5.2,1.0):
-           for go in np.arange(0.01,5.2,1.0):
-            #thresh_low=1.15 thresh_high=2.10 gauss_sd=1.10 gauss_sd_offset=1.10
-            v = Vbi(vbiraw, thresh_low=tl, thresh_high=th, gauss_sd=g, gauss_sd_offset=go, offset_low=55.0, offset_high=150.0)
-            tmp = v.find_offset_and_scale()
-            if tmp:
-                packet = v.deconvolve()
-                guessview.draw(vbiraw, v.g.convolved*256)
-                print printer.do_print(packet), "thresh_low=%1.2f thresh_high=%1.2f gauss_sd=%1.2f gauss_sd_offset=%1.2f" % (tl, th, g, go), line
-            else:
-                packet = None
-                #print "no teletext in line", line        
+        for bw in np.arange(3.891,3.897,0.01):
+         interp_x[:] = (np.arange(0,1440,1.0) * 5.112 / bw) + 90
+         vbiraw = scaler(np.arange(0, 2048, 1)) + 20
+         for tl in np.arange(1.21,1.22,0.02):
+          for th in np.arange(3.01,3.02,0.02):
+           for g in np.arange(1.751,2.1,0.5):
+            for go in np.arange(1.751,2.1,0.5):
+             #thresh_low=1.15 thresh_high=2.10 gauss_sd=1.10 gauss_sd_offset=1.10
+             v = Vbi(vbiraw, thresh_low=tl, thresh_high=th, gauss_sd=g, gauss_sd_offset=go, offset_low=55.0, offset_high=150.0, 
+                               find=[Kalejdoskop, Medicina, Komentarii, Finans, Ekonomika, Teleinf, Automagazin])
+             tmp = v.find_offset_and_scale()
+             if tmp:
+                 packet = v.deconvolve()
+                 guessview.draw(vbiraw, v.g.convolved*256)
+                 print printer.do_print(packet), "thresh_low=%1.2f thresh_high=%1.2f gauss_sd=%1.2f gauss_sd_offset=%1.2f bw=%1.3f" % (tl, th, g, go, bw), line, line%17
+                 sys.stdout.flush()
+             else:
+                 packet = None
+                 #print "no teletext in line", line        
         
   except IOError:
     pass
