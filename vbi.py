@@ -332,6 +332,11 @@ if __name__ == '__main__':
         count = 10000000
         skip = 1
 
+
+    if not os.path.isdir(path+'/t42/'):
+        os.makedirs(path+'/t42/')
+
+
     if 1:
         p = Pool(multiprocessing.cpu_count())
         it = p.imap(process_file, list_files(path+'/vbi/', path+'/t42/', first, count, skip), chunksize=1)
