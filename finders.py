@@ -137,8 +137,11 @@ class Finder(object):
         #if self.me or self.pe:
         #    print("P%1d%02x " % (self.m,self.p)),
         #    print("P%1d%02x " % (self.hm,self.hp))
-                    
-   
+
+ARD = Finder("          653 ARDtext dd 14.10.14 19:37:49",
+             "HHHHHHHHHHmhhpeeeeeeepppp39e19e99p29e59e59",
+             name="ARDtext Packet 0", row=0)
+
 BBC = Finder("          CEEFAX 1 217 Wed 25 Dec\x0318:29/53",
              "HHHHHHHHHHeeeeeee2emhheDAYe39eMONe"+"29e59e59", 
              name="BBC Packet 0", row=0)
