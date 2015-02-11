@@ -34,6 +34,7 @@ def main():
     running = 1
     palette = [(x,x,x) for x in range(256)]
     while running:
+      try:
         data = os.read(vbi,65536)
         data = "".join([data[x] for x in range(0, len(data), 2)])
         buff = ""
@@ -46,13 +47,15 @@ def main():
             for n in range(4):
                 buff += data[start+offset:start+end]
 
-
         #print len(buff)
         surface = pygame.image.frombuffer(buff, (width, 33*6), "P")
         surface.set_palette(palette)
         screen.blit(surface, (0,2))
         pygame.display.flip()        
-        
+
+      except OSError:
+        pass
+
 
 
 
