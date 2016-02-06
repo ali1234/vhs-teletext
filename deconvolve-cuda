@@ -11,10 +11,10 @@
 # * GNU General Public License for more details.
 
 import sys
-from teletext.raw.map import raw_line_map
-from teletext.raw.pattern import Pattern
-from teletext.raw.patterngpu import PatternGPU
-from teletext.raw.line import Line
+from teletext.vbi.map import raw_line_map
+from teletext.vbi.pattern import Pattern
+from teletext.vbi.patterngpu import PatternGPU
+from teletext.vbi.line import Line
 
 pg = PatternGPU('parity_patterns')
 
