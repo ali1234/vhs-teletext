@@ -109,7 +109,11 @@ class Vbi(object):
             a = guess_scaled*mask_scaled
             b = np.clip(target*mask_scaled, self.black, 256)
 
-            scale = a.std()/b.std()
+            bstd = b.std()
+            if bstd == 0:
+                scale = 1
+            else:
+                scale = a.std()/bstd
             b -= self.black
             b *= scale
             a = np.clip(a, 0, 256*scale)
