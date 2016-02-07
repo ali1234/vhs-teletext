@@ -10,7 +10,7 @@
 
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
-from util import normalise, mrag
+from util import normalise
 
 from pattern import Pattern
 
@@ -72,9 +72,7 @@ class Line(object):
     def mrag(self):
         """Finds the mrag for the line."""
         t = Line.m.match(self.bits_array[24:42])
-        self.bytes_array[0] = t[0]
-        self.bytes_array[1] = t[1]
-        (self.magazine, self.row), x = mrag(t)
+        self.bytes_array[0:2] = t
 
 
     def bytes(self):
