@@ -55,6 +55,7 @@ class Line(object):
         """Rolls the raw sample array, shifting the start position by roll."""
         if roll != 0:
             self.line = numpy.roll(self.line, roll)
+            self.gline = numpy.roll(self.gline, roll)
             self.total_roll += roll
 
 
