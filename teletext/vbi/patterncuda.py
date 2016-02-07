@@ -21,7 +21,7 @@ skcuda.misc._global_cublas_allocator = cuda.mem_alloc
 
 from pattern import Pattern
 
-class PatternGPU(Pattern):
+class PatternCUDA(Pattern):
 
     mod = SourceModule("""
   __global__ void correlate(float *input, float *patterns, float *result)
@@ -105,6 +105,6 @@ class PatternGPU(Pattern):
 
     def match(self, inp):
         cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
-        PatternGPU.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(10, 64, 1), grid=(4, 128))
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(10, 64, 1), grid=(4, 128))
         return argmin(self.result_gpu, axis=0).get()
 

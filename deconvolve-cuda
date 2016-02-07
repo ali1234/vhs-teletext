@@ -13,10 +13,10 @@
 import sys
 from teletext.vbi.map import raw_line_map
 from teletext.vbi.pattern import Pattern
-from teletext.vbi.patterngpu import PatternGPU
+from teletext.vbi.patterncuda import PatternCUDA
 from teletext.vbi.line import Line
 
-pg = PatternGPU('parity_patterns')
+pg = PatternCUDA('parity_patterns')
 
 import config
 Line.set_config(config)
