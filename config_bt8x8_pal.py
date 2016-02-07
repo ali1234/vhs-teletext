@@ -11,6 +11,11 @@ line_start_range = [60, 120] # range covering start position of clock run-in, in
 line_length = 2048           # length of raw lines in samples
 line_trim = 1960             # ignore raw samples after this point
 
+gauss = 3.0                  # amount of gaussian blurring to use when finding CRI
+std_thresh = 14              # maximum standard deviation of samples before CRI
+mdiff_thresh = 45            # maximum standard deviation of sample during CRI
+extra_roll = 0               # extra roll to apply after finding beginning of CRI
+
 # Calculated values
 
 bit_width = sample_rate/teletext_bitrate

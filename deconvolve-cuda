@@ -30,10 +30,9 @@ def find_other_bits_gpu(l):
 def doit(rl):
     l = Line(rl)
     if l.is_teletext:
-        l.roll(3)
+        l.roll(config.extra_roll)
         l.bits()
         l.mrag()
-        #find_other_bits_gpu(l)
     return l
 
 for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=1, show_speed=True):

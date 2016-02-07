@@ -21,7 +21,7 @@ Line.set_config(config)
 def doit(rl):
     l = Line(rl)
     if l.is_teletext:
-        l.roll(3)
+        l.roll(config.extra_roll)
         l.bits()
         l.mrag()
         l.bytes()

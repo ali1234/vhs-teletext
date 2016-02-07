@@ -33,7 +33,7 @@ class Line(object):
 
         # Normalise and filter the data.
         self.line = normalise(numpy.fromstring(data, dtype=numpy.uint8), end=Line.config.line_trim)
-        self.gline = normalise(gauss(self.line, 3.0), end=Line.config.line_trim)
+        self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
@@ -46,7 +46,7 @@ class Line(object):
         pre = self.gline[Line.config.line_start_pre[0]:Line.config.line_start_pre[1]]
         post = self.gline[Line.config.line_start_post[0]:Line.config.line_start_post[1]]
 
-        self.is_teletext = pre.std() < 14 and post.std() < 14 and (post.mean() - pre.mean()) > 45
+        self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and (post.mean() - pre.mean()) > Line.config.mdiff_thresh
         if self.is_teletext:
             self.bytes_array = numpy.zeros((42,), dtype=numpy.uint8)
 
