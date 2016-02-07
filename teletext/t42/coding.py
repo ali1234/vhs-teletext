@@ -86,7 +86,7 @@ def parity_encode(d):
 
 
 def mrag_decode(d):
-    a = unhamm16(d)
+    a = hamming16_decode(d)
     return ((a[0]&0x7, a[0]>>3),a[1])
 
 def mrag_encode(m, r):
@@ -97,15 +97,15 @@ def mrag_encode(m, r):
 
 
 def page_decode(d):
-    return unhamm16(d)
+    return hamming16_decode(d)
 
 
 
 def subcode_bcd_decode(d):
-    s1,e1 = unhamm84(d[0])
-    s2,e2 = unhamm84(d[1])
-    s3,e3 = unhamm84(d[2])
-    s4,e4 = unhamm84(d[3])
+    s1,e1 = hamming8_decode(d[0])
+    s2,e2 = hamming8_decode(d[1])
+    s3,e3 = hamming8_decode(d[2])
+    s4,e4 = hamming8_decode(d[3])
 
     m = (s2>>3) | ((s4>>1)&0x6)
     
@@ -120,7 +120,7 @@ def subcode_bcd_decode(d):
 
 def subcode_decode(d):
     ((s,c),e) = subcode_bcd(d[:6])
-    (c1,e1) = unhamm16(d[6:8])
+    (c1,e1) = hamming16_decode(d[6:8])
     c |= c1<<3
     return ((s,c),(e or e1))
 
