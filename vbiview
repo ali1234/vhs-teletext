@@ -1,0 +1,139 @@
+#!/usr/bin/env python
+
+import sys
+from itertools import islice
+import numpy
+
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+from OpenGL.GL import *
+
+from teletext.vbi.map import raw_line_map
+from teletext.vbi.pattern import Pattern
+from teletext.vbi.line import Line
+
+import config
+Line.set_config(config)
+
+class VBIViewer(object):
+
+    def __init__(self, filename, name = "VBI Viewer", width=1600, height=1024, nlines=32):
+        self.nlines = nlines
+        self.file = open(filename, 'rb')
+
+        def doit(rl):
+            l = Line(rl)
+            if l.is_teletext:
+                l.roll(3)
+            return l
+
+        self.lines_src = raw_line_map(filename, config.line_length, Line, threads=0, show_speed=True, pass_teletext=True, pass_rejects=True)
+
+        glutInit(sys.argv)
+        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
+        glutInitWindowSize(width,height)
+        glutCreateWindow(name)
+
+        glutDisplayFunc(self.display)
+
+        glMatrixMode(GL_PROJECTION)
+        glOrtho(0, 2048, 0, self.nlines, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
+        glDisable(GL_LIGHTING)
+        glDisable(GL_DEPTH_TEST)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
+
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
+
+
+        glutMainLoop()
+
+    def display(self):
+
+        vbi = numpy.array([x.gline for x in islice(self.lines_src, 0, self.nlines)], dtype=numpy.uint8).tostring()
+        if not sys.stdout.isatty():
+            sys.stdout.write(vbi)
+
+        if len(vbi) != 2048*self.nlines:
+            exit(0)
+
+        glEnable(GL_TEXTURE_2D)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, self.nlines, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, vbi)
+
+
+        glBegin(GL_QUADS)
+
+        glTexCoord2f(0, 1)
+        glVertex2f(   0, 0)
+
+        glTexCoord2f(0, 0)
+        glVertex2f(   0, self.nlines)
+
+        glTexCoord2f(1, 0)
+        glVertex2f(2048, self.nlines)
+
+        glTexCoord2f(1, 1)
+        glVertex2f(2048, 0)
+
+        glEnd()
+
+        if 1:
+
+            glDisable(GL_TEXTURE_2D)
+
+            glBegin(GL_LINES)
+
+            glColor3f(0, 0, 0)
+
+            if self.nlines < 65:
+              for x in range(self.nlines):
+                glVertex2f(0, x)
+                glVertex2f(2048, x)
+
+            glColor3f(1, 0, 0)
+
+
+            for x in config.line_start_range:
+                glVertex2f(x, 0)
+                glVertex2f(x, self.nlines)
+
+            glColor3f(0, 1, 0)
+            for x in config.line_start_pre:
+                glVertex2f(x, 0)
+                glVertex2f(x, self.nlines)
+
+            for x in config.line_start_post:
+                glVertex2f(x, 0)
+                glVertex2f(x, self.nlines)
+
+
+            glVertex2f(config.line_trim, 0)
+            glVertex2f(config.line_trim, self.nlines)
+
+            glColor3f(0, 0, 0.5)
+            for x in config.bits:
+                glVertex2f(x, 0)
+                glVertex2f(x, self.nlines)
+
+            glColor3f(0, 0, 1)
+            for x in config.bits[::8]:
+                glVertex2f(x, 0)
+                glVertex2f(x, self.nlines)
+
+            glEnd()
+
+
+
+
+        glutSwapBuffers()
+        glutPostRedisplay()
+
+if __name__ == '__main__':
+
+    v = VBIViewer(sys.argv[1])
