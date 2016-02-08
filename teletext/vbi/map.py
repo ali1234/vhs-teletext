@@ -53,18 +53,22 @@ class SpeedMonitor(object):
             self.block_time = time.time()
 
 
-def raw_line_reader(filename, line_length):
+def raw_line_reader(filename, line_length, start=0, stop=-1):
     with open(filename, 'rb') as infile:
+        infile.seek(start * line_length)
         rawlines = iter(partial(infile.read, line_length), b'')
         for n,rl in enumerate(rawlines):
+            offset = n + start
             if len(rl) < line_length:
                 return
+            elif offset == stop:
+                return
             else:
-                yield (n,rl)
+                yield (offset,rl)
 
 
 
-def raw_line_map(filename, line_length, func, threads=1, pass_teletext=True, pass_rejects=False, show_speed=True):
+def raw_line_map(filename, line_length, func, start=0, stop=-1, threads=1, pass_teletext=True, pass_rejects=False, show_speed=True):
 
     if show_speed:
         s = SpeedMonitor()
@@ -75,7 +79,7 @@ def raw_line_map(filename, line_length, func, threads=1, pass_teletext=True, pas
     else:
         map_func = itertools.imap
 
-    for l in map_func(func, raw_line_reader(filename, line_length)):
+    for l in map_func(func, raw_line_reader(filename, line_length, start, stop)):
         if show_speed:
             s.tally(l.is_teletext)
         if l.is_teletext:

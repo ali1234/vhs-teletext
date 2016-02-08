@@ -26,14 +26,20 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-a', '--ansi', help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.', action='store_true')
 group.add_argument('-t', '--t42', help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.', action='store_true')
 
-parser.add_argument('-r', '--rows', type=int, nargs='+', help='Only attempt to deconvolve lines from these rows.', default=None)
-parser.add_argument('-m', '--mags', type=int, nargs='+', help='Only attempt to deconvolve lines from these magazines.', default=None)
+parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only attempt to deconvolve lines from these rows.', default=None)
+parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only attempt to deconvolve lines from these magazines.', default=None)
 parser.add_argument('-n', '--numbered', help='When output is ansi, number the lines according to position in input file.', action='store_true')
 parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
-parser.add_argument('-e', '--extra-roll', type=int, help='Extra roll.', default=3)
+parser.add_argument('-e', '--extra-roll', metavar='SAMPLES', type=int, help='Extra roll.', default=3)
 parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0 31.', action='store_true')
 parser.add_argument('-C', '--force-cpu', help='Disable CUDA even if it is available.', action='store_true')
 parser.add_argument('-T', '--threads', type=int, help='Number of CPU worker threads. Default 1.', default=1)
+
+parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
+group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.', default=-1)
+
 
 args = parser.parse_args()
 
@@ -42,6 +48,9 @@ if not args.t42 and not args.ansi:
         args.ansi = True
     else:
         args.t42 = True
+
+if args.stop == -1 and args.count > -1:
+    args.stop = args.start + args.count
 
 if args.headers:
     args.ansi = True
@@ -97,7 +106,7 @@ else:
         return l
 
 
-for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=args.threads, show_speed=True):
+for l in raw_line_map(sys.argv[1], config.line_length, doit, start=args.start, stop=args.stop, threads=args.threads, show_speed=True):
     if args.mags is None or l.magazine in args.mags:
         if args.rows is None or l.row in args.rows:
             if cuda_enabled:
