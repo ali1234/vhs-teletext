@@ -30,3 +30,37 @@ need to experiment to find the best number of threads.
 Run
     ./convolve -h
 to see all the options.
+
+
+USAGE
+-----
+
+In order to use CUDA decoding you need to use the Nvidia proprietary driver:
+
+https://help.ubuntu.com/community/BinaryDriverHowto/Nvidia#Installation
+
+Next install python dependencies:
+
+    sudo apt-get install python-numpy python-scipy python-pycuda
+    pip install --user scikit-cuda
+
+Extract headers from your dump file:
+
+    ./deconvolve input.vbi -H > headers.txt
+
+Examine headers to find services:
+
+    less -r headers.txt
+
+Deconvolve a part of the input corresponding to one service:
+
+    ./deconvolve input.vbi --start 123 --stop 456 > output.t42
+
+For now you have to process the output.t42 with the old version of
+vhs-teletext.
+
+TODO
+----
+
+ * Write a tool to capture raw vbi.
+ * Port over the post-processing tools.
