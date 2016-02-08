@@ -14,6 +14,8 @@ from util import normalise
 
 from pattern import Pattern
 
+from teletext.t42.coding import mrag_decode
+
 
 # Line: Handles a single line of raw VBI samples.
 
@@ -72,7 +74,8 @@ class Line(object):
     def mrag(self):
         """Finds the mrag for the line."""
         t = Line.m.match(self.bits_array[24:42])
-        self.bytes_array[0:2] = t
+        self.bytes_array[:2] = t
+        ((self.magazine, self.row), err) = mrag_decode(self.bytes_array[:2])
 
 
     def bytes(self):
