@@ -18,15 +18,51 @@ from teletext.vbi.line import Line
 import config
 Line.set_config(config)
 
-def doit(rl):
-    l = Line(rl)
-    if l.is_teletext:
-        l.roll(config.extra_roll)
-        l.bits()
-        l.mrag()
-        l.bytes()
-    return l
+cuda_enabled = False
 
-for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=4, show_speed=True):
-    l.bytes_array.tofile(sys.stdout)
+try:
+    from teletext.vbi.patterncuda import PatternCUDA
+    pg = PatternCUDA('parity_patterns')
+    cuda_enabled = True
+except:
+    sys.stdout.write('CUDA init failed, using CPU deconvolution.\n')
+
+
+magazines = None
+rows = None
+
+if cuda_enabled:
+
+    def doit(rl):
+        l = Line(rl)
+        if l.is_teletext:
+            l.roll(config.extra_roll)
+            l.bits()
+            l.mrag()
+        return l
+
+    def find_other_bits_gpu(l):
+        matches = pg.match(l.bits_array[36:362])
+        for b in range(40):
+            l.bytes_array[b+2] = pg.bytes[matches[b]]
+
+else:
+    def doit(rl):
+        l = Line(rl)
+        if l.is_teletext:
+            l.roll(config.extra_roll)
+            l.bits()
+            l.mrag()
+            if magazines is None or l.magazine in magazines:
+                if rows is None or l.row in rows:
+                    l.bytes()
+        return l
+
+
+for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=2, show_speed=True):
+    if magazines is None or l.magazine in magazines:
+        if rows is None or l.row in rows:
+            if cuda_enabled:
+                find_other_bits_gpu(l)
+            l.bytes_array.tofile(sys.stdout)
 
