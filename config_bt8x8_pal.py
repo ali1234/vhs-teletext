@@ -14,7 +14,6 @@ line_trim = 1960             # ignore raw samples after this point
 gauss = 3.0                  # amount of gaussian blurring to use when finding CRI
 std_thresh = 14              # maximum standard deviation of samples before CRI
 mdiff_thresh = 45            # maximum standard deviation of sample during CRI
-extra_roll = 0               # extra roll to apply after finding beginning of CRI
 
 # Calculated values
 

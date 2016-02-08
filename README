@@ -1,1 +1,29 @@
 REWRITE IN PROGRESS
+-------------------
+
+Status:
+
+'deconvolve' now has a lot of command line options. It takes one named input
+file to deconvolve. It will automatically output readable ansi decoded teletext
+if you allow the output to go to the console. If you redirect the output it
+will produce raw t42 packets. You can override this behaviour.
+
+It can also filter the output by magazine and/or row. The filtered packets are
+not fully deconvolved. You can also have the output numbered by position in
+the input file. The number is in number of packets, so if your input is
+2048 byte lines, the file offset is n*2048.
+
+Those last two options are useful if you want to quickly scan through a whole
+tape dump, when the tape has multiple recordings on it. There is a shortcut for
+this, -H, which will dump all headers, numbered.
+
+CUDA will be automatically detected and used, but can be forced off. You can
+also configure the number of worker threads. Number of threads doesn't include
+the main thread. --threads 0 will cause all work to be done on the main thread
+which is slower even on a single core, but useful for debugging. When using the
+CPU, set threads to the number of cores you have. When using CUDA, you will
+need to experiment to find the best number of threads.
+
+Run
+    ./convolve -h
+to see all the options.

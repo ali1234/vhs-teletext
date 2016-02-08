@@ -29,9 +29,11 @@ IMapIterator.next = wrapper(IMapIterator.next)
 class SpeedMonitor(object):
     def __init__(self):
         self.start_time = time.time()
+        self.block_time = self.start_time
         self.teletext = 0
         self.rejects = 0
         self.total = 0
+
 
     def tally(self, is_teletext):
         if is_teletext:
@@ -40,14 +42,15 @@ class SpeedMonitor(object):
             self.rejects += 1
         self.total += 1
         if self.total&0x7ff == 0x7ff:
-            elapsed = time.time() - self.start_time
+            elapsed = time.time() - self.block_time
+            total_elapsed = time.time() - self.start_time
             teletext_lines_sec = self.teletext / elapsed
             rejects_percent = self.rejects * 100.0 / self.total
             sys.stderr.write('%.1f lines per second, %.1f%% rejected.\r' % (teletext_lines_sec, rejects_percent))
             self.teletext = 0
             self.rejects = 0
             self.total = 0
-            self.start_time = time.time()
+            self.block_time = time.time()
 
 
 def raw_line_reader(filename, line_length):

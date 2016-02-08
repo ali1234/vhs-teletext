@@ -11,32 +11,69 @@
 # * GNU General Public License for more details.
 
 import sys
+import argparse
+import importlib
+
 from teletext.vbi.map import raw_line_map
 from teletext.vbi.pattern import Pattern
 from teletext.vbi.line import Line
 
-import config
+from teletext.t42.printer import do_print
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
+group = parser.add_mutually_exclusive_group()
+group.add_argument('-a', '--ansi', help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.', action='store_true')
+group.add_argument('-t', '--t42', help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.', action='store_true')
+
+parser.add_argument('-r', '--rows', type=int, nargs='+', help='Only attempt to deconvolve lines from these rows.', default=None)
+parser.add_argument('-m', '--mags', type=int, nargs='+', help='Only attempt to deconvolve lines from these magazines.', default=None)
+parser.add_argument('-n', '--numbered', help='When output is ansi, number the lines according to position in input file.', action='store_true')
+parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
+parser.add_argument('-e', '--extra-roll', type=int, help='Extra roll.', default=3)
+parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0 31.', action='store_true')
+parser.add_argument('-C', '--force-cpu', help='Disable CUDA even if it is available.', action='store_true')
+parser.add_argument('-T', '--threads', type=int, help='Number of CPU worker threads. Default 1.', default=1)
+
+args = parser.parse_args()
+
+if not args.t42 and not args.ansi:
+    if sys.stdout.isatty():
+        args.ansi = True
+    else:
+        args.t42 = True
+
+if args.headers:
+    args.ansi = True
+    args.t42 = False
+    args.numbered = True
+    args.rows = set([0,31])
+
+try:
+    config = importlib.import_module('config_'+args.config)
+except ImportError:
+    sys.stderr.write('No configuration file for '+args.config+'.\n')
+
 Line.set_config(config)
+
 
 cuda_enabled = False
 
-try:
+if not args.force_cpu:
+  try:
     from teletext.vbi.patterncuda import PatternCUDA
     pg = PatternCUDA('parity_patterns')
     cuda_enabled = True
-except:
-    sys.stdout.write('CUDA init failed, using CPU deconvolution.\n')
+  except:
+    sys.stderr.write('CUDA init failed, using CPU deconvolution.\n')
 
-
-magazines = None
-rows = None
 
 if cuda_enabled:
 
     def doit(rl):
         l = Line(rl)
         if l.is_teletext:
-            l.roll(config.extra_roll)
+            l.roll(args.extra_roll)
             l.bits()
             l.mrag()
         return l
@@ -47,22 +84,27 @@ if cuda_enabled:
             l.bytes_array[b+2] = pg.bytes[matches[b]]
 
 else:
+
     def doit(rl):
         l = Line(rl)
         if l.is_teletext:
-            l.roll(config.extra_roll)
+            l.roll(args.extra_roll)
             l.bits()
             l.mrag()
-            if magazines is None or l.magazine in magazines:
-                if rows is None or l.row in rows:
+            if args.mags is None or l.magazine in args.mags:
+                if args.rows is None or l.row in args.rows:
                     l.bytes()
         return l
 
 
-for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=2, show_speed=True):
-    if magazines is None or l.magazine in magazines:
-        if rows is None or l.row in rows:
+for l in raw_line_map(sys.argv[1], config.line_length, doit, threads=args.threads, show_speed=True):
+    if args.mags is None or l.magazine in args.mags:
+        if args.rows is None or l.row in args.rows:
             if cuda_enabled:
                 find_other_bits_gpu(l)
-            l.bytes_array.tofile(sys.stdout)
-
+            if args.t42:
+                l.bytes_array.tofile(sys.stdout)
+            elif args.ansi:
+                if args.numbered:
+                    sys.stdout.write(('%8d ' % l.offset))
+                sys.stdout.write(do_print(l.bytes_array) + '\n')
