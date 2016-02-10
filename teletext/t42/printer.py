@@ -199,4 +199,6 @@ def do_print(tt):
 
     return ret
 
-
+def print_iter(line_iter, join_str='\n'):
+    for l in line_iter:
+        yield do_print(l) + join_str
