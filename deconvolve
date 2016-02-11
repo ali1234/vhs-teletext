@@ -56,7 +56,7 @@ if args.headers:
     args.ansi = True
     args.t42 = False
     args.numbered = True
-    args.rows = set([0,31])
+    args.rows = set([0])
 
 try:
     config = importlib.import_module('config_'+args.config)
