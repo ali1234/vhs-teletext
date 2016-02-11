@@ -65,7 +65,6 @@ except ImportError:
 
 Line.set_config(config)
 
-
 cuda_enabled = False
 
 if not args.force_cpu:
@@ -106,7 +105,7 @@ else:
         return l
 
 
-for l in raw_line_map(sys.argv[1], config.line_length, doit, start=args.start, stop=args.stop, threads=args.threads, show_speed=True):
+for l in raw_line_map(args.inputfile, config.line_length, doit, start=args.start, stop=args.stop, threads=args.threads, show_speed=True):
     if args.mags is None or l.magazine in args.mags:
         if args.rows is None or l.row in args.rows:
             if cuda_enabled:
