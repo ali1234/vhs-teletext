@@ -55,7 +55,8 @@ class SpeedMonitor(object):
 
 def raw_line_reader(filename, line_length, start=0, stop=-1):
     with open(filename, 'rb') as infile:
-        infile.seek(start * line_length)
+        if start > 0:
+            infile.seek(start * line_length)
         rawlines = iter(partial(infile.read, line_length), b'')
         for n,rl in enumerate(rawlines):
             offset = n + start
