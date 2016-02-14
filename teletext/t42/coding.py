@@ -8,6 +8,8 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
+import numpy
+
 hammtab = [
     0x0101, 0x100f, 0x0001, 0x0101, 0x100f, 0x0100, 0x0101, 0x100f,
     0x100f, 0x0102, 0x0101, 0x100f, 0x010a, 0x100f, 0x100f, 0x0107,
@@ -73,15 +75,6 @@ def hamming8_encode(d):
 
 
 
-def parity_encode(d):
-    d &= 0x7f
-    p = 1
-    t = d
-    for i in range(7):
-        p += t&1
-        t = t>>1
-    p &= 1
-    return d|(p<<7)
 
 
 
@@ -92,7 +85,7 @@ def mrag_decode(d):
 def mrag_encode(m, r):
     a = (m&0x7) | ((r&0x1) << 3)
     b = r>>1
-    return np.array([hamming84(a), hamming84(b)], dtype=np.uint8)
+    return numpy.array([hamming84(a), hamming84(b)], dtype=numpy.uint8)
 
 
 
@@ -125,4 +118,22 @@ def subcode_decode(d):
     return ((s,c),(e or e1))
 
 
+parity_tab = numpy.array([
+    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
+    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
+    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
+    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
+    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
+    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
+    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
+    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1
+], dtype=numpy.uint8)
 
+def parity_encode(d):
+    return d | (parity_tab[d] << 7)
+
+def parity_decode(d):
+    return d & 0x7f
+
+def parity_check(d):
+    return parity_tab[d]
