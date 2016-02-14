@@ -1,5 +1,4 @@
 import numpy
-from teletext.vbi.pattern import Pattern
 
 # Tunable values
 
