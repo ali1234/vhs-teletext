@@ -32,7 +32,7 @@ parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only
 parser.add_argument('-n', '--numbered', help='When output is ansi, number the lines according to position in input file.', action='store_true')
 parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
 parser.add_argument('-e', '--extra-roll', metavar='SAMPLES', type=int, help='Extra roll.', default=3)
-parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0 31.', action='store_true')
+parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0.', action='store_true')
 parser.add_argument('-C', '--force-cpu', help='Disable CUDA even if it is available.', action='store_true')
 parser.add_argument('-T', '--threads', type=int, help='Number of CPU worker threads. Default 1.', default=1)
 
@@ -76,8 +76,8 @@ def doit(rl):
         l.roll(args.extra_roll)
         l.bits()
         l.mrag()
-        if args.mags is None or l.magazine in args.mags:
-            if args.rows is None or l.row in args.rows:
+        if l.magazine in args.mags:
+            if l.row in args.rows:
                 l.bytes()
     return l
 
