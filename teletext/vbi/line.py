@@ -32,9 +32,13 @@ class Line(object):
     m = Pattern(os.path.dirname(__file__)+'/data/mrag_patterns')
     p = Pattern(os.path.dirname(__file__)+'/data/parity_patterns')
 
-    cuda_tried = False
-    cuda_enabled = False
+    try_cuda = True
+    cuda_ready = False
 
+    @staticmethod
+    def disable_cuda():
+        sys.stderr.write('CUDA disabled by user request.\n')
+        Line.try_cuda = False
 
     @staticmethod
     def try_init_cuda():
@@ -42,15 +46,15 @@ class Line(object):
             from patterncuda import PatternCUDA
             #TODO: Handle this with setup.py
             Line.pc = PatternCUDA(os.path.dirname(__file__)+'/data/parity_patterns')
-            Line.cuda_enabled = True
+            Line.cuda_ready = True
         except Exception as e:
             sys.stderr.write(str(e) + '\n')
             sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
-        Line.cuda_tried = True
+        Line.try_cuda = False
 
 
-    def __init__(self, (offset, data), try_cuda=True):
-        if not Line.cuda_tried and try_cuda:
+    def __init__(self, (offset, data)):
+        if Line.try_cuda:
             Line.try_init_cuda()
 
         self.total_roll = 0
@@ -104,7 +108,7 @@ class Line(object):
 
     def bytes(self):
         """Finds the rest of the line."""
-        if Line.cuda_enabled:
+        if Line.cuda_ready:
             matches = Line.pc.match(self.bits_array[36:362])
             for b in range(40):
                 self.bytes_array[b+2] = Line.pc.bytes[matches[b]]

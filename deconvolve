@@ -66,6 +66,9 @@ except ImportError:
 
 Line.set_config(config)
 
+if args.force_cpu:
+    Line.disable_cuda()
+
 
 def doit(rl):
     l = Line(rl)
