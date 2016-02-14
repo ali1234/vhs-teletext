@@ -17,6 +17,7 @@ import importlib
 from teletext.vbi.map import raw_line_map
 from teletext.vbi.pattern import Pattern
 from teletext.vbi.line import Line
+from teletext.misc.all import All
 
 from teletext.t42.printer import do_print
 
@@ -26,8 +27,8 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-a', '--ansi', help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.', action='store_true')
 group.add_argument('-t', '--t42', help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.', action='store_true')
 
-parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only attempt to deconvolve lines from these rows.', default=None)
-parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only attempt to deconvolve lines from these magazines.', default=None)
+parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only attempt to deconvolve lines from these rows.', default=All)
+parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only attempt to deconvolve lines from these magazines.', default=All)
 parser.add_argument('-n', '--numbered', help='When output is ansi, number the lines according to position in input file.', action='store_true')
 parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
 parser.add_argument('-e', '--extra-roll', metavar='SAMPLES', type=int, help='Extra roll.', default=3)
@@ -66,9 +67,6 @@ except ImportError:
 Line.set_config(config)
 
 
-
-
-
 def doit(rl):
     l = Line(rl)
     if l.is_teletext:
@@ -82,8 +80,8 @@ def doit(rl):
 
 
 for l in raw_line_map(args.inputfile, config.line_length, doit, start=args.start, stop=args.stop, threads=args.threads, show_speed=True):
-    if args.mags is None or l.magazine in args.mags:
-        if args.rows is None or l.row in args.rows:
+    if l.magazine in args.mags:
+        if l.row in args.rows:
             if args.t42:
                 l.bytes_array.tofile(sys.stdout)
             elif args.ansi:

@@ -17,6 +17,7 @@ import errno
 
 from teletext.t42.pipeline import reader, demux, paginate
 from teletext.t42.printer import print_iter
+from teletext.misc.all import All
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
@@ -24,8 +25,8 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-a', '--ansi', help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.', action='store_true')
 group.add_argument('-t', '--t42', help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.', action='store_true')
 
-parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.', default=None)
-parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=None)
+parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.', default=All)
+parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')

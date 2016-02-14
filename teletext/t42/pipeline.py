@@ -3,6 +3,7 @@ import numpy
 from coding import mrag_decode
 from functools import partial
 from operator import itemgetter
+from teletext.misc.all import All
 
 def reader(infile):
     """Helper to read t42 lines from a file-like object."""
@@ -14,12 +15,12 @@ def reader(infile):
             yield numpy.fromstring(l, dtype=numpy.uint8)
 
 
-def demux(line_iter, magazines=None, rows=None):
+def demux(line_iter, magazines=All, rows=All):
     """Filters t42 stream to a subset of magazines and packets."""
     for l in line_iter:
         ((m, r), e) = mrag_decode( l[:2] )
-        if magazines is None or m in magazines:
-            if rows is None or r in rows:
+        if m in magazines:
+            if r in rows:
                 yield l
 
 
