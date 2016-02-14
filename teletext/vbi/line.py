@@ -8,6 +8,7 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
+import sys
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
 from util import normalise
@@ -28,7 +29,26 @@ class Line(object):
         Line.p = config.p
         Line.m = config.m
 
-    def __init__(self, (offset, data)):
+    cuda_tried = False
+    cuda_enabled = False
+
+
+    @staticmethod
+    def try_init_cuda():
+        try:
+            from patterncuda import PatternCUDA
+            Line.pc = PatternCUDA('parity_patterns')
+            Line.cuda_enabled = True
+        except Exception as e:
+            sys.stderr.write(str(e) + '\n')
+            sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
+        Line.cuda_tried = True
+
+
+    def __init__(self, (offset, data), try_cuda=True):
+        if not Line.cuda_tried and try_cuda:
+            Line.try_init_cuda()
+
         self.total_roll = 0
         self.offset = offset
         self.data = data
@@ -80,10 +100,13 @@ class Line(object):
 
     def bytes(self):
         """Finds the rest of the line."""
-        for b in range(40):
-            i = 40 + (b * 8)
-            t = Line.p.match(self.bits_array[i-4:i+10])
-            self.bytes_array[b+2] = t
-
-
+        if Line.cuda_enabled:
+            matches = Line.pc.match(self.bits_array[36:362])
+            for b in range(40):
+                self.bytes_array[b+2] = Line.pc.bytes[matches[b]]
+        else:
+            for b in range(40):
+                i = 40 + (b * 8)
+                t = Line.p.match(self.bits_array[i-4:i+10])
+                self.bytes_array[b+2] = t
 

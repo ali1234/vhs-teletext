@@ -65,51 +65,25 @@ except ImportError:
 
 Line.set_config(config)
 
-cuda_enabled = False
-
-if not args.force_cpu:
-  try:
-    from teletext.vbi.patterncuda import PatternCUDA
-    pg = PatternCUDA('parity_patterns')
-    cuda_enabled = True
-  except:
-    sys.stderr.write('CUDA init failed, using CPU deconvolution.\n')
 
 
-if cuda_enabled:
 
-    def doit(rl):
-        l = Line(rl)
-        if l.is_teletext:
-            l.roll(args.extra_roll)
-            l.bits()
-            l.mrag()
-        return l
 
-    def find_other_bits_gpu(l):
-        matches = pg.match(l.bits_array[36:362])
-        for b in range(40):
-            l.bytes_array[b+2] = pg.bytes[matches[b]]
-
-else:
-
-    def doit(rl):
-        l = Line(rl)
-        if l.is_teletext:
-            l.roll(args.extra_roll)
-            l.bits()
-            l.mrag()
-            if args.mags is None or l.magazine in args.mags:
-                if args.rows is None or l.row in args.rows:
-                    l.bytes()
-        return l
+def doit(rl):
+    l = Line(rl)
+    if l.is_teletext:
+        l.roll(args.extra_roll)
+        l.bits()
+        l.mrag()
+        if args.mags is None or l.magazine in args.mags:
+            if args.rows is None or l.row in args.rows:
+                l.bytes()
+    return l
 
 
 for l in raw_line_map(args.inputfile, config.line_length, doit, start=args.start, stop=args.stop, threads=args.threads, show_speed=True):
     if args.mags is None or l.magazine in args.mags:
         if args.rows is None or l.row in args.rows:
-            if cuda_enabled:
-                find_other_bits_gpu(l)
             if args.t42:
                 l.bytes_array.tofile(sys.stdout)
             elif args.ansi:
