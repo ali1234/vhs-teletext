@@ -100,11 +100,11 @@ class PatternCUDA(Pattern):
 
         self.input_gpu = cuda.mem_alloc(4*((40*8)+6))
         self.result_gpu = gpuarray.empty((self.n,40), dtype=numpy.float32, allocator=cuda.mem_alloc)
-        self.result = numpy.zeros((40,)).astype(numpy.float32)
 
 
     def match(self, inp):
         cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
         PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(10, 64, 1), grid=(4, 128))
-        return argmin(self.result_gpu, axis=0).get()
+        result = argmin(self.result_gpu, axis=0).get()
+        return self.bytes[result,0]
 

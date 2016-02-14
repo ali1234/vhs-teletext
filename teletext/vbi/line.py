@@ -109,9 +109,7 @@ class Line(object):
     def bytes(self):
         """Finds the rest of the line."""
         if Line.cuda_ready:
-            matches = Line.pc.match(self.bits_array[36:362])
-            for b in range(40):
-                self.bytes_array[b+2] = Line.pc.bytes[matches[b]]
+            self.bytes_array[2:] = Line.pc.match(self.bits_array[36:362])
         else:
             for b in range(40):
                 i = 40 + (b * 8)
