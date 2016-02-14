@@ -8,6 +8,7 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
+import os
 import sys
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
@@ -26,8 +27,10 @@ class Line(object):
     @staticmethod
     def set_config(config):
         Line.config = config
-        Line.p = config.p
-        Line.m = config.m
+
+    #TODO: Handle this with setup.py
+    m = Pattern(os.path.dirname(__file__)+'/data/mrag_patterns')
+    p = Pattern(os.path.dirname(__file__)+'/data/parity_patterns')
 
     cuda_tried = False
     cuda_enabled = False
@@ -37,7 +40,8 @@ class Line(object):
     def try_init_cuda():
         try:
             from patterncuda import PatternCUDA
-            Line.pc = PatternCUDA('parity_patterns')
+            #TODO: Handle this with setup.py
+            Line.pc = PatternCUDA(os.path.dirname(__file__)+'/data/parity_patterns')
             Line.cuda_enabled = True
         except Exception as e:
             sys.stderr.write(str(e) + '\n')

@@ -30,9 +30,3 @@ bits = numpy.array([int(line_start + (x*bit_width)) for x in range((45*8)+3)])
 bit_lengths = (bits[1:] - bits[:-1])
 bit_pairs = [x for x in zip(bits[:-1], bits[1:])]
 
-# tmp
-
-fr = numpy.array([0xf4, 0xff, 0xcf, 0x54, 0x43, 0xaa, 0x0d, 0x00])
-
-m = Pattern('mrag_patterns')
-p = Pattern('parity_patterns')
