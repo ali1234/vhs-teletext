@@ -62,6 +62,7 @@ class Line(object):
         self.data = data
 
         # Normalise and filter the data.
+        self.orig = numpy.fromstring(data, dtype=numpy.uint8).astype(numpy.float32)
         self.line = normalise(numpy.fromstring(data, dtype=numpy.uint8), end=Line.config.line_trim)
         self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
 
@@ -75,8 +76,10 @@ class Line(object):
         # Detect teletext line based on known properties of the clock run in and frame code.
         pre = self.gline[Line.config.line_start_pre[0]:Line.config.line_start_pre[1]]
         post = self.gline[Line.config.line_start_post[0]:Line.config.line_start_post[1]]
+        frcmrag = self.gline[Line.config.line_start_frcmrag[0]:Line.config.line_start_frcmrag[1]]
 
-        self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and (post.mean() - pre.mean()) > Line.config.mdiff_thresh
+        self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
+
         if self.is_teletext:
             self.bytes_array = numpy.zeros((42,), dtype=numpy.uint8)
 
@@ -84,6 +87,7 @@ class Line(object):
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
         if roll != 0:
+            self.orig = numpy.roll(self.orig, roll)
             self.line = numpy.roll(self.line, roll)
             self.gline = numpy.roll(self.gline, roll)
             self.total_roll += roll

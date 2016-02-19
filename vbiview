@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import time
 from itertools import islice
 import numpy
 
@@ -12,8 +13,9 @@ from teletext.vbi.map import raw_line_map
 from teletext.vbi.pattern import Pattern
 from teletext.vbi.line import Line
 
-import config
+import config_bt8x8_pal as config
 Line.set_config(config)
+Line.disable_cuda()
 
 class VBIViewer(object):
 
@@ -27,10 +29,10 @@ class VBIViewer(object):
                 l.roll(config.extra_roll)
             return l
 
-        self.lines_src = raw_line_map(filename, config.line_length, Line, threads=0, show_speed=True, pass_teletext=True, pass_rejects=True)
+        self.lines_src = raw_line_map(filename, config.line_length, Line, threads=0, show_speed=True, pass_teletext=True, pass_rejects=False)
 
         glutInit(sys.argv)
-        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
+        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
         glutInitWindowSize(width,height)
         glutCreateWindow(name)
 
@@ -56,7 +58,8 @@ class VBIViewer(object):
 
     def display(self):
 
-        vbi = numpy.array([x.gline for x in islice(self.lines_src, 0, self.nlines)], dtype=numpy.uint8).tostring()
+        vbi = numpy.array([x.orig for x in islice(self.lines_src, 0, self.nlines)], dtype=numpy.uint8).tostring()
+        #time.sleep(0.1)
         if not sys.stdout.isatty():
             sys.stdout.write(vbi)
 
@@ -89,6 +92,7 @@ class VBIViewer(object):
 
             glBegin(GL_LINES)
 
+        if 0:
             glColor3f(0, 0, 0)
 
             if self.nlines < 65:
@@ -96,8 +100,8 @@ class VBIViewer(object):
                 glVertex2f(0, x)
                 glVertex2f(2048, x)
 
+        if 1:
             glColor3f(1, 0, 0)
-
 
             for x in config.line_start_range:
                 glVertex2f(x, 0)
@@ -116,6 +120,9 @@ class VBIViewer(object):
             glVertex2f(config.line_trim, 0)
             glVertex2f(config.line_trim, self.nlines)
 
+
+
+        if 0:
             glColor3f(0, 0, 0.5)
             for x in config.bits:
                 glVertex2f(x, 0)
@@ -126,6 +133,7 @@ class VBIViewer(object):
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
+        if 1:
             glEnd()
 
 

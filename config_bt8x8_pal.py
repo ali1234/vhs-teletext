@@ -22,8 +22,9 @@ line_start = ((line_start_range[1] + line_start_range[0]) / 2) + (bit_width*1.5)
 
 line_start_shift = ((line_start_range[1] - line_start_range[0]) / 2)
 
-line_start_pre = [line_start - 70, line_start - 10]
-line_start_post = [line_start + 10, line_start + 70]
+line_start_pre = [line_start - (bit_width * 15), line_start - (bit_width * 2)]
+line_start_post = [line_start + (bit_width * 2), line_start + (bit_width * 15)]
+line_start_frcmrag = [line_start + (bit_width * 17), line_start + (bit_width * 40)]
 
 bits = numpy.array([int(line_start + (x*bit_width)) for x in range((45*8)+3)])
 bit_lengths = (bits[1:] - bits[:-1])
