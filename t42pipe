@@ -15,7 +15,7 @@ import argparse
 import itertools
 import errno
 
-from teletext.t42.pipeline import reader, demux, paginate
+from teletext.t42.pipeline import reader, demux, paginate, page_squash
 from teletext.t42.printer import print_iter
 from teletext.misc.all import All
 
@@ -29,6 +29,7 @@ parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only
 parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
+parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
 
@@ -65,14 +66,14 @@ infile = open(args.inputfile, 'rb')
 
 line_iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
 
-if args.paginate:
+if args.squash:
+    line_iter = page_squash(paginate(line_iter, pages=args.pages, yield_lines=False))
+elif args.paginate:
     line_iter = paginate(line_iter, pages=args.pages)
 
-#if args.ansi:
+
 line_iter = print_iter(line_iter, '\n')
-#else:
-#    import numpy
-#    line_iter = itertools.imap(line_iter, numpy.tostring)
+
 
 for l in line_iter:
     sys.stdout.write(l)
