@@ -27,6 +27,7 @@ group.add_argument('-t', '--t42', help='Output lines in T42 format for further p
 
 parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.', default=All)
 parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
+parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
@@ -46,6 +47,9 @@ if not args.t42 and not args.ansi:
 if args.headers:
     args.rows = set([0,31])
 
+if args.pages is not All:
+    args.paginate = True
+
 
 if args.windowed or args.less:
     import teletext.misc.terminal as term
@@ -62,7 +66,7 @@ infile = open(args.inputfile, 'rb')
 line_iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
 
 if args.paginate:
-    line_iter = paginate(line_iter)
+    line_iter = paginate(line_iter, pages=args.pages)
 
 #if args.ansi:
 line_iter = print_iter(line_iter, '\n')

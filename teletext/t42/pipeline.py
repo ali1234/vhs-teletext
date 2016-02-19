@@ -1,6 +1,6 @@
 import numpy
 
-from coding import mrag_decode
+from coding import mrag_decode, page_decode
 from functools import partial
 from operator import itemgetter
 from teletext.misc.all import All
@@ -24,14 +24,18 @@ def demux(line_iter, magazines=All, rows=All):
                 yield l
 
 
-def paginate(line_iter):
+def paginate(line_iter, pages=All):
     """Reorders lines in a t42 stream so that pages are continuous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
     for l in line_iter:
         ((m, r), e) = mrag_decode( l[:2] )
         if r == 0:
             magbuffers[m].sort(key=itemgetter(0))
-            for br,bl in magbuffers[m]:
-                yield bl
+            if len(magbuffers[m]) > 0:
+                page = '%d%02x' % (m, page_decode(magbuffers[m][0][1][2:4])[0])
+                if page in pages:
+                    #print page, pages, magbuffers[m][0][1][2:4], page_decode(magbuffers[m][0][1][2:4])
+                    for br,bl in magbuffers[m]:
+                        yield bl
             magbuffers[m] = []
         magbuffers[m].append((r,l))
