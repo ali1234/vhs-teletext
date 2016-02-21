@@ -45,6 +45,7 @@ def generate_lines():
 
     line = numpy.zeros((42,), dtype=numpy.uint8)
 
+    # constant bytes. can be used for horizontal alignment.
     line[0] = 0x18
     line[13] = 0x18
     line[41] = 0x18
@@ -53,8 +54,11 @@ def generate_lines():
     while True:
         # encode the offset for maximum readability
         offset_list = [(offset>>n)&0xff for n in range(0,24,8)]
+        # add a parity byte via xor
         offset_list.append(offset_list[0]^offset_list[1]^offset_list[2])
+        # convert to a list of bits, LSB first
         offset_arr = numpy.array(offset_list, dtype=numpy.uint8)
+        # repeat each bit 3 times, then convert back in to t42 bytes
         offset_arr = numpy.packbits(numpy.repeat(numpy.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
 
         # insert encoded offset into line
