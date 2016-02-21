@@ -50,7 +50,7 @@ hammtab = [
 def hamming16_decode(d):
     a = hammtab[d[0]]
     b = hammtab[d[1]]
-    err = a+b
+    err = (a>>8)+(b>>8)
     return (a&0xf|((b&0xf)<<4),err)
 
 
@@ -112,7 +112,7 @@ def subcode_bcd_decode(d):
 
 
 def subcode_decode(d):
-    ((s,c),e) = subcode_bcd(d[:6])
+    ((s,c),e) = subcode_bcd_decode(d[:6])
     (c1,e1) = hamming16_decode(d[6:8])
     c |= c1<<3
     return ((s,c),(e or e1))
