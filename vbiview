@@ -23,12 +23,6 @@ class VBIViewer(object):
         self.nlines = nlines
         self.file = open(filename, 'rb')
 
-        def doit(rl):
-            l = Line(rl)
-            if l.is_teletext:
-                l.roll(config.extra_roll)
-            return l
-
         self.lines_src = raw_line_map(filename, config.line_length, Line, threads=0, show_speed=True, pass_teletext=True, pass_rejects=False)
 
         glutInit(sys.argv)
