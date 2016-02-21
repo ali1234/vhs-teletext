@@ -1,3 +1,4 @@
+import os
 import sys
 
 import numpy
@@ -40,7 +41,7 @@ def save_pattern(filename):
 
 def generate_lines():
 
-    pattern = load_pattern(os.path.dirname(__file__)+'/data/debruijn.dat')
+    pattern = load_pattern(os.path.join(os.path.dirname(__file__),'data','debruijn.dat'))
 
     line = numpy.zeros((42,), dtype=numpy.uint8)
 
