@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+
+# * Copyright 2016 Alistair Buxton <a.j.buxton@gmail.com>
+# *
+# * License: This program is free software; you can redistribute it and/or
+# * modify it under the terms of the GNU General Public License as published
+# * by the Free Software Foundation; either version 3 of the License, or (at
+# * your option) any later version. This program is distributed in the hope
+# * that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+# * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# * GNU General Public License for more details.
+
+import sys
+import argparse
+import importlib
+import itertools
+
+import numpy
+
+from teletext.vbi.training import *
+
+from teletext.vbi.map import raw_line_map
+from teletext.vbi.pattern import Pattern
+from teletext.vbi.line import Line
+from teletext.misc.all import All
+
+parser = argparse.ArgumentParser(description='Training tool.')
+
+group = parser.add_mutually_exclusive_group()
+
+group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', default=False)
+#group.add_argument('-t', '--train', help='Generate training tables.', default=False)
+
+
+args = parser.parse_args()
+
+if args.generate:
+    generate_lines()
+
+
+elif args.train:
+    import config_bt8x8_pal as config
+    Line.set_config(config)
+    Line.disable_cuda()
+
+    def doit(rl):
+        l = Line(rl)
+        l.bits()
+        return l
+
+    it = raw_line_map(sys.argv[1], config.line_length, doit, threads=0, show_speed=True)
+
+    code_bit_nums = numpy.array(range(42, 42+(24*4), 4)) + numpy.array([4, -4]*12)
+
+    for l in it:
+        code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
+        code = numpy.packbits(code_bits)
+        code = code[0] | (code[1]<<8) | (code[2]<<16)
+        print code
+        pattern_bits = l.bits_array[136:138+(26*8)]
+        original_bits = db[code*8:(code+3)*8]
+
+
+
+sys.stderr.write('\n')
