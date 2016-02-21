@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(description='Training tool.')
 
 group = parser.add_mutually_exclusive_group()
 
-group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', default=False)
+group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', action='store_true')
 #group.add_argument('-t', '--train', help='Generate training tables.', default=False)
 
 

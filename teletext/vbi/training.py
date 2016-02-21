@@ -52,16 +52,16 @@ def generate_lines():
     offset = 0
     while True:
         # encode the offset for maximum readability
-        offset_list = [(code>>n)&0xff for n in range(0,24,8)]
-        offset_list.append(code_list[0]^code_list[1]^code_list[2])
-        offset_arr = numpy.array(code_list, dtype=numpy.uint8)
+        offset_list = [(offset>>n)&0xff for n in range(0,24,8)]
+        offset_list.append(offset_list[0]^offset_list[1]^offset_list[2])
+        offset_arr = numpy.array(offset_list, dtype=numpy.uint8)
         offset_arr = numpy.packbits(numpy.repeat(numpy.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
 
         # insert encoded offset into line
         line[1:13] = offset_arr
 
         # insert pattern slice into line
-        line[14:14+pattern_length] = pattern[code:code+pattern_length]
+        line[14:14+pattern_length] = pattern[offset:offset+pattern_length]
 
         # calculate next offset for maximum distance
         offset += 65521      # greatest prime less than 2097152/32
