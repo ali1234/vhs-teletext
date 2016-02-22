@@ -56,13 +56,13 @@ elif args.train:
         if checksum == code[3]:
             l.pattern_offset = code[0] | (code[1]<<8) | (code[2]<<16)
         else:
-            l.is_teletext == False
+            l.is_teletext = False
         return l
 
     it = raw_line_map(args.train, config.line_length, doit, threads=0, show_speed=True)
 
     for l in it:
-        pass
+        print l.pattern_offset
 
 
 sys.stderr.write('\n')
