@@ -47,11 +47,14 @@ def generate_lines():
 
     # constant bytes. can be used for horizontal alignment.
     line[0] = 0x18
-    line[13] = 0x18
+    line[1+pattern_length] = 0x18
     line[41] = 0x18
 
     offset = 0
     while True:
+        # insert pattern slice into line
+        line[1:1+pattern_length] = pattern[offset:offset+pattern_length]
+
         # encode the offset for maximum readability
         offset_list = [(offset>>n)&0xff for n in range(0,24,8)]
         # add a parity byte via xor
@@ -62,10 +65,7 @@ def generate_lines():
         offset_arr = numpy.packbits(numpy.repeat(numpy.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
 
         # insert encoded offset into line
-        line[1:13] = offset_arr
-
-        # insert pattern slice into line
-        line[14:14+pattern_length] = pattern[offset:offset+pattern_length]
+        line[2+pattern_length:14+pattern_length] = offset_arr
 
         # calculate next offset for maximum distance
         offset += 65521      # greatest prime less than 2097152/32
