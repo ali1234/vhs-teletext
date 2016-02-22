@@ -43,7 +43,7 @@ elif args.train:
     Line.set_config(config)
     Line.disable_cuda()
 
-    code_bit_nums = numpy.array(range(33, 33+(32*3), 3))
+    code_bit_nums = numpy.array(range(257, 257+(32*3), 3))
 
     pattern = load_pattern()
 
