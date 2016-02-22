@@ -52,7 +52,7 @@ elif args.train:
         l.bits()
         code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
         code = numpy.packbits(code_bits[::-1])[::-1]
-        checksum = code[0] ^ code[1] ^ code[2]
+        checksum = code[0] ^ code[1] ^ code[2] ^ 0xff
         if checksum == code[3]:
             l.pattern_offset = code[0] | (code[1]<<8) | (code[2]<<16)
         else:
