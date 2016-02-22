@@ -27,8 +27,8 @@ def de_bruijn(k, n):
     return sequence
 
 
-def load_pattern(filename):
-    data = open(filename).read()
+def load_pattern():
+    data = open(os.path.join(os.path.dirname(__file__),'data','debruijn.dat')).read()
     pattern = numpy.fromstring(data+data[:pattern_length], dtype=numpy.uint8)
     return pattern
 
@@ -41,7 +41,7 @@ def save_pattern(filename):
 
 def generate_lines():
 
-    pattern = load_pattern(os.path.join(os.path.dirname(__file__),'data','debruijn.dat'))
+    pattern = load_pattern()
 
     line = numpy.zeros((42,), dtype=numpy.uint8)
 

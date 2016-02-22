@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser(description='Training tool.')
 group = parser.add_mutually_exclusive_group()
 
 group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', action='store_true')
-#group.add_argument('-t', '--train', help='Generate training tables.', default=False)
+group.add_argument('-t', '--train', type=str, metavar='FILE', help='Generate training tables.', default=False)
 
 
 args = parser.parse_args()
@@ -43,23 +43,26 @@ elif args.train:
     Line.set_config(config)
     Line.disable_cuda()
 
+    code_bit_nums = numpy.array(range(33, 33+(32*3), 3))
+
+    pattern = load_pattern()
+
     def doit(rl):
         l = Line(rl)
         l.bits()
+        code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
+        code = numpy.packbits(code_bits[::-1])[::-1]
+        checksum = code[0] ^ code[1] ^ code[2]
+        if checksum == code[3]:
+            l.pattern_offset = code[0] | (code[1]<<8) | (code[2]<<16)
+        else:
+            l.is_teletext == False
         return l
 
-    it = raw_line_map(sys.argv[1], config.line_length, doit, threads=0, show_speed=True)
-
-    code_bit_nums = numpy.array(range(42, 42+(24*4), 4)) + numpy.array([4, -4]*12)
+    it = raw_line_map(args.train, config.line_length, doit, threads=0, show_speed=True)
 
     for l in it:
-        code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
-        code = numpy.packbits(code_bits)
-        code = code[0] | (code[1]<<8) | (code[2]<<16)
-        print code
-        pattern_bits = l.bits_array[136:138+(26*8)]
-        original_bits = db[code*8:(code+3)*8]
-
+        pass
 
 
 sys.stderr.write('\n')
