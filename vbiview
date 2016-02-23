@@ -94,7 +94,7 @@ class VBIViewer(object):
                 glVertex2f(0, x)
                 glVertex2f(2048, x)
 
-        if 1:
+        if 0:
             glColor3f(1, 0, 0)
 
             for x in config.line_start_range:

@@ -39,6 +39,10 @@ def save_pattern(filename):
     data.close()
 
 
+def checksum(array):
+    return array[0]^array[1]^array[2]^0xf0
+
+
 def generate_lines():
 
     pattern = load_pattern()
@@ -57,8 +61,8 @@ def generate_lines():
 
         # encode the offset for maximum readability
         offset_list = [(offset>>n)&0xff for n in range(0,24,8)]
-        # add a parity byte via xor
-        offset_list.append(offset_list[0]^offset_list[1]^offset_list[2]^0xff)
+        # add a checksum
+        offset_list.append(checksum(offset_list))
         # convert to a list of bits, LSB first
         offset_arr = numpy.array(offset_list, dtype=numpy.uint8)
         # repeat each bit 3 times, then convert back in to t42 bytes
