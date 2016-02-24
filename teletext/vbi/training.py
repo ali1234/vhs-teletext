@@ -42,6 +42,11 @@ def save_pattern(filename):
 def checksum(array):
     return array[0]^array[1]^array[2]^0xf0
 
+def get_subpatterns(offset, pattern):
+    block = numpy.unpackbits(pattern[offset:offset+pattern_length][::-1])[::-1]
+    for x in range(len(block)-23):
+        bytes = numpy.packbits(block[x:x+24][::-1])[::-1]
+        yield x, bytes
 
 def generate_lines():
 
