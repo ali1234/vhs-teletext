@@ -50,18 +50,26 @@ elif args.train:
     def doit(rl):
         l = Line(rl)
         l.bits()
+
         code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
         code = numpy.packbits(code_bits[::-1])[::-1]
         if checksum(code) == code[3]:
             l.pattern_offset = code[0] | (code[1]<<8) | (code[2]<<16)
+            l.uint8bits = numpy.clip(l.bits_array, 0, 255).astype(numpy.uint8)
         else:
             l.is_teletext = False
         return l
 
     it = raw_line_map(args.train, config.line_length, doit, threads=0, show_speed=True)
 
-    for l in it:
-        print l.pattern_offset
+    prev_offset = 0
 
+    pattern = load_pattern()
+
+    for l in it:
+        if l.pattern_offset != prev_offset:
+             for x, bytes in get_subpatterns(l.pattern_offset, pattern):
+                 bytes.tofile(sys.stdout)
+                 l.uint8bits[32+x:32+x+24].tofile(sys.stdout)
 
 sys.stderr.write('\n')
