@@ -19,8 +19,8 @@ import numpy
 
 from teletext.vbi.training import *
 
-from teletext.vbi.map import raw_line_map
-from teletext.vbi.pattern import Pattern
+from teletext.vbi.map import raw_line_map, raw_line_reader
+from teletext.vbi.pattern import PatternBuilder
 from teletext.vbi.line import Line
 from teletext.misc.all import All
 
@@ -30,7 +30,11 @@ group = parser.add_mutually_exclusive_group()
 
 group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', action='store_true')
 group.add_argument('-t', '--train', type=str, metavar='FILE', help='Generate training tables.', default=False)
-
+group.add_argument('--split', type=str, metavar='FILE', help='Split training tables by first byte.', default=False)
+group.add_argument('--sort', type=str, metavar='FILE', help='Sort a training table.', default=False)
+group.add_argument('--dump', type=str, metavar='FILE', help='Dump a training table.', default=False)
+group.add_argument('--squash', type=str, metavar='FILE', help='Squash a training table.', default=False)
+group.add_argument('--full', type=str, metavar='FILE', help='Squash a training table.', default=False)
 
 args = parser.parse_args()
 
@@ -44,8 +48,6 @@ elif args.train:
     Line.disable_cuda()
 
     code_bit_nums = numpy.array(range(257, 257+(32*3), 3))
-
-    pattern = load_pattern()
 
     def doit(rl):
         l = Line(rl)
@@ -71,5 +73,57 @@ elif args.train:
              for x, bytes in get_subpatterns(l.pattern_offset, pattern):
                  bytes.tofile(sys.stdout)
                  l.uint8bits[32+x:32+x+24].tofile(sys.stdout)
+
+elif args.split:
+    files = [open('training.%02x.dat' % n, 'wb') for n in range(256)]
+
+    for n,line in raw_line_reader(args.split, 27):
+        files[ord(line[0])].write(line)        
+
+elif args.sort:
+    lines = []
+    for n,line in raw_line_reader(args.sort, 27):
+        lines.append(line)
+
+    lines.sort()
+    f = open(args.sort+'.sorted', 'wb')
+    for line in lines:
+        f.write(line)
+    f.close()
+
+elif args.dump:
+    lines = []
+    for n,line in raw_line_reader(args.dump, 27):
+        print ' '.join(['%02x' % ord(c) for c in line])
+
+elif args.squash:
+
+    it = raw_line_reader(args.squash, 27)
+
+    f = open(args.squash+'.squashed', 'wb')
+
+    for k,g in itertools.groupby((item[1] for item in it), lambda x: x[:3]):
+        a = list(g)
+        b = numpy.fromstring(''.join(a), dtype=numpy.uint8).reshape((len(a), 27))
+        b = numpy.mean(b, axis=0).astype(numpy.uint8)
+        b.tofile(f)
+
+    f.close()
+
+elif args.full:
+
+    it = raw_line_reader(args.full, 27)
+
+    pb = PatternBuilder(16)
+
+    def key(s):
+        pre = chr(ord(s[0])&0xf8)
+        post = chr(ord(s[2])&0x07)
+        return pre + s[1] + post
+
+    for n,line in it:
+        pb.add_pattern(key(line), line[6:-5])
+
+    pb.write_patterns('full.dat')
 
 sys.stderr.write('\n')
