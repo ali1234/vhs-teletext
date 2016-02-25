@@ -11,6 +11,8 @@
 import struct
 import numpy
 
+from collections import defaultdict
+
 class Pattern(object):
     def __init__(self, filename):
         f = open(filename, 'rb')
@@ -39,7 +41,7 @@ class Pattern(object):
 class PatternBuilder(object):
 
     def __init__(self, inwidth):
-        self.patterns = []
+        self.patterns = defaultdict(list)
         self.inwidth = inwidth
 
     def read_array(self, filename):
@@ -50,43 +52,24 @@ class PatternBuilder(object):
 
     def write_patterns(self, filename):
         f = open(filename, 'wb')
-        header = struct.pack('>III', len(self.patterns[0][0]), len(self.patterns[0][1]), len(self.patterns))
+        flat_patterns = []
+        for (k,v) in self.patterns.iteritems():
+            pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
+            bytes = k[1]
+            flat_patterns.append((bytes,pattn))
+
+        header = struct.pack('>III', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns))
         f.write(header)
-        for (i,o) in self.patterns:
-            i.tofile(f)
-        for (i,o) in self.patterns:
-            f.write(o)
+
+        for (b,p) in flat_patterns:
+            f.write(p)
+        for (b,p) in flat_patterns:
+            f.write(b)
+
         f.close()
 
-    def add_file(self, filename):
-        i = self.read_array(filename.strip())
-        o = self.get_output_bytes(filename)
-        print i, o
-        self.patterns.append((i, o))
-
-class PatternBuilderMrag(PatternBuilder):
-
-    def __init__(self):
-        PatternBuilder.__init__(self, 18)
-
-    def get_output_bytes(self, filename):
-        filename = filename.split('/')[-1]
-        byte1 = int(filename[9:1:-1], 2)
-        byte2 = int(filename[18:10:-1], 2)
-        return numpy.array([byte1, byte2], dtype=numpy.uint8)
-
-class PatternBuilderParity(PatternBuilder):
-
-    def __init__(self):
-        PatternBuilder.__init__(self, 14)
-
-    def get_output_bytes(self, filename):
-        filename = filename.split('/')[-1]
-        byte1 = int(filename[14:6:-1], 2)
-        return numpy.array([byte1], dtype=numpy.uint8)
-
-
-
+    def add_pattern(self, bytes, pattern):
+        self.patterns[bytes].append(pattern)
 
 
 if __name__ == '__main__':
