@@ -30,10 +30,10 @@ class PatternCUDA(Pattern):
     int y = (threadIdx.y + (blockDim.y*blockIdx.y));
     int iidx = x * 8;
     int ridx = (y * 40) + x;
-    int pidx = y * 14;
+    int pidx = y * 16;
 
     float d = input[iidx] - patterns[pidx];
-    result[ridx] = d * d;
+    result[ridx] = 0; //d * d;
     iidx += 1;
     pidx += 1;
     d = input[iidx] - patterns[pidx];
@@ -86,6 +86,14 @@ class PatternCUDA(Pattern):
     pidx += 1;
     d = input[iidx] - patterns[pidx];
     result[ridx] += d * d;
+    iidx += 1;
+    pidx += 1;
+    d = input[iidx] - patterns[pidx];
+    result[ridx] += d * d;
+    iidx += 1;
+    pidx += 1;
+    d = input[iidx] - patterns[pidx];
+    //result[ridx] += d * d;
   }
 
     """)
@@ -98,13 +106,13 @@ class PatternCUDA(Pattern):
         self.patterns_gpu = cuda.mem_alloc(self.patterns.nbytes)
         cuda.memcpy_htod(self.patterns_gpu, self.patterns)
 
-        self.input_gpu = cuda.mem_alloc(4*((40*8)+6))
+        self.input_gpu = cuda.mem_alloc(4*((40*8)+8))
         self.result_gpu = gpuarray.empty((self.n,40), dtype=numpy.float32, allocator=cuda.mem_alloc)
 
 
     def match(self, inp):
         cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(10, 64, 1), grid=(4, 128))
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(2, 512, 1), grid=(20, self.n/512))
         result = argmin(self.result_gpu, axis=0).get()
         return self.bytes[result,0]
 

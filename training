@@ -20,9 +20,11 @@ import numpy
 from teletext.vbi.training import *
 
 from teletext.vbi.map import raw_line_map, raw_line_reader
-from teletext.vbi.pattern import PatternBuilder
+from teletext.vbi.pattern import build_pattern
 from teletext.vbi.line import Line
 from teletext.misc.all import All
+
+from teletext.t42.coding import parity_set, hamming_set
 
 parser = argparse.ArgumentParser(description='Training tool.')
 
@@ -35,6 +37,8 @@ group.add_argument('--sort', type=str, metavar='FILE', help='Sort a training tab
 group.add_argument('--dump', type=str, metavar='FILE', help='Dump a training table.', default=False)
 group.add_argument('--squash', type=str, metavar='FILE', help='Squash a training table.', default=False)
 group.add_argument('--full', type=str, metavar='FILE', help='Squash a training table.', default=False)
+group.add_argument('--parity', type=str, metavar='FILE', help='Squash a training table.', default=False)
+group.add_argument('--hamming', type=str, metavar='FILE', help='Squash a training table.', default=False)
 
 args = parser.parse_args()
 
@@ -112,18 +116,15 @@ elif args.squash:
 
 elif args.full:
 
-    it = raw_line_reader(args.full, 27)
+    build_pattern(args.full, 'full.dat')
 
-    pb = PatternBuilder(16)
+elif args.parity:
 
-    def key(s):
-        pre = chr(ord(s[0])&0xf8)
-        post = chr(ord(s[2])&0x07)
-        return pre + s[1] + post
+    build_pattern(args.parity, 'parity.dat', parity_set)
 
-    for n,line in it:
-        pb.add_pattern(key(line), line[6:-5])
+elif args.hamming:
 
-    pb.write_patterns('full.dat')
+    build_pattern(args.hamming, 'hamming.dat', hamming_set)
+
 
 sys.stderr.write('\n')

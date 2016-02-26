@@ -45,7 +45,8 @@ class Line(object):
         try:
             from patterncuda import PatternCUDA
             #TODO: Handle this with setup.py
-            Line.pc = PatternCUDA(os.path.dirname(__file__)+'/data/parity_patterns')
+            Line.hc = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
+            Line.pc = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
             Line.cuda_ready = True
         except Exception as e:
             sys.stderr.write(str(e) + '\n')
@@ -113,7 +114,9 @@ class Line(object):
     def bytes(self):
         """Finds the rest of the line."""
         if Line.cuda_ready:
-            self.bytes_array[2:] = Line.pc.match(self.bits_array[36:362])
+            self.bytes_array[2:] = Line.pc.match(self.bits_array[35:363])
+            if self.row == 0:
+                self.bytes_array[2:10] = Line.hc.match(self.bits_array[35:363])[:8]
         else:
             for b in range(40):
                 i = 40 + (b * 8)

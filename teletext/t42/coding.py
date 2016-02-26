@@ -137,3 +137,6 @@ def parity_decode(d):
 
 def parity_check(d):
     return parity_tab[d]
+
+parity_set = set([parity_encode(n) for n in range(0x80)])
+hamming_set = set([hamming8_encode(n) for n in range(0x10)])

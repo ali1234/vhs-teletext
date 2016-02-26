@@ -13,6 +13,9 @@ import numpy
 
 from collections import defaultdict
 
+from teletext.misc.all import All
+from teletext.vbi.map import raw_line_reader
+
 class Pattern(object):
     def __init__(self, filename):
         f = open(filename, 'rb')
@@ -50,20 +53,21 @@ class PatternBuilder(object):
         a = a.reshape((len(a)/self.inwidth,self.inwidth))
         return numpy.mean(a, axis=0).astype(numpy.uint8)
 
-    def write_patterns(self, filename):
+    def write_patterns(self, filename, pattern_set=All):
         f = open(filename, 'wb')
         flat_patterns = []
         for (k,v) in self.patterns.iteritems():
-            pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
             bytes = k[1]
-            flat_patterns.append((bytes,pattn))
+            if ord(bytes) in pattern_set:
+                pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
+                flat_patterns.append((pattn,bytes))
 
         header = struct.pack('>III', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns))
         f.write(header)
 
-        for (b,p) in flat_patterns:
+        for (p,b) in flat_patterns:
             f.write(p)
-        for (b,p) in flat_patterns:
+        for (p,b) in flat_patterns:
             f.write(b)
 
         f.close()
@@ -72,18 +76,18 @@ class PatternBuilder(object):
         self.patterns[bytes].append(pattern)
 
 
-if __name__ == '__main__':
-    import sys
+def build_pattern(infilename, outfilename, pattern_set=All):
 
-    M = PatternBuilderMrag()
-    with open(sys.argv[1]) as mrag:
-        for line in mrag:
-            M.add_file(line.strip())
-    M.write_patterns('mrag_patterns')
+    it = raw_line_reader(infilename, 27)
 
-    P = PatternBuilderParity()
-    with open(sys.argv[2]) as par:
-        for line in par:
-            P.add_file(line.strip())
-    P.write_patterns('parity_patterns')
+    pb = PatternBuilder(16)
 
+    def key(s):
+        pre = chr(ord(s[0])&0xf8)
+        post = chr(ord(s[2])&0x07)
+        return pre + s[1] + post
+
+    for n,line in it:
+        pb.add_pattern(key(line), line[6:-5])
+
+    pb.write_patterns(outfilename, pattern_set)
