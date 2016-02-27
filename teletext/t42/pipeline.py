@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from scipy.stats.mstats import mode
 
-from coding import mrag_decode, page_decode
+from coding import mrag_decode, page_decode, subcode_bcd_decode
 from functools import partial
 from operator import itemgetter
 from teletext.misc.all import All
@@ -51,23 +51,22 @@ def paginate(line_iter, pages=All, yield_lines=True):
 
 class PageContainer(object):
     def __init__(self):
-        self.subpages = []
+        self.subpages = defaultdict(list)
 
     def insert(self, arr):
-        for s in self.subpages:
-            if numpy.sum(arr == s[0]) > (42*20):
-                s.append(arr)
-                return
-        self.subpages.append([arr])
+        ((subpage, control), subpage_error) = subcode_bcd_decode(arr[4:10,0])
+        self.subpages[subpage].append(arr)
 
 def page_squash(page_iter):
     pages = defaultdict(PageContainer)
     for n,page in page_iter:
         pages[n].insert(page)
     for n,pc in pages.iteritems():
-      for pl in pc.subpages:
+      for s,pl in pc.subpages.iteritems():
+       print len(pl)
+       if len(pl) > 1:
         arr = numpy.array(pl)
         m = mode(arr, axis=0)
-        for i in range(32):
+        for i in range(25):
             #print m[0][:,i]
             yield m[0][0,:,i].astype(numpy.uint8)
