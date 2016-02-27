@@ -26,7 +26,7 @@ line_start_pre = [line_start - (bit_width * 15), line_start - (bit_width * 2)]
 line_start_post = [line_start + (bit_width * 2), line_start + (bit_width * 15)]
 line_start_frcmrag = [line_start + (bit_width * 17), line_start + (bit_width * 40)]
 
-bits = numpy.array([int(line_start + (x*bit_width)) for x in range((45*8)+3)])
+bits = numpy.array([int(line_start + (x*bit_width)) for x in range((45*8)+9)])
 bit_lengths = (bits[1:] - bits[:-1])
 bit_pairs = [x for x in zip(bits[:-1], bits[1:])]
 

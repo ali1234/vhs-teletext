@@ -30,72 +30,16 @@ class PatternCUDA(Pattern):
     int y = (threadIdx.y + (blockDim.y*blockIdx.y));
     int iidx = x * 8;
     int ridx = (y * 40) + x;
-    int pidx = y * 16;
+    int pidx = y * 24;
 
-    float d = input[iidx] - patterns[pidx];
-    result[ridx] = 0; //d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    result[ridx] += d * d;
-    iidx += 1;
-    pidx += 1;
-    d = input[iidx] - patterns[pidx];
-    //result[ridx] += d * d;
+    float d;
+    result[ridx] = 0;
+
+    for (int i=3;i<19;i++) {
+        d = input[iidx+i] - patterns[pidx+i];
+        result[ridx] += (d*d);
+    }
   }
-
     """)
 
     correlate = mod.get_function("correlate")
@@ -106,7 +50,7 @@ class PatternCUDA(Pattern):
         self.patterns_gpu = cuda.mem_alloc(self.patterns.nbytes)
         cuda.memcpy_htod(self.patterns_gpu, self.patterns)
 
-        self.input_gpu = cuda.mem_alloc(4*((40*8)+8))
+        self.input_gpu = cuda.mem_alloc(4*((40*8)+16))
         self.result_gpu = gpuarray.empty((self.n,40), dtype=numpy.float32, allocator=cuda.mem_alloc)
 
 

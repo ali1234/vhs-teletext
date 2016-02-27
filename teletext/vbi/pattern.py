@@ -53,14 +53,12 @@ class PatternBuilder(object):
         a = a.reshape((len(a)/self.inwidth,self.inwidth))
         return numpy.mean(a, axis=0).astype(numpy.uint8)
 
-    def write_patterns(self, filename, pattern_set=All):
+    def write_patterns(self, filename):
         f = open(filename, 'wb')
         flat_patterns = []
         for (k,v) in self.patterns.iteritems():
-            bytes = k[1]
-            if ord(bytes) in pattern_set:
-                pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
-                flat_patterns.append((pattn,bytes))
+            pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
+            flat_patterns.append((pattn,k[1]))
 
         header = struct.pack('>III', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns))
         f.write(header)
@@ -76,18 +74,14 @@ class PatternBuilder(object):
         self.patterns[bytes].append(pattern)
 
 
-def build_pattern(infilename, outfilename, pattern_set=All):
+def build_pattern(infilename, outfilename, keyfunc, pattern_set=All):
 
     it = raw_line_reader(infilename, 27)
 
-    pb = PatternBuilder(16)
-
-    def key(s):
-        pre = chr(ord(s[0])&0xf8)
-        post = chr(ord(s[2])&0x07)
-        return pre + s[1] + post
+    pb = PatternBuilder(24)
 
     for n,line in it:
-        pb.add_pattern(key(line), line[6:-5])
+        if ord(line[1]) in pattern_set:
+            pb.add_pattern(keyfunc(line), line[3:])
 
-    pb.write_patterns(outfilename, pattern_set)
+    pb.write_patterns(outfilename)
