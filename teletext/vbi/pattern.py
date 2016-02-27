@@ -28,9 +28,16 @@ class Pattern(object):
         f.close()
 
     def match(self, inp):
-        diffs = self.patterns - inp
-        diffs = diffs * diffs
-        return self.bytes[numpy.argmin(numpy.sum(diffs, axis=1))]
+        l = (len(inp)/8)-2
+        idx = numpy.zeros((l,), dtype=numpy.uint32)
+        pslice = self.patterns[:, 3:19]
+        for i in range(l):
+            start = (i*8) + 3
+            end = (i*8) + 19
+            diffs = pslice - inp[start:end]
+            diffs = diffs * diffs
+            idx[i] = numpy.argmin(numpy.sum(diffs, axis=1))
+        return self.bytes[idx][:,0]
 
 
 

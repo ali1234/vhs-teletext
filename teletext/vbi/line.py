@@ -29,8 +29,8 @@ class Line(object):
         Line.config = config
 
     #TODO: Handle this with setup.py
-    m = Pattern(os.path.dirname(__file__)+'/data/mrag_patterns')
-    p = Pattern(os.path.dirname(__file__)+'/data/parity_patterns')
+    h = Pattern(os.path.dirname(__file__)+'/data/hamming.dat')
+    p = Pattern(os.path.dirname(__file__)+'/data/parity.dat')
 
     try_cuda = True
     cuda_ready = False
@@ -45,8 +45,8 @@ class Line(object):
         try:
             from patterncuda import PatternCUDA
             #TODO: Handle this with setup.py
-            Line.hc = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
-            Line.pc = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
+            Line.h = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
+            Line.p = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
             Line.cuda_ready = True
         except Exception as e:
             sys.stderr.write(str(e) + '\n')
@@ -106,28 +106,18 @@ class Line(object):
 
     def mrag(self):
         """Finds the mrag for the line."""
-        if Line.cuda_ready:
-            self.bytes_array[:2] = Line.hc.match(self.bits_array[16:48])
-        else:
-            t = Line.m.match(self.bits_array[24:42])
-            self.bytes_array[:2] = t
+        self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
         ((self.magazine, self.row), err) = mrag_decode(self.bytes_array[:2])
 
 
     def bytes(self):
         """Finds the rest of the line."""
-        if Line.cuda_ready:
-            if self.row == 0:
-                self.bytes_array[2:10] = Line.hc.match(self.bits_array[32:112])
-                self.bytes_array[10:] = Line.pc.match(self.bits_array[96:368])
-            elif self.row == 27:
-                self.bytes_array[2:40] = Line.hc.match(self.bits_array[32:352])
-                # skip the last two bytes as they are not really useful
-            else:
-                self.bytes_array[2:] = Line.pc.match(self.bits_array[32:368])
+        if self.row == 0:
+            self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
+            self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
+        elif self.row == 27:
+            self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
+            # skip the last two bytes as they are not really useful
         else:
-            for b in range(40):
-                i = 40 + (b * 8)
-                t = Line.p.match(self.bits_array[i-4:i+10])
-                self.bytes_array[b+2] = t
+            self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
 
