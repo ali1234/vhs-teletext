@@ -30,6 +30,7 @@ parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
+parser.add_argument('-B', '--bitwise', help='Squash pages bitwise.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
 
@@ -66,8 +67,8 @@ infile = open(args.inputfile, 'rb')
 
 line_iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
 
-if args.squash:
-    line_iter = page_squash(paginate(line_iter, pages=args.pages, yield_lines=False))
+if args.squash or args.bitwise:
+    line_iter = page_squash(paginate(line_iter, pages=args.pages, yield_lines=False), bitwise=args.bitwise)
 elif args.paginate:
     line_iter = paginate(line_iter, pages=args.pages)
 

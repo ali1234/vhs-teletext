@@ -57,7 +57,7 @@ class PageContainer(object):
         ((subpage, control), subpage_error) = subcode_bcd_decode(arr[4:10,0])
         self.subpages[subpage].append(arr)
 
-def page_squash(page_iter):
+def page_squash(page_iter, bitwise=False):
     pages = defaultdict(PageContainer)
     for n,page in page_iter:
         pages[n].insert(page)
@@ -66,7 +66,10 @@ def page_squash(page_iter):
        print len(pl)
        if len(pl) > 1:
         arr = numpy.array(pl)
-        m = mode(arr, axis=0)
+        if bitwise: # bitwise mode is slower and doesn't make much difference
+            m = numpy.packbits(mode(numpy.unpackbits(arr, axis=-1), axis=0)[0].astype(numpy.uint8), axis=-1)
+        else:
+            m = mode(arr, axis=0)[0].astype(numpy.uint8)
         for i in range(25):
-            #print m[0][:,i]
-            yield m[0][0,:,i].astype(numpy.uint8)
+            #print m[:,i]
+            yield m[0,:,i]
