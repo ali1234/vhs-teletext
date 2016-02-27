@@ -24,18 +24,18 @@ from pattern import Pattern
 class PatternCUDA(Pattern):
 
     mod = SourceModule("""
-  __global__ void correlate(float *input, float *patterns, float *result)
+  __global__ void correlate(float *input, float *patterns, float *result, int range_low, int range_high)
   {
     int x = (threadIdx.x + (blockDim.x*blockIdx.x));
     int y = (threadIdx.y + (blockDim.y*blockIdx.y));
     int iidx = x * 8;
-    int ridx = (y * 40) + x;
+    int ridx = (x * blockDim.y * gridDim.y) + y;
     int pidx = y * 24;
 
     float d;
     result[ridx] = 0;
 
-    for (int i=3;i<19;i++) {
+    for (int i=range_low;i<range_high;i++) {
         d = input[iidx+i] - patterns[pidx+i];
         result[ridx] += (d*d);
     }
@@ -47,16 +47,22 @@ class PatternCUDA(Pattern):
     def __init__(self, filename):
         Pattern.__init__(self, filename)
 
+        if self.n&1023 != 0:
+            raise ValueError('Number of patterns must be a multiple of 1024.')
+
         self.patterns_gpu = cuda.mem_alloc(self.patterns.nbytes)
         cuda.memcpy_htod(self.patterns_gpu, self.patterns)
 
         self.input_gpu = cuda.mem_alloc(4*((40*8)+16))
-        self.result_gpu = gpuarray.empty((self.n,40), dtype=numpy.float32, allocator=cuda.mem_alloc)
+        self.result_gpu = gpuarray.empty((40,self.n), dtype=numpy.float32, allocator=cuda.mem_alloc)
 
 
     def match(self, inp):
+        l = (len(inp)/8)-2
+        x = l & -l # highest power of two which divides l
+        y = min(1024/x, self.n)
         cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, block=(2, 512, 1), grid=(20, self.n/512))
-        result = argmin(self.result_gpu, axis=0).get()
-        return self.bytes[result,0]
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, numpy.int32(3), numpy.int32(19), block=(x, y, 1), grid=(l/x, self.n/y))
+        result = argmin(self.result_gpu, axis=1).get()
+        return self.bytes[result[:l],0]
 
