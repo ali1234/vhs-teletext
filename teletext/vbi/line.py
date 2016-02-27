@@ -106,7 +106,7 @@ class Line(object):
 
     def mrag(self):
         """Finds the mrag for the line."""
-        if 0:#Line.cuda_ready:
+        if Line.cuda_ready:
             self.bytes_array[:2] = Line.hc.match(self.bits_array[16:48])
         else:
             t = Line.m.match(self.bits_array[24:42])
@@ -117,11 +117,14 @@ class Line(object):
     def bytes(self):
         """Finds the rest of the line."""
         if Line.cuda_ready:
-            self.bytes_array[2:] = Line.pc.match(self.bits_array[32:368])
-            #if self.row == 0:
-            #    self.bytes_array[2:10] = Line.hc.match(self.bits_array[32:112])
-            #if self.row == 27:
-            #    self.bytes_array[2:40] = Line.hc.match(self.bits_array[32:352])
+            if self.row == 0:
+                self.bytes_array[2:10] = Line.hc.match(self.bits_array[32:112])
+                self.bytes_array[10:] = Line.pc.match(self.bits_array[96:368])
+            elif self.row == 27:
+                self.bytes_array[2:40] = Line.hc.match(self.bits_array[32:352])
+                # skip the last two bytes as they are not really useful
+            else:
+                self.bytes_array[2:] = Line.pc.match(self.bits_array[32:368])
         else:
             for b in range(40):
                 i = 40 + (b * 8)
