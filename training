@@ -116,15 +116,30 @@ elif args.squash:
 
 elif args.full:
 
-    build_pattern(args.full, 'full.dat')
+    def key(s):
+        pre = chr(ord(s[0])&0xf0)
+        post = chr(ord(s[2])&0x03)
+        return pre + s[1] + post
+
+    build_pattern(args.full, 'full.dat', key)
 
 elif args.parity:
 
-    build_pattern(args.parity, 'parity.dat', parity_set)
+    def key(s):
+        pre = chr(ord(s[0])&0xf1)
+        post = chr(ord(s[2])&0x07)
+        return pre + s[1] + post
+
+    build_pattern(args.parity, 'parity.dat', key, parity_set)
 
 elif args.hamming:
 
-    build_pattern(args.hamming, 'hamming.dat', hamming_set)
+    def key(s):
+        pre = chr(ord(s[0])&0xff)
+        post = chr(ord(s[2])&0x0f)
+        return pre + s[1] + post
+
+    build_pattern(args.hamming, 'hamming.dat', key, hamming_set)
 
 
 sys.stderr.write('\n')
