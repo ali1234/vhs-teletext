@@ -19,7 +19,7 @@ from teletext.vbi.map import raw_line_reader
 class Pattern(object):
     def __init__(self, filename):
         f = open(filename, 'rb')
-        self.inlen,self.outlen,self.n = struct.unpack('>III', f.read(12))
+        self.inlen,self.outlen,self.n,self.start,self.end = struct.unpack('>IIIBB', f.read(14))
         self.patterns = numpy.fromstring(f.read(self.inlen*self.n), dtype=numpy.uint8)
         self.patterns = self.patterns.reshape((self.n, self.inlen))
         self.patterns = self.patterns.astype(numpy.float32)
@@ -30,10 +30,10 @@ class Pattern(object):
     def match(self, inp):
         l = (len(inp)/8)-2
         idx = numpy.zeros((l,), dtype=numpy.uint32)
-        pslice = self.patterns[:, 3:19]
+        pslice = self.patterns[:, self.start:self.end]
         for i in range(l):
-            start = (i*8) + 3
-            end = (i*8) + 19
+            start = (i*8) + self.start
+            end = (i*8) + self.end
             diffs = pslice - inp[start:end]
             diffs = diffs * diffs
             idx[i] = numpy.argmin(numpy.sum(diffs, axis=1))
@@ -60,14 +60,14 @@ class PatternBuilder(object):
         a = a.reshape((len(a)/self.inwidth,self.inwidth))
         return numpy.mean(a, axis=0).astype(numpy.uint8)
 
-    def write_patterns(self, filename):
+    def write_patterns(self, filename, start, end):
         f = open(filename, 'wb')
         flat_patterns = []
         for (k,v) in self.patterns.iteritems():
             pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
             flat_patterns.append((pattn,k[1]))
 
-        header = struct.pack('>III', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns))
+        header = struct.pack('>IIIBB', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns), start, end)
         f.write(header)
 
         for (p,b) in flat_patterns:
@@ -81,14 +81,19 @@ class PatternBuilder(object):
         self.patterns[bytes].append(pattern)
 
 
-def build_pattern(infilename, outfilename, keyfunc, pattern_set=All):
+def build_pattern(infilename, outfilename, start, end, pattern_set=All):
 
     it = raw_line_reader(infilename, 27)
 
     pb = PatternBuilder(24)
 
+    def key(s):
+        pre = chr(ord(s[0])&(0xff<<start))
+        post = chr(ord(s[2])&(0xff>>(24-end)))
+        return pre + s[1] + post
+
     for n,line in it:
         if ord(line[1]) in pattern_set:
-            pb.add_pattern(keyfunc(line), line[3:])
+            pb.add_pattern(key(line), line[3:])
 
-    pb.write_patterns(outfilename)
+    pb.write_patterns(outfilename, start, end)

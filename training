@@ -21,7 +21,6 @@ from teletext.vbi.training import *
 
 from teletext.vbi.map import raw_line_map, raw_line_reader
 from teletext.vbi.pattern import build_pattern
-from teletext.vbi.line import Line
 from teletext.misc.all import All
 
 from teletext.t42.coding import parity_set, hamming_set
@@ -47,6 +46,7 @@ if args.generate:
 
 
 elif args.train:
+    from teletext.vbi.line import Line
     import config_bt8x8_pal as config
     Line.set_config(config)
     Line.disable_cuda()
@@ -116,30 +116,15 @@ elif args.squash:
 
 elif args.full:
 
-    def key(s):
-        pre = chr(ord(s[0])&0xf0)
-        post = chr(ord(s[2])&0x03)
-        return pre + s[1] + post
-
-    build_pattern(args.full, 'full.dat', key)
+    build_pattern(args.full, 'full.dat', 3, 19)
 
 elif args.parity:
 
-    def key(s):
-        pre = chr(ord(s[0])&0xf1)
-        post = chr(ord(s[2])&0x07)
-        return pre + s[1] + post
-
-    build_pattern(args.parity, 'parity.dat', key, parity_set)
+    build_pattern(args.parity, 'parity.dat', 3, 18, parity_set)
 
 elif args.hamming:
 
-    def key(s):
-        pre = chr(ord(s[0])&0xff)
-        post = chr(ord(s[2])&0x0f)
-        return pre + s[1] + post
-
-    build_pattern(args.hamming, 'hamming.dat', key, hamming_set)
+    build_pattern(args.hamming, 'hamming.dat', 1, 20, hamming_set)
 
 
 sys.stderr.write('\n')
