@@ -1,66 +1,42 @@
-REWRITE IN PROGRESS
--------------------
+This is a suite of tools for processing teletext signals recorded on VHS, as
+well as tools for processing teletext packet streams. The software has only
+been tested with bt8x8 capture hardware, but should work with any VBI capture
+hardware if you write a new configuration file (see config_bt8x8_pal.py).
 
-Status:
 
-'deconvolve' now has a lot of command line options. It takes one named input
-file to deconvolve. It will automatically output readable ansi decoded teletext
-if you allow the output to go to the console. If you redirect the output it
-will produce raw t42 packets. You can override this behaviour.
+INSTALLATION
+------------
 
-It can also filter the output by magazine and/or row. The filtered packets are
-not fully deconvolved. You can also have the output numbered by position in
-the input file. The number is in number of packets, so if your input is
-2048 byte lines, the file offset is n*2048.
+In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
-Those last two options are useful if you want to quickly scan through a whole
-tape dump, when the tape has multiple recordings on it. There is a shortcut for
-this, -H, which will dump all headers, numbered.
+Install python dependencies:
 
-You can use the header numbers with the --start and --stop arguments to process
-the selected range of lines.
+    sudo apt-get install python-numpy python-scipy python-pycuda
+    pip install --user scikit-cuda
 
-CUDA will be automatically detected and used, but can be forced off. You can
-also configure the number of worker threads. Number of threads doesn't include
-the main thread. --threads 0 will cause all work to be done on the main thread
-which is slower even on a single core, but useful for debugging. When using the
-CPU, set threads to the number of cores you have. When using CUDA, you will
-need to experiment to find the best number of threads.
-
-Run
-    ./convolve -h
-to see all the options.
+You can use setup.py to install, or just add the source directory to your
+path.
 
 
 USAGE
 -----
 
-In order to use CUDA decoding you need to use the Nvidia proprietary driver:
+First capture VBI from VHS:
 
-https://help.ubuntu.com/community/BinaryDriverHowto/Nvidia#Installation
+    vbicat /dev/vbi0 > capture.vbi
 
-Next install python dependencies:
+Scan for headers in the capture:
 
-    sudo apt-get install python-numpy python-scipy python-pycuda
-    pip install --user scikit-cuda
+    deconvolve -H -S 20 capture.vbi > headers.txt
 
-Extract headers from your dump file:
-
-    ./deconvolve input.vbi -H > headers.txt
-
-Examine headers to find services:
+Examine the headers to find services on the tape:
 
     less -r headers.txt
 
-Deconvolve a part of the input corresponding to one service:
+Deconvolve a section of the capture corresponding to one service:
 
-    ./deconvolve input.vbi --start 123 --stop 456 > output.t42
+    deconvolve --start <N> --stop <N> capture.vbi > service.t42
 
-For now you have to process the output.t42 with the old version of
-vhs-teletext.
+Extract a page from the result:
 
-TODO
-----
-
- * Write a tool to capture raw vbi.
- * Port over the post-processing tools.
+    t42pipe service.t42 -PS -p 100
