@@ -17,6 +17,23 @@ Install python dependencies:
 You can use setup.py to install, or just add the source directory to your
 path.
 
+In order for the output to be rendered correctly you need to use a specific
+font and terminal:
+
+    sudo apt-get install tv-fonts rxvt-unicode
+
+Then enable bitmap fonts in your X server:
+
+    cd /etc/fonts/conf.d
+    sudo rm 70-no-bitmaps.conf
+    sudo ln -s ../conf.avail/70-yes-bitmaps.conf .
+
+After doing this you may need to reboot.
+
+Finally open a terminal with the required font:
+
+    urxvt -fg white -bg black -fn teletext &
+
 
 USAGE
 -----
