@@ -120,7 +120,7 @@ elif args.full:
 
 elif args.parity:
 
-    build_pattern(args.parity, 'parity.dat', 3, 18, parity_set)
+    build_pattern(args.parity, 'parity.dat', 4, 18, parity_set)
 
 elif args.hamming:
 
