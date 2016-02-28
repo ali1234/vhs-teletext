@@ -3,6 +3,12 @@ well as tools for processing teletext packet streams. The software has only
 been tested with bt8x8 capture hardware, but should work with any VBI capture
 hardware if you write a new configuration file (see config_bt8x8_pal.py).
 
+This is a rewrite of the original software using a new CUDA-accelerated
+algorithm. It is much faster than the original and also somewhat more
+accurate. However it still lacks some functionality, mainly the ability to
+generate web pages from the output. The old code is still available in the
+'v1' branch of this repo.
+
 
 INSTALLATION
 ------------
@@ -57,3 +63,5 @@ Deconvolve a section of the capture corresponding to one service:
 Extract a page from the result:
 
     t42pipe service.t42 -PS -p 100
+
+Run each command with '--help' for a compltete list of options.
