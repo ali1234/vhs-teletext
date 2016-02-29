@@ -85,13 +85,32 @@ def mrag_decode(d):
 def mrag_encode(m, r):
     a = (m&0x7) | ((r&0x1) << 3)
     b = r>>1
-    return numpy.array([hamming84(a), hamming84(b)], dtype=numpy.uint8)
+    return numpy.array([hamming8_encode(a), hamming8_encode(b)], dtype=numpy.uint8)
 
 
 
 def page_decode(d):
     return hamming16_decode(d)
 
+
+
+def page_subpage_encode(page=0xff, subpage=0, control=0):
+    return numpy.array([hamming8_encode(page&0xf),
+                        hamming8_encode(page>>4),
+                        hamming8_encode(subpage&0xf),
+                        hamming8_encode(((subpage>>4)&0x7)|((control&1)<<3)),
+                        hamming8_encode((subpage>>8)&0xf),
+                        hamming8_encode(((subpage>>12)&0x3)|((control&6)<<1)),
+                        hamming8_encode((control>>3)&0xf),
+                        hamming8_encode((control>>7)&0xf)], dtype=numpy.uint8)
+
+def page_link_encode(page=0xff, subpage=0, magazine=0):
+    return numpy.array([hamming8_encode(page&0xf),
+                        hamming8_encode(page>>4),
+                        hamming8_encode(subpage&0xf),
+                        hamming8_encode(((subpage>>4)&0x7)|((magazine&1)<<3)),
+                        hamming8_encode((subpage>>8)&0xf),
+                        hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))], dtype=numpy.uint8)
 
 
 def subcode_bcd_decode(d):
