@@ -17,7 +17,7 @@ In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
 Install python dependencies:
 
-    sudo apt-get install python-numpy python-scipy python-pycuda
+    sudo apt-get install python-numpy python-scipy python-pycuda nvidia-modprobe
     pip install --user scikit-cuda
 
 You can use setup.py to install, or just add the source directory to your
