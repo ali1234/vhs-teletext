@@ -1,5 +1,4 @@
 import re
-from coding import mrag_decode, page_decode, subcode_bcd_decode, hamming8_decode
 import numpy as np
 
 class PrinterANSI(object):
@@ -175,44 +174,4 @@ class PrinterHTML(object):
 
 
 
-def do_print(tt):
-    if type(tt) == type(''):
-        tt = np.fromstring(tt, dtype=np.uint8)
-    ret = ""
-    ((m, r),e) = mrag_decode(tt[:2])
-    ret += "%1d %2d" % (m, r)
-    if r == 0:
-        (p,e) = page_decode(tt[2:4])
-        ((s,c),e) = subcode_bcd_decode(tt[4:10])
-        ret += "   P%1d%02x " % (m,p)
-        ret += str(PrinterANSI(tt[10:]))
-        ret += " %04x %x" % (s,c)
-    elif r == 30: # broadcast service data
-        # designation code
-        (d,e) = hamming8_decode(tt[2])
-        # initial page
-        (p,e) = page_decode(tt[3:5])
-        ((s,m),e) = subcode_bcd_decode(np.fromstring(tt[5:9], dtype=np.uint8))
-        ret += " %1d I%1d%02x:%04x " % (d, m, p, s)
-        if d&2:
-            ret += "(PDC) "
-        else:
-            ret += "(NET) "
-        ret += str(PrinterANSI(tt[22:]).string_ansi())
-    elif r == 27: # broadcast service data
-        # designation code
-        (d,e) = hamming8_decode(tt[2])
-        ret += " %1d " % (d)
-        for n in range(6):
-            nn = n*6
-            (p,e) = page_decode(tt[nn+3:nn+5])
-            ((s,m),e) = subcode_bcd_decode(tt[nn+5:nn+9])
-            ret += " %1d%02x:%04x " % (m,p,s)
-    else:
-        ret += str(PrinterANSI(tt[2:]))
 
-    return ret
-
-def print_iter(line_iter, join_str='\n'):
-    for l in line_iter:
-        yield do_print(l) + join_str

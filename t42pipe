@@ -15,8 +15,7 @@ import argparse
 import itertools
 import errno
 
-from teletext.t42.pipeline import reader, demux, paginate, page_squash
-from teletext.t42.printer import print_iter
+from teletext.t42.pipeline import reader, demux, paginate, subpage_squash
 from teletext.misc.all import All
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -30,7 +29,6 @@ parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
-parser.add_argument('-B', '--bitwise', help='Squash pages bitwise.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
 
@@ -63,18 +61,16 @@ if args.windowed or args.less:
         if args.less:
             term.less(['-F'])
 
+
 infile = open(args.inputfile, 'rb')
 
-line_iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
+iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
 
-if args.squash or args.bitwise:
-    line_iter = page_squash(paginate(line_iter, pages=args.pages, yield_lines=False), bitwise=args.bitwise)
+if args.squash:
+    iter = subpage_squash(iter, pages=args.pages)
 elif args.paginate:
-    line_iter = paginate(line_iter, pages=args.pages)
+    iter = paginate(iter, pages=args.pages)
 
 
-line_iter = print_iter(line_iter, '\n')
-
-
-for l in line_iter:
-    sys.stdout.write(l)
+for packet in iter:
+    print str(packet)

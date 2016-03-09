@@ -113,13 +113,13 @@ def page_link_encode(page=0xff, subpage=0, magazine=0):
                         hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))], dtype=numpy.uint8)
 
 
-def subcode_bcd_decode(d):
+def subcode_magazine_decode(d):
     s1,e1 = hamming8_decode(d[0])
     s2,e2 = hamming8_decode(d[1])
     s3,e3 = hamming8_decode(d[2])
     s4,e4 = hamming8_decode(d[3])
 
-    m = (s2>>3) | ((s4>>1)&0x6)
+    magazine = (s2>>3) | ((s4>>1)&0x6)
     
     s2 &=0x7
     s4 &=0x3
@@ -130,7 +130,7 @@ def subcode_bcd_decode(d):
 
 
 
-def subcode_decode(d):
+def subcode_control_decode(d):
     ((s,c),e) = subcode_bcd_decode(d[:6])
     (c1,e1) = hamming16_decode(d[6:8])
     c |= c1<<3

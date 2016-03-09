@@ -4,10 +4,10 @@ from collections import defaultdict
 
 from scipy.stats.mstats import mode
 
-from coding import mrag_decode, page_decode, subcode_bcd_decode
 from functools import partial
 from operator import itemgetter
 from teletext.misc.all import All
+from packet import Packet, HeaderPacket
 
 def reader(infile):
     """Helper to read t42 lines from a file-like object."""
@@ -16,60 +16,53 @@ def reader(infile):
         if len(l) < 42:
             return
         else:
-            yield numpy.fromstring(l, dtype=numpy.uint8)
+            yield Packet.from_bytes(l)
 
 
-def demux(line_iter, magazines=All, rows=All):
+
+def demux(packet_iter, magazines=All, rows=All):
     """Filters t42 stream to a subset of magazines and packets."""
-    for l in line_iter:
-        ((m, r), e) = mrag_decode( l[:2] )
-        if m in magazines:
-            if r in rows:
-                yield l
+    for packet in packet_iter:
+        if packet.mrag.magazine in magazines:
+            if packet.mrag.row in rows:
+                yield packet
 
 
-def paginate(line_iter, pages=All, yield_lines=True):
+
+def packets(packet_list):
+    for p in packet_list:
+        yield p
+
+def packet_lists(packet_list):
+    yield packet_list
+
+def paginate(packet_iter, pages=All, yield_func=packets):
     """Reorders lines in a t42 stream so that pages are continuous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
-    for l in line_iter:
-        ((m, r), e) = mrag_decode( l[:2] )
-        if r == 0:
-            magbuffers[m].sort(key=itemgetter(0))
-            if len(magbuffers[m]) > 0:
-                page = '%d%02x' % (m, page_decode(magbuffers[m][0][1][2:4])[0])
-                if page in pages:
-                    if yield_lines:
-                        for br,bl in magbuffers[m]:
-                            yield bl
-                    else:
-                        page_array = numpy.zeros((42,32), dtype=numpy.uint8)
-                        for br,bl in magbuffers[m]:
-                            page_array[:,br] = bl
-                        yield page,page_array
-            magbuffers[m] = []
-        magbuffers[m].append((r,l))
+    for packet in packet_iter:
+        mag = packet.mrag.magazine
+        if type(packet) == HeaderPacket:
+            if len(magbuffers[mag]) > 0 and type(magbuffers[mag][0]) == HeaderPacket:
+                if magbuffers[mag][0].page_str() in pages:
+                    magbuffers[mag].sort(key=lambda p: p.mrag.row)
+                    for item in yield_func(magbuffers[mag]):
+                        yield item
+            magbuffers[mag] = []
+        magbuffers[mag].append(packet)
 
-class PageContainer(object):
-    def __init__(self):
-        self.subpages = defaultdict(list)
 
-    def insert(self, arr):
-        ((subpage, control), subpage_error) = subcode_bcd_decode(arr[4:10,0])
-        self.subpages[subpage].append(arr)
+def subpage_squash(packet_iter, pages=All):
+    subpages = defaultdict(list)
+    for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists):
+        subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
+        arr = numpy.zeros((42, 32), dtype=numpy.uint8)
+        for p in pl:
+            arr[:,p.mrag.row] = p._original_bytes
+        subpages[subpagekey].append(arr)
 
-def page_squash(page_iter, bitwise=False):
-    pages = defaultdict(PageContainer)
-    for n,page in page_iter:
-        pages[n].insert(page)
-    for n,pc in pages.iteritems():
-      for s,pl in pc.subpages.iteritems():
-       print len(pl)
-       if len(pl) > 1:
-        arr = numpy.array(pl)
-        if bitwise: # bitwise mode is slower and doesn't make much difference
-            m = numpy.packbits(mode(numpy.unpackbits(arr, axis=-1), axis=0)[0].astype(numpy.uint8), axis=-1)
-        else:
-            m = mode(arr, axis=0)[0].astype(numpy.uint8)
+    for arrlist in subpages.itervalues():
+        arr = mode(numpy.array(arrlist), axis=0)[0][0].astype(numpy.uint8)
         for i in range(25):
-            #print m[:,i]
-            yield m[0,:,i]
+            yield Packet.from_bytes(arr[:,i])
+        yield Packet.from_bytes(arr[:,27])
+
