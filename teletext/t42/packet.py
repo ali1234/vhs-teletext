@@ -39,6 +39,7 @@ class Packet(object):
         packet._original_bytes = bytes
         return packet
 
+
     def __str__(self):
         return '%d %2d' % (self.mrag.magazine, self.mrag.row)
 
@@ -84,9 +85,12 @@ class HeaderPacket(DisplayPacket):
 
 class FastextPacket(Packet):
 
-    def __init__(self, mrag, links=[PageLink() for n in range(6)]):
+    def __init__(self, mrag, links=[None for n in range(6)]):
         Packet.__init__(self, mrag)
-        self.__links = links
+        self.__links = [PageLink() for n in range(6)]
+        for n in range(6):
+            if links[n]:
+                self.__links[n] = links[n]
 
     @property
     def links(self):
