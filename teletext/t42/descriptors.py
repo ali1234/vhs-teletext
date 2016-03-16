@@ -37,7 +37,7 @@ class SubpageNumber(Static):
 
     def __set__(self, instance, value):
         if value < 0 or value > 0x3f7f:
-            raise ValueError("Magazine numbers must be between 0 and 7.")
+            raise ValueError("Subpage numbers must be between 0 and 0x3f7f.")
         if value & 0x80:
             raise ValueError("Bit 8 of subpage numbers must be 0.")
         self.instances[instance] = int(value)
