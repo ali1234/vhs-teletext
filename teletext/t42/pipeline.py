@@ -11,6 +11,7 @@ from packet import Packet, HeaderPacket
 from subpage import Subpage
 from service import Service
 
+
 def reader(infile):
     """Helper to read t42 lines from a file-like object."""
     lines = iter(partial(infile.read, 42), b'')
@@ -56,7 +57,7 @@ def paginate(packet_iter, pages=All, yield_func=packets):
         magbuffers[mag].append(packet)
 
 
-def subpage_squash(packet_iter, pages=All, yield_func=packets):
+def subpage_squash(packet_iter, minimum_dups=5, pages=All, yield_func=packets):
     subpages = defaultdict(list)
     for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
@@ -66,15 +67,16 @@ def subpage_squash(packet_iter, pages=All, yield_func=packets):
         subpages[subpagekey].append(arr)
 
     for arrlist in subpages.itervalues():
-        arr = mode(numpy.array(arrlist), axis=0)[0][0].astype(numpy.uint8)
-        packets = []
+        if len(arrlist) >= minimum_dups:
+            arr = mode(numpy.array(arrlist), axis=0)[0][0].astype(numpy.uint8)
+            packets = []
 
-        for i in range(32):
-            if arr[:,i].any():
-                packets.append(Packet.from_bytes(arr[:,i]))
+            for i in range(32):
+                if arr[:,i].any():
+                    packets.append(Packet.from_bytes(arr[:,i]))
 
-        for item in yield_func(packets):
-            yield item
+            for item in yield_func(packets):
+                yield item
 
 
 
@@ -85,9 +87,4 @@ def make_service(packet_iter, pages=All):
 
     return service
 
-def make_squashed_service(packet_iter, pages=All):
-    service = Service()
-    for s in subpage_squash(packet_iter, pages=pages, yield_func=subpages):
-        service.magazines[s._original_magazine].pages[s._original_page].subpages[s._original_subpage] = s
 
-    return service
