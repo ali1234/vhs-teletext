@@ -58,10 +58,20 @@ Examine the headers to find services on the tape:
 
 Deconvolve a section of the capture corresponding to one service:
 
-    deconvolve --start <N> --stop <N> capture.vbi > service.t42
+    deconvolve --start <N> --stop <N> capture.vbi > stream.t42
 
-Extract a page from the result:
+Display all copies of a page in a stream:
 
-    t42pipe service.t42 -PS -p 100
+    t42pipe stream.t42 -P -p 100
+
+Squash duplicate subpages, which reduces errors:
+
+    t42pipe stream.t42 -S > output.t42
+
+Interactively view the pages in a t42 stream:
+
+    t42service stream.t42 | t42interactive
+
+In the interactive viewer you can type page numbers, or '.' for hold.
 
 Run each command with '--help' for a compltete list of options.
