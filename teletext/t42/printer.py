@@ -3,8 +3,7 @@ import numpy as np
 
 class PrinterANSI(object):
 
-    def __init__(self, tt, codepage=0):
-        tt = tt&0x7f
+    def __init__(self, tt, colour=True, codepage=0):
         self.tt = tt&0x7f
         self.fg = 7
         self.bg = 0
@@ -21,6 +20,8 @@ class PrinterANSI(object):
 
         # anchor for header links so we can bookmark a subpage
         self.anchor = ""
+
+        self.colour = colour
 
 
     def set_fasttext(self, data, mag):
@@ -55,7 +56,10 @@ class PrinterANSI(object):
 
 
     def setstyle(self, fg=None, bg=None):
-        return '\033[3%dm\033[4%dm' % ((fg or self.fg), (bg or self.bg))
+        if self.colour:
+            return '\033[3%dm\033[4%dm' % ((fg or self.fg), (bg or self.bg))
+        else:
+            return ''
 
 
     def transform(self, c):
@@ -122,7 +126,7 @@ class PrinterANSI(object):
     def __str__(self):
         head = self.setstyle(fg=7, bg=0)
         body = "".join([self.transform(x) for x in self.tt])
-        return head+body.encode('utf8')+'\033[0m'
+        return head+body.encode('utf8')+('\033[0m' if self.colour else '')
 
 
 
@@ -170,7 +174,6 @@ class PrinterHTML(object):
         else:
             body = self.linkify(body)
         return head+body.encode('utf8')+foot+'\n'
-
 
 
 
