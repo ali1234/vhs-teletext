@@ -35,7 +35,7 @@ class Subpage(object):
 
         return s
 
-    def to_packets(self, magazine, page, subpage, header_displayable=numpy.full((40,), 0x20, dtype=numpy.uint8)):
+    def to_packets(self, magazine, page, subpage, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8)):
         yield HeaderPacket(Mrag(magazine, 0), PageHeader(page, subpage, self.control), header_displayable)
         for i in range(0, 25):
             if (self.displayable[:,i] != 0x20).any():
