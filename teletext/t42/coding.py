@@ -76,67 +76,6 @@ def hamming8_encode(d):
 
 
 
-
-
-def mrag_decode(d):
-    a = hamming16_decode(d)
-    return ((a[0]&0x7, a[0]>>3),a[1])
-
-def mrag_encode(m, r):
-    a = (m&0x7) | ((r&0x1) << 3)
-    b = r>>1
-    return numpy.array([hamming8_encode(a), hamming8_encode(b)], dtype=numpy.uint8)
-
-
-
-def page_decode(d):
-    return hamming16_decode(d)
-
-
-
-def page_subpage_encode(page=0xff, subpage=0, control=0):
-    return numpy.array([hamming8_encode(page&0xf),
-                        hamming8_encode(page>>4),
-                        hamming8_encode(subpage&0xf),
-                        hamming8_encode(((subpage>>4)&0x7)|((control&1)<<3)),
-                        hamming8_encode((subpage>>8)&0xf),
-                        hamming8_encode(((subpage>>12)&0x3)|((control&6)<<1)),
-                        hamming8_encode((control>>3)&0xf),
-                        hamming8_encode((control>>7)&0xf)], dtype=numpy.uint8)
-
-def page_link_encode(page=0xff, subpage=0, magazine=0):
-    return numpy.array([hamming8_encode(page&0xf),
-                        hamming8_encode(page>>4),
-                        hamming8_encode(subpage&0xf),
-                        hamming8_encode(((subpage>>4)&0x7)|((magazine&1)<<3)),
-                        hamming8_encode((subpage>>8)&0xf),
-                        hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))], dtype=numpy.uint8)
-
-
-def subcode_magazine_decode(d):
-    s1,e1 = hamming8_decode(d[0])
-    s2,e2 = hamming8_decode(d[1])
-    s3,e3 = hamming8_decode(d[2])
-    s4,e4 = hamming8_decode(d[3])
-
-    magazine = (s2>>3) | ((s4>>1)&0x6)
-    
-    s2 &=0x7
-    s4 &=0x3
-
-    subcode = s1 | (s2<<4) | (s3<<8) | (s4<<12)
-
-    return (subcode,m),(e1 or e2 or e3 or e4)    
-
-
-
-def subcode_control_decode(d):
-    ((s,c),e) = subcode_bcd_decode(d[:6])
-    (c1,e1) = hamming16_decode(d[6:8])
-    c |= c1<<3
-    return ((s,c),(e or e1))
-
-
 parity_tab = numpy.array([
     1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
     0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
