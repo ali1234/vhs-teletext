@@ -29,7 +29,6 @@ parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
-parser.add_argument('--service', help='Squash pages and run looping service.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
 
@@ -71,12 +70,14 @@ if args.squash:
     iter = subpage_squash(iter, pages=args.pages)
 elif args.paginate:
     iter = paginate(iter, pages=args.pages)
-elif args.service:
-    service = make_service(iter)
-    while True:
-        for packet in service.next_packets(prio=[3,3,3,3,3,3,3,3]):
-            print str(packet)
+
 
 
 for packet in iter:
-    print str(packet)
+    if args.ansi:
+        print packet.to_ansi()
+    else:
+        x = packet.to_bytes()
+        if len(x) != 42 and len(x) != 0:
+            raise IndexError("No" + str(type(packet)))
+        sys.stdout.write(packet.to_bytes())
