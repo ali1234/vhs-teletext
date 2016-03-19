@@ -24,8 +24,10 @@ class Page(object):
 class Magazine(object):
     def __init__(self):
         self.pages = defaultdict(Page)
-        self.header_displayable = numpy.full((40,), 0x20, dtype=numpy.uint8)
         self.stream = self._stream()
+
+    def header(self, page):
+        return numpy.fromstring('           P%1d%02x                 ' % (1, page), dtype=numpy.uint8)
 
     def _stream(self):
         while True:
@@ -33,9 +35,9 @@ class Magazine(object):
                 ret = page.stream.next()
                 if ret:
                     spno, sp = ret
-                    for packet in sp.to_packets(0, pageno, spno, self.header_displayable):
+                    for packet in sp.to_packets(0, pageno, spno, sp._original_displayable): #self.header(pageno)):
                         yield packet
-            yield HeaderPacket(Mrag(0, 0), PageHeader(0xff, 0x3f7f, 0), self.header_displayable)
+            yield HeaderPacket(Mrag(0, 0), PageHeader(0xff, 0x3f7f, 0), self.header(0xff))
 
 
 
