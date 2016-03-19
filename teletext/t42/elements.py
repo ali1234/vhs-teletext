@@ -20,6 +20,11 @@ class Mrag(object):
         row = value>>3
         return cls(magazine, row, errors)
 
+    def to_bytes(self):
+        a = (self.magazine&0x7) | ((self.row&0x1) << 3)
+        b = self.row>>1
+        return chr(hamming8_encode(a)) + chr(hamming8_encode(b))
+
 
 class PageHeader(object):
     page = PageNumber()
@@ -47,6 +52,16 @@ class PageHeader(object):
         control = (values[0] >> 7) | (values[1] >> 6) | (values[2] << 3)
         return cls(page, subpage, control, errors)
 
+    def to_bytes(self):
+        tmp = [hamming8_encode(self.page&0xf),
+               hamming8_encode(self.page>>4),
+               hamming8_encode(self.subpage&0xf),
+               hamming8_encode(((self.subpage>>4)&0x7)|((self.control&1)<<3)),
+               hamming8_encode((self.subpage>>8)&0xf),
+               hamming8_encode(((self.subpage>>12)&0x3)|((self.control&6)<<1)),
+               hamming8_encode((self.control>>3)&0xf),
+               hamming8_encode((self.control>>7)&0xf)]
+        return ''.join([chr(x) for x in tmp])
 
 
 class PageLink(object):
@@ -77,7 +92,15 @@ class PageLink(object):
 
     def __str__(self):
         return "%d%02x:%04x" % (self.magazine, self.page, self.subpage)
-        
 
+    def to_bytes(self, current_magazine):
+        magazine = self.magazine ^ current_magazine
+        tmp = [hamming8_encode(self.page&0xf),
+               hamming8_encode(self.page>>4),
+               hamming8_encode(self.subpage&0xf),
+               hamming8_encode(((self.subpage>>4)&0x7)|((magazine&1)<<3)),
+               hamming8_encode((self.subpage>>8)&0xf),
+               hamming8_encode(((self.subpage>>12)&0x3)|((magazine&6)<<1))]
+        return ''.join([chr(x) for x in tmp])
 
 
