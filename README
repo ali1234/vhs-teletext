@@ -38,7 +38,7 @@ After doing this you may need to reboot.
 
 Finally open a terminal with the required font:
 
-    urxvt -fg white -bg black -fn teletext -geometry 41x25 &
+    urxvt -fg white -bg black -fn teletext -geometry 41x25 +sb &
 
 
 USAGE
