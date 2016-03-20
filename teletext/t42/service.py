@@ -1,3 +1,5 @@
+import datetime
+
 import numpy
 
 from elements import *
@@ -22,12 +24,19 @@ class Page(object):
 
 
 class Magazine(object):
-    def __init__(self):
+    def __init__(self, magazineno=1, title='Unnamed  '):
+        self.title = title
+        self.magazineno = magazineno
         self.pages = defaultdict(Page)
         self.stream = self._stream()
 
-    def header(self, page):
-        return numpy.fromstring('           P%1d%02x                 ' % (1, page), dtype=numpy.uint8)
+    def header(self, pageno, sp=None):
+        try:
+            return sp._original_displayable
+        except:
+            t = datetime.datetime.now()
+            data = '%9s%1d%02x' % (self.title, self.magazineno, pageno) + t.strftime(" %a %d %b\x03%H:%M/%S")
+            return numpy.fromstring(data[:32], dtype=numpy.uint8)
 
     def _stream(self):
         while True:
@@ -35,7 +44,7 @@ class Magazine(object):
                 ret = page.stream.next()
                 if ret:
                     spno, sp = ret
-                    for packet in sp.to_packets(0, pageno, spno, sp._original_displayable): #self.header(pageno)):
+                    for packet in sp.to_packets(0, pageno, spno, self.header(pageno, sp)):
                         yield packet
             yield HeaderPacket(Mrag(0, 0), PageHeader(0xff, 0x3f7f, 0), self.header(0xff))
 

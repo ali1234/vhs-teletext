@@ -85,6 +85,9 @@ def make_service(packet_iter, pages=All):
     for s in paginate(packet_iter, pages=pages, yield_func=subpages):
         service.magazines[s._original_magazine].pages[s._original_page].subpages[s._original_subpage] = s
 
+    for k,v in service.magazines.iteritems():
+        v.magazineno = k
+
     return service
 
 
