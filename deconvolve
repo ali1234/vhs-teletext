@@ -22,7 +22,7 @@ from teletext.vbi.pattern import Pattern
 from teletext.vbi.line import Line
 from teletext.misc.all import All
 
-from teletext.t42.printer import do_print
+from teletext.t42.packet import Packet
 
 from scipy.stats.mstats import mode
 
@@ -108,7 +108,7 @@ if args.squash > 1:
         elif args.ansi:
             if args.numbered:
                 sys.stdout.write(('%8d ' % l_list[0].offset))
-            sys.stdout.write(do_print(best) + '\n')
+            sys.stdout.write(Packet.from_bytes(best).to_ansi() + '\n')
 
 else:
     for l in it:
@@ -117,6 +117,6 @@ else:
         elif args.ansi:
             if args.numbered:
                 sys.stdout.write(('%8d ' % l.offset))
-            sys.stdout.write(do_print(l.bytes_array) + '\n')
+            sys.stdout.write(Packet.from_bytes(l.bytes_array).to_ansi() + '\n')
 
 sys.stderr.write('\n')
