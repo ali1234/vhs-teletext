@@ -3,12 +3,13 @@ import numpy
 from descriptors import *
 from elements import *
 from packet import *
+from printer import PrinterHTML
 
 
 class Subpage(object):
     control = ControlBits()
 
-    def __init__(self, fill=0x20, links=[None for n in range(6)]):
+    def __init__(self, fill=0x20, links=[PageLink() for n in range(6)]):
         self.displayable = numpy.full((40, 25), fill, dtype=numpy.uint8)
         self.control = 0
         self.__links = links
@@ -42,4 +43,23 @@ class Subpage(object):
                 yield DisplayPacket(Mrag(magazineno, i+1), self.displayable[:,i])
         yield FastextPacket(Mrag(magazineno, 27), self.links)
 
+
+    def to_html(self, magazineno, pageno, subpageno, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8)):
+        body = []
+
+        p = PrinterHTML(header_displayable)
+        p.anchor = '#%04X' % subpageno
+        body.append('   <span class="pgnum">P%d%02x</span> ' % (magazineno, pageno) + str(p))
+
+        for i in range(0,25):
+            if i == 0 or numpy.all(self.displayable[:,i-1] != 0x0d):
+                p = PrinterHTML(self.displayable[:,i])
+                if i == 23:
+                    p.fastext = True
+                    p.links = ['%d%02X' % (l.magazine, l.page) for l in self.links]
+                body.append(str(p))
+
+        head = '<div class="subpage" id="%04X">' % subpageno
+
+        return head + "".join(body) + '</div>'
 
