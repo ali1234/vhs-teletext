@@ -24,19 +24,6 @@ class PrinterANSI(object):
         self.colour = colour
 
 
-    def set_fasttext(self, data, mag):
-        self.fasttext = True
-        self.links = []
-        for n in range(4):
-            nn = n*6
-            (p,e) = page_decode(data[nn+3:nn+5])
-            ((s,m),e) = subcode_bcd_decode(data[nn+5:nn+9])
-            m = (mag^m)&0x7
-            if m == 0:
-                m = 8
-            self.links.append("%1d%02x" % (m,p))
-
-
     def ttchar(self, c):
         if self.mosaic and (c < ord('@') or c > ord('_')):
             return unichr(c+0xee00) if self.solid else unichr(c+0xede0)
@@ -134,6 +121,19 @@ class PrinterHTML(PrinterANSI):
 
     def __init__(self, tt, codepage=0):
         PrinterANSI.__init__(self, tt, codepage)
+
+
+    def set_fasttext(self, data, mag):
+        self.fasttext = True
+        self.links = []
+        for n in range(4):
+            nn = n*6
+            (p,e) = page_decode(data[nn+3:nn+5])
+            ((s,m),e) = subcode_bcd_decode(data[nn+5:nn+9])
+            m = (mag^m)&0x7
+            if m == 0:
+                m = 8
+            self.links.append("%1d%02x" % (m,p))
 
 
     def htmlspanstyle(self, fg=None, bg=None):
