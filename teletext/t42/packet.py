@@ -114,6 +114,6 @@ class FastextPacket(Packet):
         return ' '.join((str(link) for link in self.links))
 
     def to_bytes(self):
-        return self.mrag.to_bytes() + ''.join([x.to_bytes(self.mrag.magazine) for x in self.links]) + '    '
+        return self.mrag.to_bytes() + ' ' + ''.join([x.to_bytes(self.mrag.magazine) for x in self.links]) + '   '
 
 
