@@ -130,7 +130,7 @@ class PrinterANSI(object):
 
 
 
-class PrinterHTML(object):
+class PrinterHTML(PrinterANSI):
 
     def __init__(self, tt, codepage=0):
         PrinterANSI.__init__(self, tt, codepage)
@@ -142,7 +142,7 @@ class PrinterHTML(object):
                       (" cn" if self.conceal else ""), (" bx" if self.boxed else " nx"))
 
 
-    def setstyle(self, html, fg=None, bg=None):
+    def setstyle(self, fg=None, bg=None):
         link = ''
         linkclose = ''
         if self.fasttext:
