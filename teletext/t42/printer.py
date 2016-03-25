@@ -13,7 +13,6 @@ class PrinterANSI(object):
         self.flash = False
         self.conceal = False
         self.boxed = False
-        self.fasttext = False
         self.flinkopen = False
         # ignored for now
         self.codepage = codepage
@@ -121,19 +120,7 @@ class PrinterHTML(PrinterANSI):
 
     def __init__(self, tt, codepage=0):
         PrinterANSI.__init__(self, tt, codepage)
-
-
-    def set_fasttext(self, data, mag):
-        self.fasttext = True
-        self.links = []
-        for n in range(4):
-            nn = n*6
-            (p,e) = page_decode(data[nn+3:nn+5])
-            ((s,m),e) = subcode_bcd_decode(data[nn+5:nn+9])
-            m = (mag^m)&0x7
-            if m == 0:
-                m = 8
-            self.links.append("%1d%02x" % (m,p))
+        self.fastext = False
 
 
     def htmlspanstyle(self, fg=None, bg=None):
@@ -145,7 +132,7 @@ class PrinterHTML(PrinterANSI):
     def setstyle(self, fg=None, bg=None):
         link = ''
         linkclose = ''
-        if self.fasttext:
+        if self.fastext:
             if self.flinkopen:
                 linkclose = '</a>'
                 self.flinkopen = False
@@ -168,7 +155,7 @@ class PrinterHTML(PrinterANSI):
         head = self.htmlspanstyle(fg=7, bg=0)
         body = "".join([self.transform(x) for x in self.tt])
         foot = '</span>'
-        if self.fasttext:
+        if self.fastext:
             if self.flinkopen:
                 foot += '</a>'
         else:
