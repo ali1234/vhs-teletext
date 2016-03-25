@@ -69,8 +69,8 @@ class PrinterANSI(object):
             if l < 8:
                 self.fg = l
                 self.conceal = False
-                ret = ' '+self.setstyle()
                 self.mosaic = False
+                ret = ' '+self.setstyle()
             elif l == 0x8: # flashing
                 self.flash = True
                 ret = ' '+self.setstyle()
@@ -96,9 +96,9 @@ class PrinterANSI(object):
             if l < 8:
                 self.fg = l
                 self.conceal = False
-                ret = ' '+self.setstyle()
                 self.mosaic = True
                 self.solid = True
+                ret = ' '+self.setstyle()
             elif l == 0x8: # conceal
                 self.conceal = True
                 ret = ' '+self.setstyle()
