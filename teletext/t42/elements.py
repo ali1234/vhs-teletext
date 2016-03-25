@@ -87,8 +87,8 @@ class PageLink(object):
             values.append(v)
 
         subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
-        magazine = (values[0] >> 7) | (values[1] >> 6)
-        return cls(magazine, page, subpage, errors)
+        magazine = (values[0] >> 7) | ((values[1] >> 6)<<1)
+        return cls(magazine^current_magazine, page, subpage, errors)
 
     def __str__(self):
         return "%d%02x:%04x" % (self.magazine, self.page, self.subpage)
