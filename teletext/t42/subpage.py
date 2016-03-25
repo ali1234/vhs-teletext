@@ -9,10 +9,10 @@ from printer import PrinterHTML
 class Subpage(object):
     control = ControlBits()
 
-    def __init__(self, fill=0x20, links=[PageLink() for n in range(6)]):
+    def __init__(self, fill=0x20, links=[None for n in range(6)]):
         self.displayable = numpy.full((40, 25), fill, dtype=numpy.uint8)
         self.control = 0
-        self.__links = links
+        self.__links = [link if link else PageLink() for link in links]
 
     @property
     def links(self):
