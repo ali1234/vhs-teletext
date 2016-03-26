@@ -13,7 +13,7 @@ a:hover {color: orange;} a:active {color: red;}
 //        letter-spacing: -0.25px;
 	border: solid black 10px;
         border-bottom: solid black 20px;
-        text-shadow: 0 0 2px;
+        text-shadow: 0 0 1.5px;
 }
 
 .subpage{
@@ -33,10 +33,10 @@ a:hover {color: orange;} a:active {color: red;}
 
   background: -webkit-repeating-linear-gradient(
     top,
-    rgba(0,0,0,0.75) 0px,
+    rgba(0,0,0,0.60) 0px,
     transparent 1px,
     transparent 2px,
-    rgba(0,0,0,0.75) 3px
+    rgba(0,0,0,0.60) 3px
 
   );
 
