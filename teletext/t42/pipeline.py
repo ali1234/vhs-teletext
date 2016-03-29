@@ -42,13 +42,13 @@ def packet_lists(packet_list):
 def subpages(packet_list):
     yield Subpage.from_packets(packet_list)
 
-def paginate(packet_iter, pages=All, yield_func=packets):
+def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
     """Reorders lines in a t42 stream so that pages are continuous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
     for packet in packet_iter:
         mag = packet.mrag.magazine
         if type(packet) == HeaderPacket:
-            if len(magbuffers[mag]) > 0 and type(magbuffers[mag][0]) == HeaderPacket:
+            if (drop_empty==False and len(magbuffers[mag]) > 0) or len(magbuffers[mag]) > 1 and type(magbuffers[mag][0]) == HeaderPacket:
                 if magbuffers[mag][0].page_str() in pages:
                     magbuffers[mag].sort(key=lambda p: p.mrag.row)
                     for item in yield_func(magbuffers[mag]):
@@ -59,7 +59,7 @@ def paginate(packet_iter, pages=All, yield_func=packets):
 
 def subpage_squash(packet_iter, minimum_dups=5, pages=All, yield_func=packets):
     subpages = defaultdict(list)
-    for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists):
+    for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
         arr = numpy.zeros((42, 32), dtype=numpy.uint8)
         for p in pl:
