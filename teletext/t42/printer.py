@@ -9,7 +9,7 @@ class PrinterANSI(object):
         self.bg = 0
         self.mosaic = False
         self.solid = True
-        self.double = False
+        self.double = True if 0x0d in tt else False
         self.flash = False
         self.conceal = False
         self.boxed = False
@@ -68,12 +68,6 @@ class PrinterANSI(object):
                 ret = ' '+self.setstyle()
             elif l == 0xb: # steady
                 self.boxed = False
-                ret = ' '+self.setstyle()
-            elif l == 0xc: # single height
-                self.double = False
-                ret = ' '+self.setstyle()
-            elif l == 0xd: # double height
-                self.double = True
                 ret = ' '+self.setstyle()
             else:
                 ret = ' '
