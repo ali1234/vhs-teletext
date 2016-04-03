@@ -5,9 +5,7 @@ hardware if you write a new configuration file (see config_bt8x8_pal.py).
 
 This is a rewrite of the original software using a new CUDA-accelerated
 algorithm. It is much faster than the original and also somewhat more
-accurate. However it still lacks some functionality, mainly the ability to
-generate web pages from the output. The old code is still available in the
-'v1' branch of this repo.
+accurate. The old code is still available in the 'v1' branch of this repo.
 
 
 INSTALLATION
@@ -17,7 +15,7 @@ In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
 Install python dependencies:
 
-    sudo apt-get install python-numpy python-scipy python-pycuda nvidia-modprobe
+    sudo apt-get install python-numpy python-scipy python-pycuda nvidia-modprobe python-enchant
     pip install --user scikit-cuda
 
 You can use setup.py to install, or just add the source directory to your
@@ -68,10 +66,15 @@ Squash duplicate subpages, which reduces errors:
 
     t42pipe stream.t42 -S > output.t42
 
+Generate HTML pages from a stream:
+
+    mkdir output
+    t42html stream.t42 output
+
 Interactively view the pages in a t42 stream:
 
     t42service stream.t42 | t42interactive
 
 In the interactive viewer you can type page numbers, or '.' for hold.
 
-Run each command with '--help' for a compltete list of options.
+Run each command with '--help' for a complete list of options.
