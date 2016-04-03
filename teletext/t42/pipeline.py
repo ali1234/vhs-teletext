@@ -57,7 +57,7 @@ def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
         magbuffers[mag].append(packet)
 
 
-def subpage_squash(packet_iter, minimum_dups=5, pages=All, yield_func=packets):
+def subpage_squash(packet_iter, minimum_dups=3, pages=All, yield_func=packets):
     subpages = defaultdict(list)
     for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
