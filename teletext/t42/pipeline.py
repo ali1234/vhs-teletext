@@ -48,7 +48,7 @@ def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
     for packet in packet_iter:
         mag = packet.mrag.magazine
         if type(packet) == HeaderPacket:
-            if (drop_empty==False and len(magbuffers[mag]) > 0) or len(magbuffers[mag]) > 1 and type(magbuffers[mag][0]) == HeaderPacket:
+            if ((drop_empty==False and len(magbuffers[mag]) > 0) or len(magbuffers[mag]) > 1) and type(magbuffers[mag][0]) == HeaderPacket:
                 if magbuffers[mag][0].page_str() in pages:
                     magbuffers[mag].sort(key=lambda p: p.mrag.row)
                     for item in yield_func(magbuffers[mag]):
