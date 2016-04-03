@@ -29,6 +29,7 @@ parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
+parser.add_argument('--spellcheck', help='Try to fix common errors with a spell checking dictionary.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
 
@@ -71,9 +72,13 @@ if args.squash:
 elif args.paginate:
     iter = paginate(iter, pages=args.pages)
 
+if args.spellcheck:
+    from teletext.t42.packet import spellcheck
 
 
 for packet in iter:
+    if args.spellcheck:
+        spellcheck(packet)
     if args.ansi:
         print packet.to_ansi()
     else:

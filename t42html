@@ -4,9 +4,14 @@ import sys
 import os
 
 from teletext.t42.pipeline import reader, make_service
-from teletext.t42.packet import Packet
+from teletext.t42.packet import Packet, spellcheck
 
-service = make_service(reader(open(sys.argv[1])))
+def sciter(packet_iter):
+    for packet in packet_iter:
+        spellcheck(packet)
+        yield packet
+
+service = make_service(sciter(reader(open(sys.argv[1]))))
 
 for magazineno,magazine in service.magazines.iteritems():
     for pageno,page in magazine.pages.iteritems():
