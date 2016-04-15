@@ -120,7 +120,9 @@ class PrinterHTML(PrinterANSI):
         self.pages_set = pages_set
 
     def ttchar(self, c):
-        if c == ord('<'):
+        if self.mosaic:
+            return PrinterANSI.ttchar(self, c)
+        elif c == ord('<'):
             return '&lt;'
         elif c == ord('>'):
             return '&gt;'
