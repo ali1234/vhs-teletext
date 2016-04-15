@@ -119,6 +119,14 @@ class PrinterHTML(PrinterANSI):
         self.fastext = False
         self.pages_set = pages_set
 
+    def ttchar(self, c):
+        if c == ord('<'):
+            return '&lt;'
+        elif c == ord('>'):
+            return '&gt;'
+        else:
+            return PrinterANSI.ttchar(self, c)
+
 
     def htmlspanstyle(self, fg=None, bg=None):
         return '<span class="f%d b%d%s%s%s%s">' % ((fg or self.fg), (bg or self.bg), 
