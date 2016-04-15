@@ -1,6 +1,8 @@
 import re
 import numpy as np
 
+from teletext.misc.all import All
+
 class PrinterANSI(object):
 
     def __init__(self, tt, colour=True, codepage=0):
@@ -112,9 +114,10 @@ class PrinterANSI(object):
 
 class PrinterHTML(PrinterANSI):
 
-    def __init__(self, tt, codepage=0):
+    def __init__(self, tt, codepage=0, pages_set=All):
         PrinterANSI.__init__(self, tt, codepage)
         self.fastext = False
+        self.pages_set = pages_set
 
 
     def htmlspanstyle(self, fg=None, bg=None):
@@ -130,7 +133,7 @@ class PrinterHTML(PrinterANSI):
             if self.flinkopen:
                 linkclose = '</a>'
                 self.flinkopen = False
-            if self.fg in [1,2,3,6]:
+            if self.fg in [1,2,3,6] and self.links[[1,2,3,6].index(self.fg)] in self.pages_set:
                 link = '<a href="%s.html">' % self.links[[1,2,3,6].index(self.fg)]
                 self.flinkopen = True
                 
@@ -140,7 +143,10 @@ class PrinterHTML(PrinterANSI):
     def linkify(self, html):
         e = '([^0-9])([0-9]{3})([^0-9]|$)'
         def repl(match):
-            return '%s<a href="%s.html%s">%s</a>%s' % (match.group(1), match.group(2), self.anchor, match.group(2), match.group(3))
+            if match.group(2) in self.pages_set:
+                return '%s<a href="%s.html%s">%s</a>%s' % (match.group(1), match.group(2), self.anchor, match.group(2), match.group(3))
+            else:
+                return '%s%s%s' % (match.group(1), match.group(2), match.group(3))
         p = re.compile(e)
         return p.sub(repl, html)
 

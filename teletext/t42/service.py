@@ -60,3 +60,7 @@ class Service(object):
                 packet = m.stream.next()
                 packet.mrag.magazine = n
                 yield packet
+
+    def pages_set(self):
+        return set(['%1d%02x' % (m, p) for m,mag in self.magazines.iteritems() for p,_ in mag.pages.iteritems()])
+

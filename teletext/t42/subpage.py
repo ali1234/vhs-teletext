@@ -5,6 +5,7 @@ from elements import *
 from packet import *
 from printer import PrinterHTML
 
+from teletext.misc.all import All
 
 class Subpage(object):
     control = ControlBits()
@@ -44,7 +45,7 @@ class Subpage(object):
         yield FastextPacket(Mrag(magazineno, 27), self.links)
 
 
-    def to_html(self, magazineno, pageno, subpageno, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8)):
+    def to_html(self, magazineno, pageno, subpageno, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8), pages_set=All):
         body = []
 
         p = PrinterHTML(header_displayable)
@@ -53,7 +54,7 @@ class Subpage(object):
 
         for i in range(0,25):
             if i == 0 or numpy.all(self.displayable[:,i-1] != 0x0d):
-                p = PrinterHTML(self.displayable[:,i])
+                p = PrinterHTML(self.displayable[:,i], pages_set=pages_set)
                 if i == 23:
                     p.fastext = True
                     p.links = ['%d%02X' % (l.magazine, l.page) for l in self.links]

@@ -13,6 +13,8 @@ def sciter(packet_iter):
 
 service = make_service(sciter(reader(open(sys.argv[1]))))
 
+pages_set = service.pages_set()
+
 for magazineno,magazine in service.magazines.iteritems():
     for pageno,page in magazine.pages.iteritems():
 
@@ -23,7 +25,7 @@ for magazineno,magazine in service.magazines.iteritems():
 <body><pre>""" % (magazineno, pageno))
 
         for subpageno,subpage in page.subpages.iteritems():
-            outfile.write(subpage.to_html(magazineno, pageno, subpageno, magazine.header(magazineno, subpage)))
+            outfile.write(subpage.to_html(magazineno, pageno, subpageno, magazine.header(magazineno, subpage), pages_set))
 
 
         outfile.write("</pre></body>")
