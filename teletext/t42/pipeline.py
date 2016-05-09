@@ -12,14 +12,21 @@ from subpage import Subpage
 from service import Service
 
 
-def reader(infile):
+def reader(infile, start=0, stop=-1):
     """Helper to read t42 lines from a file-like object."""
+    if start > 0:
+        infile.seek(start * 42)
     lines = iter(partial(infile.read, 42), b'')
-    for l in lines:
+    for n,l in enumerate(lines):
+        offset = n + start
         if len(l) < 42:
             return
+        elif offset == stop:
+            return
         else:
-            yield Packet.from_bytes(l)
+            p = Packet.from_bytes(l)
+            p._offset = offset
+            yield p
 
 
 

@@ -26,6 +26,7 @@ group.add_argument('-t', '--t42', help='Output lines in T42 format for further p
 
 parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.', default=All)
 parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
+parser.add_argument('-n', '--numbered', help='When output is ascii, number packets according to offset in input file.', action='store_true')
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
@@ -36,6 +37,11 @@ parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='
 parser.add_argument('-W', '--windowed', help='Output in a separate window.', action='store_true')
 parser.add_argument('-L', '--less', help='Page the output with less.', action='store_true')
 
+parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
+group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.', default=-1)
+
 
 args = parser.parse_args()
 
@@ -44,6 +50,9 @@ if not args.t42 and not args.ansi:
         args.ansi = True
     else:
         args.t42 = True
+
+if args.stop == -1 and args.count > -1:
+    args.stop = args.start + args.count
 
 if args.headers:
     args.rows = set([0,31])
@@ -65,7 +74,7 @@ if args.windowed or args.less:
 
 infile = open(args.inputfile, 'rb')
 
-iter = demux(reader(infile), magazines=args.mags, rows=args.rows)
+iter = demux(reader(infile, args.start, args.stop), magazines=args.mags, rows=args.rows)
 
 if args.squash:
     iter = subpage_squash(iter, pages=args.pages)
@@ -80,6 +89,8 @@ for packet in iter:
     if args.spellcheck:
         spellcheck(packet)
     if args.ansi:
+        if args.numbered:
+            print '%8d' % packet._offset,
         print packet.to_ansi()
     else:
         x = packet.to_bytes()
