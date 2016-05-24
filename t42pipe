@@ -15,7 +15,7 @@ import argparse
 import itertools
 import errno
 
-from teletext.t42.pipeline import reader, demux, paginate, subpage_squash, make_service
+from teletext.t42.pipeline import reader, demux, paginate, subpage_squash, row_squash, make_service
 from teletext.misc.all import All
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -30,6 +30,8 @@ parser.add_argument('-n', '--numbered', help='When output is ascii, number packe
 parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+', help='Only pass packets from these magazines.', default=All)
 parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
 parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
+parser.add_argument('-s', '--squash-rows', metavar='N', type=int, help='Merge N consecutive rows to reduce output.', default=1)
+
 parser.add_argument('--spellcheck', help='Try to fix common errors with a spell checking dictionary.', action='store_true')
 
 parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
@@ -80,6 +82,8 @@ if args.squash:
     iter = subpage_squash(iter, pages=args.pages)
 elif args.paginate:
     iter = paginate(iter, pages=args.pages)
+elif args.squash_rows > 1:
+    iter = row_squash(iter, args.squash_rows)
 
 if args.spellcheck:
     from teletext.t42.packet import spellcheck
@@ -96,4 +100,4 @@ for packet in iter:
         x = packet.to_bytes()
         if len(x) != 42 and len(x) != 0:
             raise IndexError("No" + str(type(packet)))
-        sys.stdout.write(packet.to_bytes())
+        sys.stdout.write(x)
