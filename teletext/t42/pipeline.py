@@ -62,6 +62,12 @@ def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
                         yield item
             magbuffers[mag] = []
         magbuffers[mag].append(packet)
+    for mb in magbuffers:
+        if ((drop_empty==False and len(mb) > 0) or len(mb) > 1) and type(mb[0]) == HeaderPacket:
+            if mb[0].page_str() in pages:
+                mb.sort(key=lambda p: p.mrag.row)
+                for item in yield_func(mb):
+                    yield item
 
 
 def subpage_squash(packet_iter, minimum_dups=3, pages=All, yield_func=packets):
