@@ -4,7 +4,7 @@ from coding import *
 from descriptors import *
 from elements import *
 from printer import PrinterANSI
-
+from finders import Finders
 
 class Packet(object):
 
@@ -33,6 +33,8 @@ class Packet(object):
             packet = DisplayPacket.from_bytes(mrag, bytes)
         elif mrag.row == 27:
             packet = FastextPacket.from_bytes(mrag, bytes)
+        elif mrag.row == 30:
+            packet = BroadcastPacket.from_bytes(mrag, bytes)
         else:
             packet = Packet(mrag)
 
@@ -67,6 +69,14 @@ class DisplayPacket(Packet):
 class HeaderPacket(DisplayPacket):
 
     def __init__(self, mrag, header, displayable):
+        ranks = [(f.match(displayable),f) for f in Finders]
+        ranks.sort(reverse=True)
+        if ranks[0][0] > 20:
+            self.name = ranks[0][1].name
+            self.displayable_fixed = ranks[0][1].fixup(displayable.copy())
+        else:
+            self.name = 'Unknown'
+            self.displayable_fixed = displayable
         DisplayPacket.__init__(self, mrag, displayable)
         self.__header = header
 
@@ -85,7 +95,7 @@ class HeaderPacket(DisplayPacket):
         return '%04x' % (self.header.subpage)
 
     def to_ansi(self, colour=True):
-        return '   P' + self.page_str() + ' ' + str(PrinterANSI(self.displayable, colour))
+        return '   P' + self.page_str() + ' ' + str(PrinterANSI(self.displayable, colour)) + ' ' + str(PrinterANSI(self.displayable_fixed, colour)) + ' ' + self.name
 
     def to_bytes(self):
         return self.mrag.to_bytes() + self.header.to_bytes() + parity_encode(self.displayable).tostring()
@@ -115,6 +125,26 @@ class FastextPacket(Packet):
 
     def to_bytes(self):
         return self.mrag.to_bytes() + ' ' + ''.join([x.to_bytes(self.mrag.magazine) for x in self.links]) + '   '
+
+
+class BroadcastPacket(Packet):
+
+    def __init__(self, mrag, dc, initial_page, displayable):
+        Packet.__init__(self, mrag)
+        self.dc = dc
+        self.initial_page = initial_page
+        self.displayable = displayable
+
+    @classmethod
+    def from_bytes(cls, mrag, bytes):
+        dc = hamming8_decode(bytes[0])[0]
+        return cls(mrag, dc, PageLink.from_bytes(bytes[1:7], 0), bytes[22:])
+
+    def to_ansi(self, colour=True):
+        return 'DC=' + str(self.dc) + ' ' + str(PrinterANSI(self.displayable, colour))
+
+    def to_bytes(self):
+        return self.mrag.to_bytes() + '                    ' + parity_encode(self.displayable).tostring()
 
 
 from printer import PrinterANSI
