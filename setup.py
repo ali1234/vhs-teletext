@@ -11,6 +11,6 @@ setup(name='vhs-teletext',
         url='http://github.com/ali1234/vhs-teletext',
         packages=['teletext', 'teletext.vbi', 'teletext.t42', 'teletext.misc'],
         package_data={'teletext.vbi': ['data/debruijn.dat', 'data/parity.dat', 'data/hamming.dat']},
-        scripts=['deconvolve', 't42pipe', 'vbiview', 'vbicat', 'training'],
+        scripts=['deconvolve', 't42pipe', 't42interactive', 't42service', 'vbiview', 'vbicat', 'training'],
         requires=['numpy', 'scipy'],
     )
