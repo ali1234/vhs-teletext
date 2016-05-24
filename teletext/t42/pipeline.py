@@ -10,7 +10,7 @@ from teletext.misc.all import All
 from packet import Packet, HeaderPacket
 from subpage import Subpage
 from service import Service
-
+import itertools
 
 def reader(infile, start=0, stop=-1):
     """Helper to read t42 lines from a file-like object."""
@@ -85,6 +85,23 @@ def subpage_squash(packet_iter, minimum_dups=3, pages=All, yield_func=packets):
             for item in yield_func(packets):
                 yield item
 
+def split_seq(iterable, size):
+    it = iter(iterable)
+    item = list(itertools.islice(it, size))
+    while item:
+        yield item
+        item = list(itertools.islice(it, size))
+
+
+def row_squash(packet_iter, n_rows):
+
+    for l_list in split_seq(packet_iter, n_rows):
+        a = numpy.array([numpy.fromstring(l.to_bytes(), dtype=numpy.uint8) for l in l_list])
+        best, counts = mode(a)
+        best = best[0].astype(numpy.uint8)
+        p = Packet.from_bytes(best)
+        p._offset = l_list[0]._offset
+        yield p
 
 
 def make_service(packet_iter, pages=All):
