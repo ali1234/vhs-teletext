@@ -7,6 +7,17 @@ This is a rewrite of the original software using a new CUDA-accelerated
 algorithm. It is much faster than the original and also somewhat more
 accurate. The old code is still available in the 'v1' branch of this repo.
 
+You can see my collection of pages recovered with this software at:
+
+https://al.robotfuzz.com/~al/teletext/
+
+And more at:
+
+http://www.uniquecodeanddata.co.uk/teletext76/
+
+And:
+
+http://archive.teletextart.co.uk/
 
 INSTALLATION
 ------------
