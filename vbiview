@@ -33,7 +33,7 @@ class VBIViewer(object):
         glutDisplayFunc(self.display)
 
         glMatrixMode(GL_PROJECTION)
-        glOrtho(0, 2048, 0, self.nlines, -1, 1)
+        glOrtho(0, config.line_length, 0, self.nlines, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
@@ -57,11 +57,12 @@ class VBIViewer(object):
         if not sys.stdout.isatty():
             sys.stdout.write(vbi)
 
-        if len(vbi) != 2048*self.nlines:
+        if len(vbi) != config.line_length*self.nlines:
+            return
             exit(0)
 
         glEnable(GL_TEXTURE_2D)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2048, self.nlines, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, vbi)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, config.line_length, self.nlines, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, vbi)
 
 
         glBegin(GL_QUADS)
@@ -73,10 +74,10 @@ class VBIViewer(object):
         glVertex2f(   0, self.nlines)
 
         glTexCoord2f(1, 0)
-        glVertex2f(2048, self.nlines)
+        glVertex2f(config.line_length, self.nlines)
 
         glTexCoord2f(1, 1)
-        glVertex2f(2048, 0)
+        glVertex2f(config.line_length, 0)
 
         glEnd()
 
