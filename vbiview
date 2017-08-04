@@ -2,6 +2,8 @@
 
 import sys
 import time
+import argparse
+import importlib
 from itertools import islice
 import numpy
 
@@ -13,17 +15,15 @@ from teletext.vbi.map import raw_line_map
 from teletext.vbi.pattern import Pattern
 from teletext.vbi.line import Line
 
-import config_bt8x8_pal as config
-Line.set_config(config)
-Line.disable_cuda()
-
 class VBIViewer(object):
 
-    def __init__(self, filename, name = "VBI Viewer", width=1600, height=1024, nlines=32):
+    def __init__(self, filename, config, start, stop, name = "VBI Viewer", width=1600, height=1024, nlines=32, pass_teletext=True, pass_rejects=False):
+        self.config = config
+
         self.nlines = nlines
         self.file = open(filename, 'rb')
 
-        self.lines_src = raw_line_map(filename, config.line_length, Line, threads=0, show_speed=True, pass_teletext=True, pass_rejects=False)
+        self.lines_src = raw_line_map(filename, self.config.line_length, Line, start=start, stop=stop, threads=0, show_speed=True, pass_teletext=pass_teletext, pass_rejects=pass_rejects)
 
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
@@ -58,11 +58,10 @@ class VBIViewer(object):
             sys.stdout.write(vbi)
 
         if len(vbi) != config.line_length*self.nlines:
-            return
             exit(0)
 
         glEnable(GL_TEXTURE_2D)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, config.line_length, self.nlines, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, vbi)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.config.line_length, self.nlines, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, vbi)
 
 
         glBegin(GL_QUADS)
@@ -74,10 +73,10 @@ class VBIViewer(object):
         glVertex2f(   0, self.nlines)
 
         glTexCoord2f(1, 0)
-        glVertex2f(config.line_length, self.nlines)
+        glVertex2f(self.config.line_length, self.nlines)
 
         glTexCoord2f(1, 1)
-        glVertex2f(config.line_length, 0)
+        glVertex2f(self.config.line_length, 0)
 
         glEnd()
 
@@ -98,16 +97,16 @@ class VBIViewer(object):
         if 0:
             glColor3f(1, 0, 0)
 
-            for x in config.line_start_range:
+            for x in self.config.line_start_range:
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
             glColor3f(0, 1, 0)
-            for x in config.line_start_pre:
+            for x in self.config.line_start_pre:
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
-            for x in config.line_start_post:
+            for x in self.config.line_start_post:
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
@@ -119,12 +118,12 @@ class VBIViewer(object):
 
         if 0:
             glColor3f(0, 0, 0.5)
-            for x in config.bits:
+            for x in self.config.bits:
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
             glColor3f(0, 0, 1)
-            for x in config.bits[::8]:
+            for x in self.config.bits[::8]:
                 glVertex2f(x, 0)
                 glVertex2f(x, self.nlines)
 
@@ -139,4 +138,27 @@ class VBIViewer(object):
 
 if __name__ == '__main__':
 
-    v = VBIViewer(sys.argv[1])
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
+
+    parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
+
+    parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
+    group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.', default=-1)
+
+    args = parser.parse_args()
+
+    if args.stop == -1 and args.count > -1:
+        args.stop = args.start + args.count
+
+    try:
+        config = importlib.import_module('config_'+args.config)
+    except ImportError:
+        sys.stderr.write('No configuration file for '+args.config+'.\n')
+
+    Line.set_config(config)
+    Line.disable_cuda()
+
+    v = VBIViewer(args.inputfile, config, args.start, args.stop)
