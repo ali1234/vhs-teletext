@@ -21,8 +21,12 @@ for magazineno,magazine in service.magazines.iteritems():
         outfile = open(os.path.join(sys.argv[2], '%d%02X.html' % (magazineno, pageno)), 'w')
 
         outfile.write("""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Page %d%02X</title><link rel="stylesheet" type="text/css" href="teletext.css" /></head>
-<body><pre>""" % (magazineno, pageno))
+<title>Page %d%02X</title>
+<link rel="stylesheet" type="text/css" href="teletext.css" title="Default Style"/>
+<link rel="alternative stylesheet" type="text/css" href="teletext-noscanlines.css" title="No Scanlines"/>
+<script type="text/javascript" src="cssswitch.js"></script>
+</head>
+<body onload="set_style_from_cookie()"><pre>""" % (magazineno, pageno))
 
         for subpageno,subpage in page.subpages.iteritems():
             outfile.write(subpage.to_html(magazineno, pageno, subpageno, magazine.header(magazineno, subpage), pages_set))
