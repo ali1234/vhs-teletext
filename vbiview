@@ -17,8 +17,9 @@ from teletext.vbi.line import Line
 
 class VBIViewer(object):
 
-    def __init__(self, filename, config, start, stop, name = "VBI Viewer", width=1600, height=1024, nlines=32, pass_teletext=True, pass_rejects=False):
+    def __init__(self, filename, config, start, stop, name = "VBI Viewer", width=1024, height=1024, nlines=32, pass_teletext=True, pass_rejects=False, show_grid=False):
         self.config = config
+        self.show_grid = show_grid
 
         self.nlines = nlines
         self.file = open(filename, 'rb')
@@ -53,11 +54,12 @@ class VBIViewer(object):
     def display(self):
 
         vbi = numpy.array([x.orig for x in islice(self.lines_src, 0, self.nlines)], dtype=numpy.uint8).tostring()
-        #time.sleep(0.1)
+#        time.sleep(0.1)
         if not sys.stdout.isatty():
             sys.stdout.write(vbi)
 
         if len(vbi) != config.line_length*self.nlines:
+#            return
             exit(0)
 
         glEnable(GL_TEXTURE_2D)
@@ -86,7 +88,7 @@ class VBIViewer(object):
 
             glBegin(GL_LINES)
 
-        if 0:
+        if self.show_grid:
             glColor3f(0, 0, 0)
 
             if self.nlines < 65:
@@ -94,7 +96,7 @@ class VBIViewer(object):
                 glVertex2f(0, x)
                 glVertex2f(2048, x)
 
-        if 0:
+        if self.show_grid:
             glColor3f(1, 0, 0)
 
             for x in self.config.line_start_range:
@@ -116,12 +118,7 @@ class VBIViewer(object):
 
 
 
-        if 0:
-            glColor3f(0, 0, 0.5)
-            for x in self.config.bits:
-                glVertex2f(x, 0)
-                glVertex2f(x, self.nlines)
-
+        if self.show_grid:
             glColor3f(0, 0, 1)
             for x in self.config.bits[::8]:
                 glVertex2f(x, 0)
@@ -148,6 +145,10 @@ if __name__ == '__main__':
     group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
     group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.', default=-1)
 
+    parser.add_argument('-t', '--hide-teletext', help='Don\'t show lines which are detected as teletext.', action='store_true', default=False)
+    parser.add_argument('-r', '--pass-rejects', help='Display lines which are detected as NOT teletext.', action='store_true', default=False)
+    parser.add_argument('-g', '--show-grid', help='Draw a grid over the data, showing where the software expects the data to be.', action='store_true', default=False)
+
     args = parser.parse_args()
 
     if args.stop == -1 and args.count > -1:
@@ -161,4 +162,4 @@ if __name__ == '__main__':
     Line.set_config(config)
     Line.disable_cuda()
 
-    v = VBIViewer(args.inputfile, config, args.start, args.stop)
+    v = VBIViewer(args.inputfile, config, args.start, args.stop, pass_teletext=(not args.hide_teletext), pass_rejects=args.pass_rejects, show_grid=args.show_grid)
