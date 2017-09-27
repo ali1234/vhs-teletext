@@ -146,7 +146,7 @@ class PrinterHTML(PrinterANSI):
             if self.fg in [1,2,3,6] and self.links[[1,2,3,6].index(self.fg)] in self.pages_set:
                 link = '<a href="%s.html">' % self.links[[1,2,3,6].index(self.fg)]
                 self.flinkopen = True
-                
+
         return linkclose+'</span>'+self.htmlspanstyle()+link
 
 
