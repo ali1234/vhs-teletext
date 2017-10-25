@@ -150,7 +150,7 @@ class BroadcastPacket(Packet):
 from printer import PrinterANSI
 
 import enchant
-d = enchant.Dict('en_UK')
+d = enchant.Dict('en_GB')
 
 
 freecombos = [
