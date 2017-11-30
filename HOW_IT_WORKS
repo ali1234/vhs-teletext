@@ -24,11 +24,6 @@ But all is not lost, because a sequence like "1111" or "0000" will be the same
 after blurring. So if you see a signal like "0.5 0.7 1.0 1.0" you can guess that
 the original was probably "0 1 1 1" or "0 0 1 1".  
 
-What this software does is take the sampled blurred signal and tries to guess
-what original data would produce the sampled result. It does this by applying
-a guassian filter approximating the VHS encoding to the guess, and then testing
-the result against the observed data.
-
 There are 45 bytes in each teletext line, so the space of possible guesses is
 2^(45*8) which is a very big number, which makes trying every guess completely
 impractical. However there are ways to reduce this number:
@@ -125,7 +120,7 @@ PAGE REBUILD
 The data is considered in sequence and for each header, subsequent packets with
 the same magazine number are considered part of the page.
 
-Once anew header is received, all the previously received packets are passed through
+Once a new header is received, all the previously received packets are passed through
 a sanity check. If most of the lines are present (1-26 or so) then the page is
 considered complete and written out to disk. If many lines are missing then the page is
 discarded as unrecoverable.
@@ -150,9 +145,7 @@ data you are decoding:
 
 It also needs a large amount of input data due to discarding lots of bad, 
 unrecoverable parts. You need up to half an hour of real-time sampled data in 
-order to get best results. Unfortunately the decoder doesn't run in anything
-like real-time, and this might take a month to do the first stage guess filtering
-on a quad core PC.
+order to get best results.
 
 The software expects the sampled lines to be 2048 8-bit samples. This is what
 bt8x8 produces. Other capture hardware produces 1440 samples. In this case,
