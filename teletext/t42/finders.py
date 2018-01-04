@@ -3,6 +3,8 @@
 class Finder(object):
 
     groups = {
+        'c': 'abcdefghijklmnopqrstuvwxyz ',
+        'C': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ ',
         'D': 'MTWFS',
         'd': 'mtwfs',
         'A': 'OUEHRA',
@@ -148,5 +150,10 @@ Finder("Teletext on 4 100 Jan25\x0320:01:01",
 Finder("100\x02ARD/ZDF\x07Mo 26.12.88\x0222:00:00",
        "ZTUe"+"eeeeeeee"+"Daeeeeeeeeee"+"HheLleSs",
        "ARD", (0,3000), ['ARD']),
+
+Finder("102 BELTEK              22:07:06",
+       "ZTU CCCCCCCCCCCCCCCCCCC HheLleSs",
+       "TVR", (0,3000), ['ARD']),
+
 ]
 

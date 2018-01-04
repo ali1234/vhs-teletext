@@ -95,7 +95,7 @@ class HeaderPacket(DisplayPacket):
         return '%04x' % (self.header.subpage)
 
     def to_ansi(self, colour=True):
-        return '   P' + self.page_str() + ' ' + str(PrinterANSI(self.displayable, colour)) + ' ' + str(PrinterANSI(self.displayable_fixed, colour)) + ' ' + self.name
+        return '   P' + self.page_str() + ' ' + str(PrinterANSI(self.displayable, colour))
 
     def to_bytes(self):
         return self.mrag.to_bytes() + self.header.to_bytes() + parity_encode(self.displayable).tostring()
