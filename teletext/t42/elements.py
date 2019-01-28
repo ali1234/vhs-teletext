@@ -49,7 +49,7 @@ class PageHeader(object):
             values.append(v)
 
         subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
-        control = (values[0] >> 7) | (values[1] >> 6) | (values[2] << 3)
+        control = (values[0] >> 7) | (values[1] >> 5) | (values[2] << 3)
         return cls(page, subpage, control, errors)
 
     def to_bytes(self):
