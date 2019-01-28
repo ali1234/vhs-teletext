@@ -28,7 +28,7 @@ def de_bruijn(k, n):
 
 
 def load_pattern():
-    data = open(os.path.join(os.path.dirname(__file__),'data','debruijn.dat')).read()
+    data = open(os.path.join(os.path.dirname(__file__),'data','debruijn.dat'), 'rb').read()
     pattern = numpy.fromstring(data+data[:pattern_length], dtype=numpy.uint8)
     return pattern
 

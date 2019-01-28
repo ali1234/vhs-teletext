@@ -11,7 +11,7 @@ def sciter(packet_iter):
         spellcheck(packet)
         yield packet
 
-service = make_service(sciter(reader(open(sys.argv[1]))))
+service = make_service(sciter(reader(open(sys.argv[1], 'rb'))))
 
 pages_set = service.pages_set()
 

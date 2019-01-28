@@ -1,4 +1,5 @@
 import numpy
+import sys
 
 from coding import *
 from descriptors import *
@@ -146,56 +147,56 @@ class BroadcastPacket(Packet):
     def to_bytes(self):
         return self.mrag.to_bytes() + '                    ' + parity_encode(self.displayable).tostring()
 
+try:
+    import enchant
+    d = enchant.Dict('en_GB')
 
-from printer import PrinterANSI
-
-import enchant
-d = enchant.Dict('en_GB')
-
-
-freecombos = [
-    set(['e', 'i', 'j']),
-    set(['r', 's', 't', 'u', 'k']),
-    set(['y', 'z']),
-    set(['k', 'g', 'o']),
-    set(['n', 'm']),
-    set(['d', 'h']),
-]
+    freecombos = [
+        set(['e', 'i', 'j']),
+        set(['r', 's', 't', 'u', 'k']),
+        set(['y', 'z']),
+        set(['k', 'g', 'o']),
+        set(['n', 'm']),
+        set(['d', 'h']),
+    ]
 
 
-def check_pair(x, y):
-    x = x.lower()
-    y = y.lower()
-    if x == y:
-        return 0
-    for s in freecombos:
-        if x in s and y in s:
+    def check_pair(x, y):
+        x = x.lower()
+        y = y.lower()
+        if x == y:
             return 0
-    return 1
+        for s in freecombos:
+            if x in s and y in s:
+                return 0
+        return 1
 
 
-def weighted_hamming(a, b):
-    count = 0
-    return sum([check_pair(x, y) for x,y in zip(a, b)])
+    def weighted_hamming(a, b):
+        count = 0
+        return sum([check_pair(x, y) for x,y in zip(a, b)])
 
 
-def case_match(word, src):
-    return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
+    def case_match(word, src):
+        return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
 
-def spellcheck(packet):
-    if type(packet) == DisplayPacket or type(packet) == HeaderPacket:
-        words = str(PrinterANSI(packet.displayable, False)).decode('utf-8')
-        words = ''.join([c if c.isalnum() else ' ' for c in words])
-        words = words.split(' ')
+    def spellcheck(packet):
+        if type(packet) == DisplayPacket or type(packet) == HeaderPacket:
+            words = str(PrinterANSI(packet.displayable, False)).decode('utf-8')
+            words = ''.join([c if c.isalnum() else ' ' for c in words])
+            words = words.split(' ')
 
-        for n,w in enumerate(words):
-          if len(w) > 2 and not d.check(w.lower()):
-            s = filter(lambda x: len(x) == len(w) and weighted_hamming(x, w) == 0, d.suggest(w.lower()))
-            if len(s) > 0:
-                words[n] = case_match(s[0], w)
+            for n,w in enumerate(words):
+              if len(w) > 2 and not d.check(w.lower()):
+                s = filter(lambda x: len(x) == len(w) and weighted_hamming(x, w) == 0, d.suggest(w.lower()))
+                if len(s) > 0:
+                    words[n] = case_match(s[0], w)
 
-        words = ' '.join(words)
-        for n,c in enumerate(words):
-            if c != ' ':
-                packet.displayable[n] = ord(c)
-
+            words = ' '.join(words)
+            for n,c in enumerate(words):
+                if c != ' ':
+                    packet.displayable[n] = ord(c)
+except ImportError:
+    sys.stderr.write('enchant package unavailable\n')
+    def spellcheck(packet):
+        pass #do nothing
