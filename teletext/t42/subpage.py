@@ -29,6 +29,7 @@ class Subpage(object):
                 s._original_page = p.header.page
                 s._original_magazine = p.mrag.magazine
                 s._original_displayable = p.displayable
+                s.control = p.header.control
             elif type(p) == FastextPacket:
                 for i in range(6):
                     s.links[i] = p.links[i]
