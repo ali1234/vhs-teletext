@@ -26,20 +26,20 @@ class PrinterANSI(object):
 
     def ttchar(self, c):
         if self.mosaic and (c < ord('@') or c > ord('_')):
-            return unichr(c+0xee00) if self.solid else unichr(c+0xede0)
+            return chr(c+0xee00) if self.solid else chr(c+0xede0)
         else:
             if c == ord('#'):
-                return unichr(0xa3) # pound sign
+                return chr(0xa3) # pound sign
             elif c == ord('_'):
-                return unichr(ord('#'))
+                return chr(ord('#'))
             elif c == ord('`'):
-                return unichr(0x2014) # em dash
+                return chr(0x2014) # em dash
             elif c == ord('~'):
-                return unichr(0xf7) # division symbol
+                return chr(0xf7) # division symbol
             elif c == 0x7f:
-                return unichr(0xe65f) # rectangle
+                return chr(0xe65f) # rectangle
             else:
-                return unichr(c)
+                return chr(c)
 
 
     def setstyle(self, fg=None, bg=None):
@@ -107,7 +107,7 @@ class PrinterANSI(object):
     def __str__(self):
         head = self.setstyle(fg=7, bg=0)
         body = "".join([self.transform(x) for x in self.tt])
-        return head+body.encode('utf8')+('\033[0m' if self.colour else '')
+        return head+body+('\033[0m' if self.colour else '')
 
 
 
@@ -169,7 +169,7 @@ class PrinterHTML(PrinterANSI):
                 foot += '</a>'
         else:
             body = self.linkify(body)
-        return head+body.encode('utf8')+foot+'\n'
+        return head+body+foot+'\n'
 
 
 

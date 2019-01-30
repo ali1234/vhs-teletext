@@ -12,10 +12,8 @@
 
 import sys
 import argparse
-import itertools
-import errno
 
-from teletext.t42.pipeline import reader, demux, paginate, subpage_squash, row_squash, make_service
+from teletext.t42.pipeline import reader, demux, paginate, subpage_squash, row_squash
 from teletext.misc.all import All
 
 parser = argparse.ArgumentParser(description='Process some integers.')
@@ -57,7 +55,7 @@ if args.stop == -1 and args.count > -1:
     args.stop = args.start + args.count
 
 if args.headers:
-    args.rows = set([0,31])
+    args.rows = {0, 31}
 
 if args.pages is not All:
     args.paginate = True
@@ -94,8 +92,8 @@ for packet in iter:
         spellcheck(packet)
     if args.ansi:
         if args.numbered:
-            print '%8d' % packet._offset,
-        print packet.to_ansi()
+            print('%8d' % packet._offset, end='')
+        print(packet.to_ansi())
     else:
         x = packet.to_bytes()
         if len(x) != 42 and len(x) != 0:

@@ -15,27 +15,25 @@ class Packet(object):
     @classmethod
     def from_bytes(cls, data):
         """Packet factory which returns the appropriate type object for the packet."""
-        if type(data) == str:
-            bytes = numpy.fromstring(data, dtype=numpy.uint8)
-        else:
-            bytes = data
-        if bytes.shape != (42, ):
+        if type(data) == bytes:
+            data = numpy.fromstring(data, dtype=numpy.uint8)
+        if data.shape != (42, ):
             raise IndexError('Packet.from_bytes requires 42 bytes.')
 
-        mrag = Mrag.from_bytes(bytes[:2])
+        mrag = Mrag.from_bytes(data[:2])
 
         if mrag.row == 0:
-            packet = HeaderPacket.from_bytes(mrag, bytes)
+            packet = HeaderPacket.from_bytes(mrag, data)
         elif mrag.row < 25:
-            packet = DisplayPacket.from_bytes(mrag, bytes)
+            packet = DisplayPacket.from_bytes(mrag, data)
         elif mrag.row == 27:
-            packet = FastextPacket.from_bytes(mrag, bytes)
+            packet = FastextPacket.from_bytes(mrag, data)
         elif mrag.row == 30:
-            packet = BroadcastPacket.from_bytes(mrag, bytes)
+            packet = BroadcastPacket.from_bytes(mrag, data)
         else:
             packet = Packet(mrag)
 
-        packet._original_bytes = bytes
+        packet._original_bytes = data
         return packet
 
     def to_ansi(self, colour=True):
@@ -67,7 +65,7 @@ class HeaderPacket(DisplayPacket):
 
     def __init__(self, mrag, header, displayable):
         ranks = [(f.match(displayable),f) for f in Finders]
-        ranks.sort(reverse=True)
+        ranks.sort(reverse=True, key=lambda x: x[0])
         if ranks[0][0] > 20:
             self.name = ranks[0][1].name
             self.displayable_fixed = ranks[0][1].fixup(displayable.copy())
