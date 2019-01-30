@@ -12,16 +12,12 @@
 
 import sys
 import argparse
-import importlib
 import itertools
-
-import numpy
 
 from teletext.vbi.training import *
 
-from teletext.vbi.map import raw_line_map, raw_line_reader
+from teletext.vbi.map import RawLineReader
 from teletext.vbi.pattern import build_pattern
-from teletext.misc.all import All
 
 from teletext.t42.coding import parity_set, hamming_set
 
@@ -66,7 +62,7 @@ elif args.train:
             l.is_teletext = False
         return l
 
-    it = raw_line_map(args.train, config.line_length, doit, threads=0, show_speed=True)
+    it = RawLineReader(args.train, config.line_length)
 
     prev_offset = 0
 
@@ -81,12 +77,12 @@ elif args.train:
 elif args.split:
     files = [open('training.%02x.dat' % n, 'wb') for n in range(256)]
 
-    for n,line in raw_line_reader(args.split, 27):
+    for n,line in RawLineReader(args.split, 27):
         files[ord(line[0])].write(line)        
 
 elif args.sort:
     lines = []
-    for n,line in raw_line_reader(args.sort, 27):
+    for n,line in RawLineReader(args.sort, 27):
         lines.append(line)
 
     lines.sort()
@@ -97,7 +93,7 @@ elif args.sort:
 
 elif args.dump:
     lines = []
-    for n,line in raw_line_reader(args.dump, 27):
+    for n,line in RawLineReader(args.dump, 27):
         print ' '.join(['%02x' % ord(c) for c in line])
 
 elif args.squash:
