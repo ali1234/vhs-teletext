@@ -25,10 +25,12 @@ from teletext.misc.all import All
 from teletext.t42.packet import Packet
 
 
+extra_roll = 0
+
 def doit(*args, **kwargs):
     l = Line(*args, **kwargs)
     if l.is_teletext:
-        l.roll(4)
+        l.roll(extra_roll)
         l.bits()
         l.mrag()
         l.bytes()
@@ -102,6 +104,8 @@ def deconvolve():
     if cliargs.force_cpu:
         Line.disable_cuda()
 
+    global extra_roll
+    extra_roll = cliargs.extra_roll
 
     if cliargs.threads > 0:
         p = Pool(cliargs.threads)
