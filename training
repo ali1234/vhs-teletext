@@ -94,11 +94,11 @@ elif args.sort:
 elif args.dump:
     lines = []
     for n,line in RawLineReader(args.dump, 27):
-        print ' '.join(['%02x' % ord(c) for c in line])
+        print(' '.join(['%02x' % ord(c) for c in line]))
 
 elif args.squash:
 
-    it = raw_line_reader(args.squash, 27)
+    it = RawLineReader(args.squash, 27)
 
     f = open(args.squash+'.squashed', 'wb')
 
