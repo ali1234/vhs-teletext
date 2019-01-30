@@ -31,10 +31,7 @@ def doit(*args, **kwargs):
         l.roll(4)
         l.bits()
         l.mrag()
-        # if l.magazine in cliargs.mags and l.row in cliargs.rows:
         l.bytes()
-        # else:
-        #    l.is_teletext = False
     return l
 
 
@@ -113,9 +110,9 @@ def deconvolve():
         map_func = map
 
     with RawLineReader(cliargs.inputfile, config.line_length, start=cliargs.start, stop=cliargs.stop) as rl:
-        with tqdm(rl) as rlw:
+        with tqdm(rl, unit=' Lines') as rlw:
 
-            it = (l for l in map_func(doit, rlw) if l.is_teletext)
+            it = (l for l in map_func(doit, rlw) if l.is_teletext and l.magazine in cliargs.mags and l.row in cliargs.rows)
 
             if cliargs.squash > 1:
                 for l_list in split_seq(it, cliargs.squash):
