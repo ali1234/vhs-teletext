@@ -1,32 +1,22 @@
-#!/usr/bin/env python
-
-import sys
-import argparse
-import itertools
-import errno
 import curses
 import os
 import time
 import locale
 
-from curses.wrapper import wrapper
-
-from teletext.t42.pipeline import reader
-from teletext.t42.printer import PrinterANSI
+from .pipeline import reader
+from .printer import PrinterANSI
 
 
 def setstyle(self, fg=None, bg=None):
     return '\033[' + chr(fg or self.fg) + chr(bg or self.bg) + chr(1 if self.flash else 0 + 2 if self.conceal else 0)
 
+
 PrinterANSI.setstyle = setstyle
 
 
-
-
 class Interactive(object):
-
-    colours = { 0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW, 4: curses.COLOR_BLUE, 5: curses.COLOR_MAGENTA, 6: curses.COLOR_CYAN, 7: curses.COLOR_WHITE }
-
+    colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
+               4: curses.COLOR_BLUE, 5: curses.COLOR_MAGENTA, 6: curses.COLOR_CYAN, 7: curses.COLOR_WHITE}
 
     def __init__(self, packet_iter, scr):
         self.scr = scr
@@ -43,7 +33,7 @@ class Interactive(object):
         self.reveal = False
 
         for n in range(64):
-            curses.init_pair(n+1, Interactive.colours[n&0x7], Interactive.colours[n>>3])
+            curses.init_pair(n + 1, Interactive.colours[n & 0x7], Interactive.colours[n >> 3])
         self.set_concealed_pairs()
 
         self.scr.nodelay(1)
@@ -51,15 +41,13 @@ class Interactive(object):
 
         self.set_input_field('P100')
 
-
     def set_concealed_pairs(self, show=False):
         for n in range(64):
-            curses.init_pair(n+1+64, Interactive.colours[n&0x7] if show else Interactive.colours[n>>3], Interactive.colours[n>>3])
-
+            curses.init_pair(n + 1 + 64, Interactive.colours[n & 0x7] if show else Interactive.colours[n >> 3],
+                             Interactive.colours[n >> 3])
 
     def set_input_field(self, str, clr=0):
         self.scr.addstr(0, 3, str, curses.color_pair(clr))
-
 
     def addstr(self, row, st):
         s = iter(st.split('\033['))
@@ -67,11 +55,10 @@ class Interactive(object):
         for fragment in s:
             fg = ord(fragment[0])
             bg = ord(fragment[1])
-            flash = ord(fragment[2])&1
-            conceal = ord(fragment[2])&2
-            colour = (fg | (bg<<3)) + (1 if conceal else 1)
+            flash = ord(fragment[2]) & 1
+            conceal = ord(fragment[2]) & 2
+            colour = (fg | (bg << 3)) + (1 if conceal else 1)
             self.scr.addstr(fragment[3:], curses.color_pair(colour) | (curses.A_BLINK if flash else 0))
-
 
     def do_alnum(self, i):
         if self.inputstate == 0:
@@ -83,14 +70,15 @@ class Interactive(object):
             self.inputstate += 1
 
         if self.inputstate != 0:
-            self.set_input_field('P' + ''.join([('%1X' % self.inputtmp[x]) if self.inputtmp[x] is not None else '.' for x in range(3)]), 3 if self.inputstate < 3 else 0)
+            self.set_input_field(
+                'P' + ''.join([('%1X' % self.inputtmp[x]) if self.inputtmp[x] is not None else '.' for x in range(3)]),
+                3 if self.inputstate < 3 else 0)
 
         if self.inputstate == 3:
             self.inputstate = 0
             self.magazine = self.inputtmp[0]
-            self.page = (self.inputtmp[1]<<4) | self.inputtmp[2]
+            self.page = (self.inputtmp[1] << 4) | self.inputtmp[2]
             self.inputtmp = [None, None, None]
-
 
     def do_hold(self):
         self.hold = not self.hold
@@ -103,11 +91,9 @@ class Interactive(object):
         else:
             self.set_input_field('P%d%02x' % (self.magazine, self.page))
 
-
     def do_reveal(self):
         self.reveal = not self.reveal
         self.set_concealed_pairs(self.reveal)
-
 
     def do_input(self, c):
         if c >= ord('0') and c <= ord('9'):
@@ -122,7 +108,6 @@ class Interactive(object):
             self.do_hold()
         elif c == ord('r'):
             self.do_reveal()
-
 
     def handle_one_packet(self):
 
@@ -149,18 +134,17 @@ class Interactive(object):
             time.sleep(0.02)
 
 
-
-if __name__ == '__main__':
+def interactive():
     locale.setlocale(locale.LC_ALL, '')
 
     pipe = os.fdopen(os.dup(0))
     packet_iter = reader(pipe)
 
-    f=open("/dev/tty", 'rw')
+    f = open("/dev/tty", 'rw')
     os.dup2(f.fileno(), 0)
 
     def main(scr):
         i = Interactive(packet_iter, scr)
         i.main()
 
-    wrapper(main)
+    curses.wrapper(main)

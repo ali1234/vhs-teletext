@@ -172,5 +172,39 @@ class PrinterHTML(PrinterANSI):
         return head+body+foot+'\n'
 
 
+def html():
+    import sys
+    import os
 
+    from .pipeline import reader, make_service
+    from .packet import spellcheck
 
+    def sciter(packet_iter):
+        for packet in packet_iter:
+            spellcheck(packet)
+            yield packet
+
+    service = make_service(sciter(reader(open(sys.argv[1]))))
+
+    pages_set = service.pages_set()
+
+    for magazineno, magazine in service.magazines.iteritems():
+        for pageno, page in magazine.pages.iteritems():
+
+            outfile = open(os.path.join(sys.argv[2], '%d%02X.html' % (magazineno, pageno)), 'w')
+
+            outfile.write("""<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Page %d%02X</title>
+    <link rel="stylesheet" type="text/css" href="teletext.css" title="Default Style"/>
+    <link rel="alternative stylesheet" type="text/css" href="teletext-noscanlines.css" title="No Scanlines"/>
+    <script type="text/javascript" src="cssswitch.js"></script>
+    </head>
+    <body onload="set_style_from_cookie()"><pre>""" % (magazineno, pageno))
+
+            for subpageno, subpage in page.subpages.iteritems():
+                outfile.write(
+                    subpage.to_html(magazineno, pageno, subpageno, magazine.header(magazineno, subpage), pages_set))
+
+            outfile.write("</pre></body>")
+
+            outfile.close()

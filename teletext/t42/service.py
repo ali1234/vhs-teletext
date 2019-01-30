@@ -6,7 +6,6 @@ from .packet import *
 from .subpage import Subpage
 
 
-
 class Page(object):
     def __init__(self):
         self.subpages = defaultdict(Subpage)
@@ -18,7 +17,6 @@ class Page(object):
                 yield None
             for item in self.subpages.copy().iteritems():
                 yield item
-
 
 
 class Magazine(object):
@@ -47,7 +45,6 @@ class Magazine(object):
             yield HeaderPacket(Mrag(0, 0), PageHeader(0xff, 0x3f7f, 0), self.header(0xff))
 
 
-
 class Service(object):
     def __init__(self):
         self.magazines = defaultdict(Magazine)
@@ -62,3 +59,20 @@ class Service(object):
     def pages_set(self):
         return set(['%1d%02X' % (m, p) for m,mag in self.magazines.iteritems() for p,_ in mag.pages.iteritems()])
 
+
+def service():
+
+    import sys
+
+    from .pipeline import reader, make_service
+
+    s = make_service(reader(open(sys.argv[1])))
+
+    while True:
+        for packet in s.next_packets(prio=[3, 3, 3, 3, 3, 3, 3, 3]):
+
+            x = packet.to_bytes()
+            if len(x) == 42 or len(x) == 0:
+                sys.stdout.write(x)
+            else:
+                raise IndexError(type(packet), len(x))

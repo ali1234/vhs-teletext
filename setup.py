@@ -8,11 +8,16 @@ setup(
     url='http://github.com/ali1234/vhs-teletext',
     packages=['teletext', 'teletext.vbi', 'teletext.t42', 'teletext.misc'],
     package_data={'teletext.vbi': ['data/debruijn.dat', 'data/parity.dat', 'data/hamming.dat']},
-    scripts=['t42pipe', 't42interactive', 't42service', 'vbiview', 'vbicat'],
+    scripts=['vbiview'],
     entry_points={
         'console_scripts': [
             'deconvolve = teletext.vbi.deconvolve:deconvolve',
             'training = teletext.vbi.training:training',
+            't42interactive = teletext.t42.interactive:interactive',
+            't42service = teletext.t42.service:service',
+            't42pipe = teletext.t42.pipeline:pipe',
+            't42html = teletext.t42.printer:html',
+            'vbicat = teletext.vbi.util:vbicat',
         ]
     },
     install_requires=['numpy', 'scipy', 'click', 'pycuda', 'scikit-cuda', 'tqdm', 'pyenchant'],
