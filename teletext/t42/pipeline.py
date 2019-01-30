@@ -5,11 +5,10 @@ from collections import defaultdict
 from scipy.stats.mstats import mode
 
 from functools import partial
-from operator import itemgetter
 from teletext.misc.all import All
-from packet import Packet, HeaderPacket
-from subpage import Subpage
-from service import Service
+from .packet import Packet, HeaderPacket
+from .subpage import Subpage
+from .service import Service
 import itertools
 
 def reader(infile, start=0, stop=-1):

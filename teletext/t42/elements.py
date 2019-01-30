@@ -1,5 +1,5 @@
-from coding import *
-from descriptors import *
+from .coding import *
+from .descriptors import *
 
 
 class Mrag(object):

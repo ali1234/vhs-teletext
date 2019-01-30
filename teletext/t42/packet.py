@@ -1,10 +1,7 @@
-import numpy
+from .elements import *
+from .printer import PrinterANSI
+from .finders import Finders
 
-from coding import *
-from descriptors import *
-from elements import *
-from printer import PrinterANSI
-from finders import Finders
 
 class Packet(object):
 
@@ -146,8 +143,6 @@ class BroadcastPacket(Packet):
     def to_bytes(self):
         return self.mrag.to_bytes() + '                    ' + parity_encode(self.displayable).tostring()
 
-
-from printer import PrinterANSI
 
 import enchant
 d = enchant.Dict('en_GB')

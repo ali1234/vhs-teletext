@@ -18,17 +18,16 @@ from teletext.vbi.map import raw_line_reader
 
 class Pattern(object):
     def __init__(self, filename):
-        f = open(filename, 'rb')
-        self.inlen,self.outlen,self.n,self.start,self.end = struct.unpack('>IIIBB', f.read(14))
-        self.patterns = numpy.fromstring(f.read(self.inlen*self.n), dtype=numpy.uint8)
-        self.patterns = self.patterns.reshape((self.n, self.inlen))
-        self.patterns = self.patterns.astype(numpy.float32)
-        self.bytes = numpy.fromstring(f.read(self.outlen*self.n), dtype=numpy.uint8)
-        self.bytes = self.bytes.reshape((self.n, self.outlen))
-        f.close()
+        with open(filename, 'rb') as f:
+            self.inlen,self.outlen,self.n,self.start,self.end = struct.unpack('>IIIBB', f.read(14))
+            self.patterns = numpy.fromfile(f, dtype=numpy.uint8, count=self.inlen*self.n)
+            self.patterns = self.patterns.reshape((self.n, self.inlen))
+            self.patterns = self.patterns.astype(numpy.float32)
+            self.bytes = numpy.fromfile(f, dtype=numpy.uint8, count=self.outlen*self.n)
+            self.bytes = self.bytes.reshape((self.n, self.outlen))
 
     def match(self, inp):
-        l = (len(inp)/8)-2
+        l = (len(inp)//8)-2
         idx = numpy.zeros((l,), dtype=numpy.uint32)
         pslice = self.patterns[:, self.start:self.end]
         for i in range(l):
@@ -38,11 +37,6 @@ class Pattern(object):
             diffs = diffs * diffs
             idx[i] = numpy.argmin(numpy.sum(diffs, axis=1))
         return self.bytes[idx][:,0]
-
-
-
-
-
 
 
 # Classes used to build pattern files from training data.

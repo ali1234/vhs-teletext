@@ -12,9 +12,9 @@ import os
 import sys
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
-from util import normalise
+from .util import normalise
 
-from pattern import Pattern
+from .pattern import Pattern
 
 from teletext.t42.elements import Mrag
 
@@ -43,7 +43,7 @@ class Line(object):
     @staticmethod
     def try_init_cuda():
         try:
-            from patterncuda import PatternCUDA
+            from .patterncuda import PatternCUDA
             #TODO: Handle this with setup.py
             Line.h = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
             Line.p = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
@@ -54,7 +54,7 @@ class Line(object):
         Line.try_cuda = False
 
 
-    def __init__(self, (offset, data)):
+    def __init__(self, offset, data):
         if Line.try_cuda:
             Line.try_init_cuda()
 
@@ -87,6 +87,7 @@ class Line(object):
 
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
+        roll = int(roll)
         if roll != 0:
             self.orig = numpy.roll(self.orig, roll)
             self.line = numpy.roll(self.line, roll)

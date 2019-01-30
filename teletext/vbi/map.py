@@ -75,9 +75,9 @@ def raw_line_map(filename, line_length, func, start=0, stop=-1, threads=1, pass_
 
     if threads > 0:
         p = Pool(threads)
-        map_func = lambda x, y: p.imap(x, y, chunksize=1000)
+        map_func = lambda f, it: p.starmap(f, it, chunksize=1000)
     else:
-        map_func = itertools.imap
+        map_func = itertools.starmap
 
     for l in map_func(func, raw_line_reader(filename, line_length, start, stop)):
         if show_speed:

@@ -1,3 +1,6 @@
+/.idea
+/venv
+/*.vbi
 *.pyc
 build
 dist

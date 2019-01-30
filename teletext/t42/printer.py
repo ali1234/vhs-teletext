@@ -1,5 +1,4 @@
 import re
-import numpy as np
 
 from teletext.misc.all import All
 

@@ -1,11 +1,9 @@
 import datetime
 
-import numpy
-
-from elements import *
-from packet import *
 from collections import defaultdict
-from subpage import Subpage
+
+from .packet import *
+from .subpage import Subpage
 
 
 

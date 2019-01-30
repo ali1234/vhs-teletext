@@ -1,9 +1,5 @@
-import numpy
-
-from descriptors import *
-from elements import *
-from packet import *
-from printer import PrinterHTML
+from .packet import *
+from .printer import PrinterHTML
 
 from teletext.misc.all import All
 

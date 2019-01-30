@@ -19,7 +19,7 @@ import skcuda
 from skcuda.misc import argmin
 skcuda.misc._global_cublas_allocator = cuda.mem_alloc
 
-from pattern import Pattern
+from .pattern import Pattern
 
 class PatternCUDA(Pattern):
 
@@ -58,11 +58,11 @@ class PatternCUDA(Pattern):
 
 
     def match(self, inp):
-        l = (len(inp)/8)-2
+        l = (len(inp)//8)-2
         x = l & -l # highest power of two which divides l, up to 8
-        y = min(1024/x, self.n)
+        y = min(1024//x, self.n)
         cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, numpy.int32(self.start+2), numpy.int32(self.end-1), block=(x, y, 1), grid=(l/x, self.n/y))
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, numpy.int32(self.start+2), numpy.int32(self.end-1), block=(x, y, 1), grid=(l//x, self.n//y))
         result = argmin(self.result_gpu, axis=1).get()
         return self.bytes[result[:l],0]
 
