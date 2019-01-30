@@ -1,4 +1,4 @@
-import pty, os, sys, errno, fcntl, termios, subprocess, signal, atexit, time
+import os, sys, fcntl, termios, subprocess, signal, atexit, time
 
 
 def urxvt(name='urxvt', opts=[]):
@@ -13,7 +13,7 @@ def urxvt(name='urxvt', opts=[]):
 
     return pid,slave
 
-def change_terminal((termpid,fd), take_stderr=False):
+def change_terminal(termpid, fd, take_stderr=False):
     # fork so we can change our controlling terminal
     child = os.fork()
     if child == 0:
@@ -84,7 +84,7 @@ if __name__ == '__main__':
             less(['-F'])
 
     n = 0
-    for n in xrange(args.count):
-        print 'Hello. This is a test.', n
+    for n in range(args.count):
+        print('Hello. This is a test.', n)
         n += 1
         time.sleep(0.01)
