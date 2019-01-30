@@ -54,7 +54,8 @@ class Line(object):
         Line.try_cuda = False
 
 
-    def __init__(self, offset, data):
+    def __init__(self, args):
+        offset, data = args
         if Line.try_cuda:
             Line.try_init_cuda()
 
