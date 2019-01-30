@@ -2,8 +2,8 @@
 /venv
 /*.vbi
 *.pyc
-build
-dist
-MANIFEST
-vhs_teletext.egg-info
-vbi
+/build
+/dist
+/MANIFEST
+/vhs_teletext.egg-info
+/vbi

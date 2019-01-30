@@ -14,7 +14,7 @@ import numpy
 from collections import defaultdict
 
 from teletext.misc.all import All
-from teletext.vbi.map import raw_line_reader
+from teletext.vbi.map import RawLineReader
 
 class Pattern(object):
     def __init__(self, filename):
@@ -77,7 +77,7 @@ class PatternBuilder(object):
 
 def build_pattern(infilename, outfilename, start, end, pattern_set=All):
 
-    it = raw_line_reader(infilename, 27)
+    it = RawLineReader(infilename, 27)
 
     pb = PatternBuilder(24)
 

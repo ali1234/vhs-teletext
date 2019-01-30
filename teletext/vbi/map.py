@@ -9,82 +9,42 @@
 # * GNU General Public License for more details.
 
 from functools import partial
-import multiprocessing
-from multiprocessing.pool import IMapIterator, Pool
-import itertools
-import time
-import sys
-
-# raw file handler
-
-def wrapper(func):
-  def wrap(self, timeout=None):
-    # Note: the timeout of 1 googol seconds introduces a rather subtle
-    # bug for Python scripts intended to run many times the age of the universe.
-    return func(self, timeout=timeout if timeout is not None else 1e100)
-  return wrap
-IMapIterator.next = wrapper(IMapIterator.next)
+import os
 
 
-class SpeedMonitor(object):
-    def __init__(self):
-        self.start_time = time.time()
-        self.update_time = self.start_time
-        self.teletext = 0
-        self.rejects = 0
-        self.total = 0
+class RawLineReader(object):
+    def __init__(self, filename, line_length, start=0, stop=-1):
+        self.filename = filename
+        self.line_length = line_length
+        self.start = start
+        self.stop = stop
+        self.pos = start
 
+    def __enter__(self):
+        self.file = open(self.filename, 'rb')
+        self.size = None
+        try:
+            self.file.seek(0, os.SEEK_END)
+            self.size = self.file.tell()//self.line_length
+            self.file.seek(self.start*self.line_length, os.SEEK_SET)
+        except OSError:
+            pass
 
-    def tally(self, is_teletext):
-        if is_teletext:
-            self.teletext += 1
-        else:
-            self.rejects += 1
-        self.total += 1
-        if time.time() - self.update_time > 2.0:
-            elapsed = time.time() - self.start_time
-            m,s = divmod(elapsed, 60)
-            h,m = divmod(m, 60)
-            total_lines_sec = self.total / elapsed
-            teletext_lines_sec = self.teletext / elapsed
-            rejects_percent = self.rejects * 100.0 / self.total
-            sys.stderr.write('%d:%02d:%02d : %d lines, %.0f/s total, %.0f/s teletext, %.0f%% rejected.   \r' % (h, m, s, self.total, total_lines_sec, teletext_lines_sec, rejects_percent))
-            self.update_time = time.time()
+        return self
 
+    def __exit__(self, *args):
+        self.file.close()
 
-def raw_line_reader(filename, line_length, start=0, stop=-1):
-    with open(filename, 'rb') as infile:
-        if start > 0:
-            infile.seek(start * line_length)
-        rawlines = iter(partial(infile.read, line_length), b'')
+    def __len__(self):
+        return self.size
+
+    def __iter__(self):
+        rawlines = iter(partial(self.file.read, self.line_length), b'')
         for n,rl in enumerate(rawlines):
-            offset = n + start
-            if len(rl) < line_length:
+            offset = n + self.start
+            if len(rl) < self.line_length:
                 return
-            elif offset == stop:
+            elif offset == self.stop:
                 return
             else:
                 yield (offset,rl)
-
-
-
-def raw_line_map(filename, line_length, func, start=0, stop=-1, threads=1, pass_teletext=True, pass_rejects=False, show_speed=True):
-
-    if show_speed:
-        s = SpeedMonitor()
-
-    if threads > 0:
-        p = Pool(threads)
-        map_func = lambda f, it: p.imap(f, it, chunksize=1000)
-    else:
-        map_func = map
-
-    for l in map_func(func, raw_line_reader(filename, line_length, start, stop)):
-        if show_speed:
-            s.tally(l.is_teletext)
-        if l.is_teletext:
-            if pass_teletext:
-                yield l
-        else:
-            if pass_rejects:
-                yield l
