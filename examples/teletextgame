@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Pipe the output of this script to raspi-teletext or any teletext emulator that
 # supports t42 packet streams.
@@ -16,20 +16,7 @@ from random import shuffle, randrange
 import numpy
 import sys
 
-def hamming8_encode(d):
-    d1 = d&1
-    d2 = (d>>1)&1
-    d3 = (d>>2)&1
-    d4 = (d>>3)&1
-
-    p1 = (1 + d1 + d3 + d4) & 1
-    p2 = (1 + d1 + d2 + d4) & 1
-    p3 = (1 + d1 + d2 + d3) & 1
-    p4 = (1 + p1 + d1 + p2 + d2 + p3 + d3 + d4) & 1
-
-    return (p1 | (d1<<1) | (p2<<2) | (d2<<3)
-     | (p3<<4) | (d3<<5) | (p4<<6) | (d4<<7))
-
+from teletext.t42.coding import hamming8_encode, parity_encode
 
 def mrag_encode(m, r):
     a = (m&0x7) | ((r&0x1) << 3)
@@ -55,21 +42,6 @@ def page_link_encode(page=0xff, subpage=0, magazine=0):
                         hamming8_encode(((subpage>>4)&0x7)|((magazine&1)<<3)),
                         hamming8_encode((subpage>>8)&0xf),
                         hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))], dtype=numpy.uint8)
-
-
-parity_tab = numpy.array([
-    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
-    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
-    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
-    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
-    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,
-    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
-    1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,
-    0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1
-], dtype=numpy.uint8)
-
-def parity_encode(d):
-    return d | (parity_tab[d] << 7)
 
 
 class Game(object):
@@ -112,7 +84,7 @@ class Game(object):
 
     def display(self):
         for row in self.data:
-            print ''.join(['  ' if x else '@@' for x in row])
+            print(''.join(['  ' if x else '@@' for x in row]))
 
 
     def view(self, x, y, d):
