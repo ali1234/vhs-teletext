@@ -13,6 +13,8 @@ import numpy
 
 from collections import defaultdict
 
+from tqdm import tqdm
+
 from teletext.misc.all import All
 from teletext.vbi.map import RawLineReader
 
@@ -77,8 +79,6 @@ class PatternBuilder(object):
 
 def build_pattern(infilename, outfilename, start, end, pattern_set=All):
 
-    it = RawLineReader(infilename, 27)
-
     pb = PatternBuilder(24)
 
     def key(s):
@@ -86,8 +86,9 @@ def build_pattern(infilename, outfilename, start, end, pattern_set=All):
         post = chr(ord(s[2])&(0xff>>(24-end)))
         return pre + s[1] + post
 
-    for n,line in it:
-        if ord(line[1]) in pattern_set:
-            pb.add_pattern(key(line), line[3:])
+    with RawLineReader(infilename, 27) as it:
+        for n,line in tqdm(it, unit=' patterns'):
+            if ord(line[1]) in pattern_set:
+                pb.add_pattern(key(line), line[3:])
 
     pb.write_patterns(outfilename, start, end)

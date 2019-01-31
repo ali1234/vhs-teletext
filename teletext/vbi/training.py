@@ -17,6 +17,8 @@ import numpy
 import argparse
 import itertools
 
+from tqdm import tqdm
+
 from .map import RawLineReader
 from .pattern import build_pattern
 
@@ -146,28 +148,29 @@ def training():
                 l.is_teletext = False
             return l
 
-        it = RawLineReader(args.train, config.line_length)
-
         prev_offset = 0
 
         pattern = load_pattern()
 
-        for l in it:
-            if l.pattern_offset != prev_offset:
-                for x, bytes in get_subpatterns(l.pattern_offset, pattern):
-                    bytes.tofile(sys.stdout)
-                    l.uint8bits[32 + x:32 + x + 24].tofile(sys.stdout)
+        with RawLineReader(args.train, config.line_length) as it:
+            for l in tqdm(map(doit, it), unit=' Lines'):
+                if l.is_teletext and l.pattern_offset != prev_offset:
+                    for x, bytes in get_subpatterns(l.pattern_offset, pattern):
+                        bytes.tofile(sys.stdout)
+                        l.uint8bits[32 + x:32 + x + 24].tofile(sys.stdout)
 
     elif args.split:
         files = [open('training.%02x.dat' % n, 'wb') for n in range(256)]
 
-        for n, line in RawLineReader(args.split, 27):
-            files[ord(line[0])].write(line)
+        with RawLineReader(args.split, 27) as it:
+            for n, line in tqdm(it, unit=' Lines'):
+                files[ord(line[0])].write(line)
 
     elif args.sort:
         lines = []
-        for n, line in RawLineReader(args.sort, 27):
-            lines.append(line)
+        with RawLineReader(args.sort, 27) as it:
+            for n, line in tqdm(it, unit=' Lines'):
+                lines.append(line)
 
         lines.sort()
         f = open(args.sort + '.sorted', 'wb')
@@ -177,33 +180,27 @@ def training():
 
     elif args.dump:
         lines = []
-        for n, line in RawLineReader(args.dump, 27):
-            print(' '.join(['%02x' % ord(c) for c in line]))
+        with RawLineReader(args.dump, 27) as it:
+            for n, line in tqdm(it, unit=' Lines'):
+                print(' '.join(['%02x' % ord(c) for c in line]))
 
     elif args.squash:
+        with RawLineReader(args.squash, 27) as it:
 
-        it = RawLineReader(args.squash, 27)
-
-        f = open(args.squash + '.squashed', 'wb')
-
-        for k, g in itertools.groupby((item[1] for item in it), lambda x: x[:3]):
-            a = list(g)
-            b = numpy.fromstring(''.join(a), dtype=numpy.uint8).reshape((len(a), 27))
-            b = numpy.mean(b, axis=0).astype(numpy.uint8)
-            b.tofile(f)
-
-        f.close()
+            with open(args.squash + '.squashed', 'wb') as f:
+                for k, g in itertools.groupby((item[1] for item in tqdm(it, unit=' Lines')), lambda x: x[:3]):
+                    a = list(g)
+                    b = numpy.fromstring(''.join(a), dtype=numpy.uint8).reshape((len(a), 27))
+                    b = numpy.mean(b, axis=0).astype(numpy.uint8)
+                    b.tofile(f)
 
     elif args.full:
-
         build_pattern(args.full, 'full.dat', 3, 19)
 
     elif args.parity:
-
         build_pattern(args.parity, 'parity.dat', 4, 18, parity_set)
 
     elif args.hamming:
-
         build_pattern(args.hamming, 'hamming.dat', 1, 20, hamming_set)
 
     sys.stderr.write('\n')
