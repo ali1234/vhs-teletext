@@ -1,106 +1,146 @@
+from functools import wraps
+
+from teletext.t42.printer import PrinterANSI
 from .coding import *
-from .descriptors import *
 
 
-class Mrag(object):
-    """Magazine row address group. The first two bytes of every packet."""
-
-    magazine = MagazineNumber()
-    row = RowNumber()
-
-    def __init__(self, magazine=1, row=0, errors=0):
-        self.magazine = magazine
-        self.row = row
-        self.errors = 0
-
-    @classmethod
-    def from_bytes(cls, bytes):
-        value,errors = hamming16_decode(bytes)
-        magazine = value&0x7
-        row = value>>3
-        return cls(magazine, row, errors)
-
-    def to_bytes(self):
-        a = (self.magazine&0x7) | ((self.row&0x1) << 3)
-        b = self.row>>1
-        return chr(hamming8_encode(a)) + chr(hamming8_encode(b))
+def element(f):
+    @wraps(f)
+    def cache(self):
+        try:
+            return self._elements[f.__name__]
+        except KeyError:
+            o = f(self)
+            self._elements[f.__name__] = o
+            return o
+    return property(cache)
 
 
-class PageHeader(object):
-    page = PageNumber()
-    subpage = SubpageNumber()
-    control = ControlBits()
+class Element(object):
 
-    def __init__(self, page=0, subpage=0, control=0, errors=0):
-        self.page = page
-        self.subpage = subpage
-        self.control = control
-        self.errors = errors
+    _array: list
 
-    @classmethod
-    def from_bytes(cls, bytes):
-        a = hamming16_decode(bytes[:2])
+    def __init__(self, array):
+        super().__setattr__('_array', array)
+
+    def __getitem__(self, item):
+        return self._array[item]
+
+    def __setitem__(self, item, value):
+        self._array[item] = value
+
+
+class AttrElement(Element):
+
+    def __init__(self, array):
+        super().__init__(array)
+        super().__setattr__('_dirty', True)
+
+    def __getattr__(self, key):
+        if self._dirty:
+            super().__setattr__('_cache', self.get())
+            super().__setattr__('_dirty', False)
+        return self._cache[key]
+
+    def __setattr__(self, key, value):
+        self.set(**{key: value})
+        super().__setattr__('_dirty', True)
+
+
+def fill_missing(f):
+    @wraps(f)
+    def fill(self, **kwargs):
+        for k in f.__code__.co_varnames[1:]:
+            if k not in kwargs:
+                kwargs[k] = getattr(self, k)
+        f(self, **kwargs)
+    return fill
+
+
+class Mrag(AttrElement):
+
+    def get(self):
+        value = hamming16_decode(self._array)
+        return {'magazine': value[0] & 0x7, 'row': value[0] >> 3, 'errors': value[1]}
+
+    @fill_missing
+    def set(self, magazine=None, row=None):
+        if magazine < 0 or magazine > 7:
+            raise ValueError('Magazine numbers must be 0-7.')
+        if row < 0 or row > 31:
+            raise ValueError('Row numbers must be 0-31.')
+        self._array[0] = hamming8_encode((magazine&0x7) | ((row&0x1) << 3))
+        self._array[1] = hamming8_encode(row>>1)
+
+
+class Displayable(Element):
+
+    def to_ansi(self, colour=True):
+        return str(PrinterANSI(self._array, colour))
+
+
+class PageHeader(AttrElement):
+
+    def get(self):
+        a = hamming16_decode(self._array[:2])
         page = a[0]
         errors = a[1]
 
         values = []
-        for v,e in (hamming16_decode(bytes[n:n+2]) for n in range(2, 8, 2)):
+        for v,e in (hamming16_decode(self._array[n:n+2]) for n in range(2, 8, 2)):
             errors += e
             values.append(v)
 
         subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
         control = (values[0] >> 7) | (values[1] >> 5) | (values[2] << 3)
-        return cls(page, subpage, control, errors)
+        return {'page': page, 'subpage': subpage, 'control': control, 'errors': errors}
 
-    def to_bytes(self):
-        tmp = [hamming8_encode(self.page&0xf),
-               hamming8_encode(self.page>>4),
-               hamming8_encode(self.subpage&0xf),
-               hamming8_encode(((self.subpage>>4)&0x7)|((self.control&1)<<3)),
-               hamming8_encode((self.subpage>>8)&0xf),
-               hamming8_encode(((self.subpage>>12)&0x3)|((self.control&6)<<1)),
-               hamming8_encode((self.control>>3)&0xf),
-               hamming8_encode((self.control>>7)&0xf)]
-        return ''.join([chr(x) for x in tmp])
+    @fill_missing
+    def set(self, page=None, subpage=None, control=None):
+        self._array[:] = [
+            hamming8_encode(page&0xf),
+            hamming8_encode(page>>4),
+            hamming8_encode(subpage&0xf),
+            hamming8_encode(((subpage>>4)&0x7)|((control&1)<<3)),
+            hamming8_encode((subpage>>8)&0xf),
+            hamming8_encode(((subpage>>12)&0x3)|((control&6)<<1)),
+            hamming8_encode((control>>3)&0xf),
+            hamming8_encode((control>>7)&0xf)
+        ]
 
 
-class PageLink(object):
-    page = PageNumber()
-    subpage = SubpageNumber()
-    magazine = MagazineNumber()
+class PageLink(AttrElement):
 
-    def __init__(self, magazine=0, page=0xff, subpage=0x3f7f, errors=0):
-        self.page = page
-        self.subpage = subpage
-        self.magazine = magazine
-        self.errors = errors
-
-    @classmethod
-    def from_bytes(cls, bytes, current_magazine):
-        a = hamming16_decode(bytes[:2])
+    def get(self):
+        current_magazine = 0
+        a = hamming16_decode(self._array[:2])
         page = a[0]
         errors = a[1]
 
         values = []
-        for v,e in (hamming16_decode(bytes[n:n+2]) for n in range(2, 6, 2)):
+        for v,e in (hamming16_decode(self._array[n:n+2]) for n in range(2, 6, 2)):
             errors += e
             values.append(v)
 
         subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
         magazine = (values[0] >> 7) | ((values[1] >> 6)<<1)
-        return cls(magazine^current_magazine, page, subpage, errors)
+        return {'magazine': magazine^current_magazine, 'page': page, 'subpage': subpage, 'errors': errors}
 
     def __str__(self):
         return "%d%02x:%04x" % (self.magazine, self.page, self.subpage)
 
-    def to_bytes(self, current_magazine):
-        magazine = self.magazine ^ current_magazine
-        tmp = [hamming8_encode(self.page&0xf),
-               hamming8_encode(self.page>>4),
-               hamming8_encode(self.subpage&0xf),
-               hamming8_encode(((self.subpage>>4)&0x7)|((magazine&1)<<3)),
-               hamming8_encode((self.subpage>>8)&0xf),
-               hamming8_encode(((self.subpage>>12)&0x3)|((magazine&6)<<1))]
-        return ''.join([chr(x) for x in tmp])
+    @fill_missing
+    def set(self, magazine=None, page=None, subpage=None):
+        current_magazine = 0
+        magazine = magazine ^ current_magazine
+        self._array[:] = [
+            hamming8_encode(page&0xf),
+            hamming8_encode(page>>4),
+            hamming8_encode(subpage&0xf),
+            hamming8_encode(((subpage>>4)&0x7)|((magazine&1)<<3)),
+            hamming8_encode((subpage>>8)&0xf),
+            hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))
+        ]
+
 
 

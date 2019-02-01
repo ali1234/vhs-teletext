@@ -1,3 +1,7 @@
+from typing import Any, Tuple
+
+import numpy as np
+
 from .elements import *
 from .printer import PrinterANSI
 from .finders import Finders
@@ -5,83 +9,96 @@ from .finders import Finders
 
 class Packet(object):
 
-    def __init__(self, mrag):
-        self.__mrag = mrag
+    def _setup(self, array):
+        self._array = array
+        self._elements = {}
 
-    @property
+    def __init__(self, magazine, row):
+        self._setup(np.zeros((42,), dtype=np.uint8))
+        self.mrag.set(magazine, row)
+
+    def __getitem__(self, item):
+        return self._array[item]
+
+    def __setitem__(self, item, value):
+        self._array[item] = value
+
+    @element
     def mrag(self):
-        return self.__mrag
+        return Mrag(self._array[:2])
 
     @classmethod
     def from_bytes(cls, data):
         """Packet factory which returns the appropriate type object for the packet."""
+
         if type(data) == bytes:
-            data = numpy.fromstring(data, dtype=numpy.uint8)
-        if data.shape != (42, ):
+            array = np.fromstring(data, dtype=np.uint8)
+        else:
+            array = data.copy()
+
+        if array.shape != (42, ):
             raise IndexError('Packet.from_bytes requires 42 bytes.')
 
-        mrag = Mrag.from_bytes(data[:2])
+        mrag = Mrag(array[:2])
 
         if mrag.row == 0:
-            packet = HeaderPacket.from_bytes(mrag, data)
+            packet = HeaderPacket.__new__(HeaderPacket)
         elif mrag.row < 25:
-            packet = DisplayPacket.from_bytes(mrag, data)
+            packet = DisplayPacket.__new__(DisplayPacket)
         elif mrag.row == 27:
-            packet = FastextPacket.from_bytes(mrag, data)
-        elif mrag.row == 30:
-            packet = BroadcastPacket.from_bytes(mrag, data)
+            packet = FastextPacket.__new__(FastextPacket)
+        #elif packet.mrag.row == 30:
+        #    packet = BroadcastPacket.__new__(BroadcastPacket)
         else:
-            packet = Packet(mrag)
+            packet = Packet.__new__(Packet)
 
-        packet._original_bytes = data
+        packet._setup(array)
+
         return packet
 
     def to_ansi(self, colour=True):
-        return '%d %2d' % (self.mrag.magazine, self.mrag.row)
+        return '%d %2d Unknown packet' % (self.mrag.magazine, self.mrag.row)
 
     def to_bytes(self):
-        return ''
+        return self._array.tobytes()
 
 
 class DisplayPacket(Packet):
 
-    def __init__(self, mrag, displayable):
-        Packet.__init__(self, mrag)
-        self.displayable = displayable
-
-    @classmethod
-    def from_bytes(cls, mrag, bytes):
-        return cls(mrag, bytes[2:])
+    @element
+    def displayable(self):
+        return Displayable(self._array[2:])
 
     def to_ansi(self, colour=True):
-        return str(PrinterANSI(self.displayable, colour))
-
-    def to_bytes(self):
-        return self.mrag.to_bytes() + parity_encode(self.displayable).tostring()
+        return self.displayable.to_ansi(colour)
 
 
 
-class HeaderPacket(DisplayPacket):
+class HeaderPacket(Packet):
 
-    def __init__(self, mrag, header, displayable):
-        ranks = [(f.match(displayable),f) for f in Finders]
+    def __init__(self, magazine, row, page, subpage, control, displayable):
+        Packet.__init__(self, magazine, row)
+        self.header.set(page, subpage, control)
+        self.displayable[:] = parity_encode(displayable)
+
+    def ranks(self):
+        ranks = [(f.match(self.displayable[:]),f) for f in Finders]
         ranks.sort(reverse=True, key=lambda x: x[0])
         if ranks[0][0] > 20:
             self.name = ranks[0][1].name
-            self.displayable_fixed = ranks[0][1].fixup(displayable.copy())
+            self.finder = ranks[0][1]
+            self.displayable_fixed = ranks[0][1].fixup(self.displayable[:].copy())
         else:
             self.name = 'Unknown'
-            self.displayable_fixed = displayable
-        DisplayPacket.__init__(self, mrag, displayable)
-        self.__header = header
+            self.displayable_fixed = self.displayable
 
-    @property
+    @element
     def header(self):
-        return self.__header
+        return PageHeader(self._array[2:10])
 
-    @classmethod
-    def from_bytes(cls, mrag, bytes):
-        return cls(mrag, PageHeader.from_bytes(bytes[2:10]), bytes[10:])
+    @element
+    def displayable(self):
+        return Displayable(self._array[10:])
 
     def page_str(self):
         return '%1d%02x' % (self.mrag.magazine, self.header.page)
@@ -90,37 +107,20 @@ class HeaderPacket(DisplayPacket):
         return '%04x' % (self.header.subpage)
 
     def to_ansi(self, colour=True):
-        return '   P' + self.page_str() + ' ' + str(PrinterANSI(self.displayable, colour))
-
-    def to_bytes(self):
-        return self.mrag.to_bytes() + self.header.to_bytes() + parity_encode(self.displayable).tostring()
-
+        return '   P' + self.page_str() + ' ' + self.displayable.to_ansi(colour)
 
 
 class FastextPacket(Packet):
 
-    def __init__(self, mrag, links=[None for n in range(6)]):
-        Packet.__init__(self, mrag)
-        self.__links = [PageLink() for n in range(6)]
-        for n in range(6):
-            if links[n]:
-                self.__links[n] = links[n]
-
-    @property
+    @element
     def links(self):
-        return self.__links
-
-    @classmethod
-    def from_bytes(cls, mrag, bytes):
-        links = [PageLink.from_bytes(bytes[n:n+6], mrag.magazine) for n in range(3, 39, 6)]
-        return cls(mrag, links)
+        return [PageLink(self._array[n:n+6]) for n in range(3, 39, 6)]
 
     def to_ansi(self, colour=True):
         return ' '.join((str(link) for link in self.links))
 
-    def to_bytes(self):
-        return self.mrag.to_bytes() + ' ' + ''.join([x.to_bytes(self.mrag.magazine) for x in self.links]) + '   '
 
+# borked for now
 
 class BroadcastPacket(Packet):
 
@@ -141,54 +141,4 @@ class BroadcastPacket(Packet):
     def to_bytes(self):
         return self.mrag.to_bytes() + '                    ' + parity_encode(self.displayable).tostring()
 
-
-import enchant
-d = enchant.Dict('en_GB')
-
-
-freecombos = [
-    set(['e', 'i', 'j']),
-    set(['r', 's', 't', 'u', 'k']),
-    set(['y', 'z']),
-    set(['k', 'g', 'o']),
-    set(['n', 'm']),
-    set(['d', 'h']),
-]
-
-
-def check_pair(x, y):
-    x = x.lower()
-    y = y.lower()
-    if x == y:
-        return 0
-    for s in freecombos:
-        if x in s and y in s:
-            return 0
-    return 1
-
-
-def weighted_hamming(a, b):
-    count = 0
-    return sum([check_pair(x, y) for x,y in zip(a, b)])
-
-
-def case_match(word, src):
-    return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
-
-def spellcheck(packet):
-    if type(packet) == DisplayPacket or type(packet) == HeaderPacket:
-        words = str(PrinterANSI(packet.displayable, False)).decode('utf-8')
-        words = ''.join([c if c.isalnum() else ' ' for c in words])
-        words = words.split(' ')
-
-        for n,w in enumerate(words):
-          if len(w) > 2 and not d.check(w.lower()):
-            s = filter(lambda x: len(x) == len(w) and weighted_hamming(x, w) == 0, d.suggest(w.lower()))
-            if len(s) > 0:
-                words[n] = case_match(s[0], w)
-
-        words = ' '.join(words)
-        for n,c in enumerate(words):
-            if c != ' ':
-                packet.displayable[n] = ord(c)
 
