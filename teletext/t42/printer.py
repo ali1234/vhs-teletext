@@ -114,7 +114,7 @@ class PrinterANSI(object):
 class PrinterHTML(PrinterANSI):
 
     def __init__(self, tt, codepage=0, pages_set=All):
-        PrinterANSI.__init__(self, tt, codepage)
+        PrinterANSI.__init__(self, tt, colour=False, codepage=codepage)
         self.fastext = False
         self.pages_set = pages_set
 
@@ -177,7 +177,7 @@ def html():
     import os
 
     from .pipeline import reader, make_service
-    from .packet import spellcheck
+    from .spellcheck import spellcheck
 
     def sciter(packet_iter):
         for packet in packet_iter:

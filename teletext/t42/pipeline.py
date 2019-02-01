@@ -208,7 +208,7 @@ def pipe():
         iter = row_squash(iter, args.squash_rows)
 
     if args.spellcheck:
-        from teletext.t42.packet import spellcheck
+        from .spellcheck import spellcheck
 
     for packet in iter:
         if args.spellcheck:
