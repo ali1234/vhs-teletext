@@ -13,19 +13,27 @@ import os
 
 
 class RawLineReader(object):
-    def __init__(self, filename, line_length, start=0, stop=-1):
+    def __init__(self, filename, line_length, start=0, stop=-1, count=-1):
         self.filename = filename
         self.line_length = line_length
         self.start = start
-        self.stop = stop
-        self.pos = start
+        if stop >= start:
+            self.count = stop - start
+        elif count >= 0:
+            self.count = count
+        else:
+            self.count = None
 
     def __enter__(self):
         self.file = open(self.filename, 'rb')
-        self.size = None
+
         try:
             self.file.seek(0, os.SEEK_END)
-            self.size = self.file.tell()//self.line_length
+            count = self.file.tell()//self.line_length
+            if self.count is None:
+                self.count = count
+            else:
+                self.count = min(self.count, count)
             self.file.seek(self.start*self.line_length, os.SEEK_SET)
         except OSError:
             pass
@@ -36,15 +44,14 @@ class RawLineReader(object):
         self.file.close()
 
     def __len__(self):
-        return self.size
+        return self.count
 
     def __iter__(self):
         rawlines = iter(partial(self.file.read, self.line_length), b'')
         for n,rl in enumerate(rawlines):
-            offset = n + self.start
             if len(rl) < self.line_length:
                 return
-            elif offset == self.stop:
+            elif self.count is not None and n >= self.count:
                 return
             else:
-                yield (offset,rl)
+                yield (n+self.start,rl)
