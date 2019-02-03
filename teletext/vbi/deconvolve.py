@@ -128,7 +128,7 @@ def deconvolve():
                     elif cliargs.ansi:
                         if cliargs.numbered:
                             rlw.write(('%8d ' % l_list[0].offset), end='')
-                        rlw.write(Packet.from_bytes(best).to_ansi())
+                        rlw.write(Packet(best).to_ansi())
 
             else:
                 for l in it:
@@ -137,4 +137,4 @@ def deconvolve():
                     elif cliargs.ansi:
                         if cliargs.numbered:
                             rlw.write(('%8d ' % l.offset), end='')
-                        rlw.write(Packet.from_bytes(l.bytes_array).to_ansi())
+                        rlw.write(Packet(l.bytes_array).to_ansi())

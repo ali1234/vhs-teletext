@@ -9,13 +9,17 @@ from .finders import Finders
 
 class Packet(object):
 
-    def _setup(self, array):
-        self._array = array
-        self._elements = {}
+    def __init__(self, data):
 
-    def __init__(self, magazine, row):
-        self._setup(np.zeros((42,), dtype=np.uint8))
-        self.mrag.set(magazine, row)
+        if type(data) == bytes:
+            array = np.fromstring(data, dtype=np.uint8)
+        else:
+            array = data
+
+        if array.shape != (42, ):
+            raise IndexError('Packet.from_bytes requires 42 bytes.')
+
+        self._array = array
 
     def __getitem__(self, item):
         return self._array[item]
@@ -23,122 +27,57 @@ class Packet(object):
     def __setitem__(self, item, value):
         self._array[item] = value
 
-    @element
+    @property
+    def type(self):
+        row = self.mrag.row
+        if row == 0:
+            return 'header'
+        elif row < 25:
+            return 'display'
+        elif row == 27:
+            return 'fastext'
+        elif row == 30:
+            return 'broadcast'
+        else:
+            return 'unknown'
+
+    @property
     def mrag(self):
         return Mrag(self._array[:2])
 
-    @classmethod
-    def from_bytes(cls, data):
-        """Packet factory which returns the appropriate type object for the packet."""
+    @property
+    def header(self):
+        return Header(self._array[2:])
 
-        if type(data) == bytes:
-            array = np.fromstring(data, dtype=np.uint8)
-        else:
-            array = data.copy()
+    @property
+    def displayable(self):
+        return Displayable(self._array[2:])
 
-        if array.shape != (42, ):
-            raise IndexError('Packet.from_bytes requires 42 bytes.')
+    @property
+    def links(self):
+        return tuple(PageLink(self._array[n:n+6], self.mrag) for n in range(3, 39, 6))
 
-        mrag = Mrag(array[:2])
-
-        if mrag.row == 0:
-            packet = HeaderPacket.__new__(HeaderPacket)
-        elif mrag.row < 25:
-            packet = DisplayPacket.__new__(DisplayPacket)
-        elif mrag.row == 27:
-            packet = FastextPacket.__new__(FastextPacket)
-        #elif packet.mrag.row == 30:
-        #    packet = BroadcastPacket.__new__(BroadcastPacket)
-        else:
-            packet = Packet.__new__(Packet)
-
-        packet._setup(array)
-
-        return packet
+    @property
+    def broadcast(self):
+        return BroadcastData(self._array[2:], self.mrag)
 
     def to_ansi(self, colour=True):
-        return '%d %2d Unknown packet' % (self.mrag.magazine, self.mrag.row)
+        t = self.type
+
+        if t == 'header':
+            return f'   P{self.mrag.magazine}{self.header.to_ansi(colour)}'
+        elif t == 'display':
+            return self.displayable.to_ansi(colour)
+        elif t == 'fastext':
+            return ' '.join((str(link) for link in self.links))
+        elif t == 'broadcast':
+            return self.broadcast.to_ansi(colour)
+        else:
+            return f'Unknown packet {self.mrag}'
 
     def to_bytes(self):
         return self._array.tobytes()
 
 
-class DisplayPacket(Packet):
-
-    @element
-    def displayable(self):
-        return Displayable(self._array[2:])
-
-    def to_ansi(self, colour=True):
-        return self.displayable.to_ansi(colour)
-
-
-
-class HeaderPacket(Packet):
-
-    def __init__(self, magazine, row, page, subpage, control, displayable):
-        Packet.__init__(self, magazine, row)
-        self.header.set(page, subpage, control)
-        self.displayable[:] = parity_encode(displayable)
-
-    def ranks(self):
-        ranks = [(f.match(self.displayable[:]),f) for f in Finders]
-        ranks.sort(reverse=True, key=lambda x: x[0])
-        if ranks[0][0] > 20:
-            self.name = ranks[0][1].name
-            self.finder = ranks[0][1]
-            self.displayable_fixed = ranks[0][1].fixup(self.displayable[:].copy())
-        else:
-            self.name = 'Unknown'
-            self.displayable_fixed = self.displayable
-
-    @element
-    def header(self):
-        return PageHeader(self._array[2:10])
-
-    @element
-    def displayable(self):
-        return Displayable(self._array[10:])
-
-    def page_str(self):
-        return '%1d%02x' % (self.mrag.magazine, self.header.page)
-
-    def subpage_str(self):
-        return '%04x' % (self.header.subpage)
-
-    def to_ansi(self, colour=True):
-        return '   P' + self.page_str() + ' ' + self.displayable.to_ansi(colour)
-
-
-class FastextPacket(Packet):
-
-    @element
-    def links(self):
-        return [PageLink(self._array[n:n+6]) for n in range(3, 39, 6)]
-
-    def to_ansi(self, colour=True):
-        return ' '.join((str(link) for link in self.links))
-
-
-# borked for now
-
-class BroadcastPacket(Packet):
-
-    def __init__(self, mrag, dc, initial_page, displayable):
-        Packet.__init__(self, mrag)
-        self.dc = dc
-        self.initial_page = initial_page
-        self.displayable = displayable
-
-    @classmethod
-    def from_bytes(cls, mrag, bytes):
-        dc = hamming8_decode(bytes[0])[0]
-        return cls(mrag, dc, PageLink.from_bytes(bytes[1:7], 0), bytes[22:])
-
-    def to_ansi(self, colour=True):
-        return 'DC=' + str(self.dc) + ' ' + str(PrinterANSI(self.displayable, colour))
-
-    def to_bytes(self):
-        return self.mrag.to_bytes() + '                    ' + parity_encode(self.displayable).tostring()
 
 

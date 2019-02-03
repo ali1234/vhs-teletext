@@ -109,19 +109,21 @@ class Line(object):
     def mrag(self):
         """Finds the mrag for the line."""
         self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
-        m = Packet.from_bytes(self.bytes_array)
+        m = Packet(self.bytes_array)
         self.magazine = m.mrag.magazine
         self.row = m.mrag.row
 
 
     def bytes(self):
         """Finds the rest of the line."""
-        if self.row == 0:
-            self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
-            self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
-        elif self.row == 27:
-            self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
-            # skip the last two bytes as they are not really useful
-        else:
-            self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
+        #if self.row == 0:
+        #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
+        #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
+        #elif self.row == 27:
+        #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
+        #    # skip the last two bytes as they are not really useful
+        #else:
+
+        # it is faster to just use the same pattern array all the time
+        self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
 

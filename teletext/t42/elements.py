@@ -4,24 +4,10 @@ from teletext.t42.printer import PrinterANSI
 from .coding import *
 
 
-def element(f):
-    @wraps(f)
-    def cache(self):
-        try:
-            return self._elements[f.__name__]
-        except KeyError:
-            o = f(self)
-            self._elements[f.__name__] = o
-            return o
-    return property(cache)
-
-
 class Element(object):
 
-    _array: list
-
     def __init__(self, array):
-        super().__setattr__('_array', array)
+        self._array = array
 
     def __getitem__(self, item):
         return self._array[item]
@@ -29,49 +15,40 @@ class Element(object):
     def __setitem__(self, item, value):
         self._array[item] = value
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({repr(self._array)})'
 
-class AttrElement(Element):
-
-    def __init__(self, array):
-        super().__init__(array)
-        super().__setattr__('_dirty', True)
-
-    def __getattr__(self, key):
-        if self._dirty:
-            super().__setattr__('_cache', self.get())
-            super().__setattr__('_dirty', False)
-        return self._cache[key]
-
-    def __setattr__(self, key, value):
-        self.set(**{key: value})
-        super().__setattr__('_dirty', True)
+    @property
+    def errors(self):
+        return hamming8_errors(self._array)
 
 
-def fill_missing(f):
-    @wraps(f)
-    def fill(self, **kwargs):
-        for k in f.__code__.co_varnames[1:]:
-            if k not in kwargs:
-                kwargs[k] = getattr(self, k)
-        f(self, **kwargs)
-    return fill
+class Mrag(Element):
 
+    @property
+    def magazine(self):
+        magazine = hamming8_decode(self._array[0]) & 0x7
+        return magazine or 8
 
-class Mrag(AttrElement):
+    @property
+    def row(self):
+        return hamming16_decode(self._array[:2])[0] >> 3
 
-    def get(self):
-        value = hamming16_decode(self._array)
-        return {'magazine': value[0] & 0x7, 'row': value[0] >> 3, 'errors': value[1]}
+    @magazine.setter
+    def magazine(self, magazine):
+        if magazine < 0 or magazine > 8:
+            raise ValueError('Magazine numbers must be between 0 and 8.')
+        self._array[0] = hamming8_encode((magazine & 0x7) | ((self.row&0x1) << 3))
 
-    @fill_missing
-    def set(self, magazine=None, row=None):
-        if magazine < 0 or magazine > 7:
-            raise ValueError('Magazine numbers must be 0-7.')
+    @row.setter
+    def row(self, row):
         if row < 0 or row > 31:
-            raise ValueError('Row numbers must be 0-31.')
-        self._array[0] = hamming8_encode((magazine&0x7) | ((row&0x1) << 3))
-        self._array[1] = hamming8_encode(row>>1)
+            raise ValueError('Row numbers must be between 0 and 31.')
+        self._array[0] = hamming8_encode((self.magazine & 0x7) | ((row & 0x1) << 3))
+        self._array[1] = hamming8_encode(row >> 1)
 
+    def __str__(self):
+        return f'{self.magazine} {self.row} {self.errors}'
 
 class Displayable(Element):
 
@@ -79,68 +56,132 @@ class Displayable(Element):
         return str(PrinterANSI(self._array, colour))
 
 
-class PageHeader(AttrElement):
+class Page(Element):
 
-    def get(self):
-        a = hamming16_decode(self._array[:2])
-        page = a[0]
-        errors = a[1]
+    @property
+    def page(self):
+        return hamming16_decode(self._array[:2])[0]
 
-        values = []
-        for v,e in (hamming16_decode(self._array[n:n+2]) for n in range(2, 8, 2)):
-            errors += e
-            values.append(v)
-
-        subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
-        control = (values[0] >> 7) | (values[1] >> 5) | (values[2] << 3)
-        return {'page': page, 'subpage': subpage, 'control': control, 'errors': errors}
-
-    @fill_missing
-    def set(self, page=None, subpage=None, control=None):
-        self._array[:] = [
-            hamming8_encode(page&0xf),
-            hamming8_encode(page>>4),
-            hamming8_encode(subpage&0xf),
-            hamming8_encode(((subpage>>4)&0x7)|((control&1)<<3)),
-            hamming8_encode((subpage>>8)&0xf),
-            hamming8_encode(((subpage>>12)&0x3)|((control&6)<<1)),
-            hamming8_encode((control>>3)&0xf),
-            hamming8_encode((control>>7)&0xf)
-        ]
+    @page.setter
+    def page(self, page):
+        if page < 0 or page > 0xff:
+            raise ValueError('Page numbers must be between 0 and 0xff.')
+        self._array[:2] = hamming16_encode(page)
 
 
-class PageLink(AttrElement):
+class Header(Page):
 
-    def get(self):
-        current_magazine = 0
-        a = hamming16_decode(self._array[:2])
-        page = a[0]
-        errors = a[1]
+    @property
+    def subpage(self):
+        values = hamming16_decode(self._array[2:6])
+        return (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
 
-        values = []
-        for v,e in (hamming16_decode(self._array[n:n+2]) for n in range(2, 6, 2)):
-            errors += e
-            values.append(v)
+    @property
+    def control(self):
+        values = hamming16_decode(self._array[2:8])
+        return (values[0] >> 7) | (values[1] >> 5) | (values[2] << 3)
 
-        subpage = (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
-        magazine = (values[0] >> 7) | ((values[1] >> 6)<<1)
-        return {'magazine': magazine^current_magazine, 'page': page, 'subpage': subpage, 'errors': errors}
+    @property
+    def displayable(self):
+        return Displayable(self._array[8:])
+
+    @subpage.setter
+    def subpage(self, subpage):
+        if subpage < 0 or subpage > 0x3f7f:
+            raise ValueError('Subpage numbers must be between 0 and 0x3f7f.')
+        control = self.control
+        self._array[2:6] = hamming16_encode([
+            (subpage & 0x7f) | ((control & 1) << 7),
+            (subpage >> 8) | ((control & 6) << 6),
+        ])
+
+    @control.setter
+    def control(self, control):
+        if control < 0 or control > 2047:
+            raise ValueError('Control bits must be between 0 and 2047.')
+        subpage = self.subpage
+        self._array[3] = hamming8_encode(((subpage >> 4) & 0x7) | ((control & 1) << 3))
+        self._array[5] = hamming8_encode(((subpage >> 12) & 0x3) | ((control & 6) << 1))
+        self._array[6:8] = hamming16_encode(control >> 3)
+
+    def to_ansi(self, colour=True):
+        return f'{self.page:02x}{self.displayable.to_ansi(colour)} {self.subpage: x}'
+
+    def ranks(self):
+        ranks = [(f.match(self.displayable[:]),f) for f in Finders]
+        ranks.sort(reverse=True, key=lambda x: x[0])
+        if ranks[0][0] > 20:
+            self.name = ranks[0][1].name
+            self.finder = ranks[0][1]
+            self.displayable_fixed = ranks[0][1].fixup(self.displayable[:].copy())
+        else:
+            self.name = 'Unknown'
+            self.displayable_fixed = self.displayable
+
+
+class PageLink(Page):
+
+    def __init__(self, array, mrag):
+        super().__init__(array)
+        self._mrag = mrag
+
+    @property
+    def subpage(self):
+        values = hamming16_decode(self._array[2:6])
+        return (values[0] & 0x7f) | ((values[1] & 0x3f) <<8)
+
+    @property
+    def magazine(self):
+        values = hamming16_decode(self._array[2:6])
+        magazine = ((values[0] >> 7) | (values[1] >> 6)) ^ (self._mrag.magazine & 0x7)
+        return magazine or 8
+
+    @subpage.setter
+    def subpage(self, subpage):
+        if subpage < 0 or subpage > 0x3f7f:
+            raise ValueError('Subpage numbers must be between 0 and 0x3f7f.')
+        magazine = self.magazine
+        self._array[2:6] = hamming16_encode([
+            (subpage & 0x7f) | ((magazine & 1) << 7),
+            (subpage >> 8) | ((magazine & 6) << 6),
+        ])
+
+    @magazine.setter
+    def magazine(self, magazine):
+        if magazine < 0 or magazine > 8:
+            raise ValueError('Magazine numbers must be between 0 and 8.')
+        magazine = magazine ^ self._mrag.magazine
+        subpage = self.subpage
+        self._array[3:6:2] = hamming8_encode([
+            ((subpage >> 4) & 0x7) | ((magazine & 1) << 3),
+            ((subpage >> 12) & 0x3) | ((magazine & 6) << 1),
+        ])
 
     def __str__(self):
-        return "%d%02x:%04x" % (self.magazine, self.page, self.subpage)
-
-    @fill_missing
-    def set(self, magazine=None, page=None, subpage=None):
-        current_magazine = 0
-        magazine = magazine ^ current_magazine
-        self._array[:] = [
-            hamming8_encode(page&0xf),
-            hamming8_encode(page>>4),
-            hamming8_encode(subpage&0xf),
-            hamming8_encode(((subpage>>4)&0x7)|((magazine&1)<<3)),
-            hamming8_encode((subpage>>8)&0xf),
-            hamming8_encode(((subpage>>12)&0x3)|((magazine&6)<<1))
-        ]
+        return f'{self.magazine}{self.page:02x}:{self.subpage:x}'
 
 
+class BroadcastData(Element):
 
+    def __init__(self, array, mrag):
+        super().__init__(array)
+        self._mrag = mrag
+
+    @property
+    def displayable(self):
+        return Displayable(self._array[20:])
+
+    @property
+    def initial_page(self):
+        return PageLink(self._array[1:7], self._mrag)
+
+    @property
+    def dc(self):
+        return hamming8_decode(self._array[0])
+
+    @dc.setter
+    def dc(self, dc):
+        self._array[0] = hamming8_encode(dc)
+
+    def to_ansi(self, colour=True):
+        return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} '
