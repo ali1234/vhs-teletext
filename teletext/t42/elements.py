@@ -105,7 +105,7 @@ class Header(Page):
         self._array[6:8] = hamming16_encode(control >> 3)
 
     def to_ansi(self, colour=True):
-        return f'{self.page:02x}{self.displayable.to_ansi(colour)} {self.subpage: x}'
+        return f'{self.page:02x} {self.displayable.to_ansi(colour)} {self.subpage: x}'
 
     def ranks(self):
         ranks = [(f.match(self.displayable[:]),f) for f in Finders]
