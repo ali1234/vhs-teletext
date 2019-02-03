@@ -25,12 +25,12 @@ from teletext.misc.all import All
 from teletext.t42.packet import Packet
 
 
-extra_roll = 0
+_extra_roll = 0
 
 def doit(*args, **kwargs):
     l = Line(*args, **kwargs)
     if l.is_teletext:
-        l.roll(extra_roll)
+        l.roll(_extra_roll)
         l.bits()
         l.mrag()
         l.bytes()
@@ -45,96 +45,49 @@ def split_seq(iterable, size):
         item = list(itertools.islice(it, size))
 
 
-def deconvolve():
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-a', '--ansi',
-                       help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.',
-                       action='store_true')
-    group.add_argument('-t', '--t42',
-                       help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.',
-                       action='store_true')
-
-    parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+',
-                        help='Only attempt to deconvolve.py lines from these rows.', default=All)
-    parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+',
-                        help='Only attempt to deconvolve.py lines from these magazines.', default=All)
-    parser.add_argument('-n', '--numbered',
-                        help='When output is ansi, number the lines according to position in input file.',
-                        action='store_true')
-    parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
-    parser.add_argument('-e', '--extra-roll', metavar='SAMPLES', type=int, help='Extra roll.', default=4)
-    parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0.', action='store_true')
-    parser.add_argument('-S', '--squash', metavar='N', type=int, help='Merge N consecutive rows to reduce output.',
-                        default=1)
-    parser.add_argument('-C', '--force-cpu', help='Disable CUDA even if it is available.', action='store_true')
-    parser.add_argument('-T', '--threads', type=int, help='Number of CPU worker threads. Default 1.', default=1)
-
-    parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
-    group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.',
-                       default=-1)
-
-    cliargs = parser.parse_args()
-
-    if not cliargs.t42 and not cliargs.ansi:
-        if sys.stdout.isatty():
-            cliargs.ansi = True
-        else:
-            cliargs.t42 = True
-
-    if cliargs.stop == -1 and cliargs.count > -1:
-        cliargs.stop = cliargs.start + cliargs.count
-
-    if cliargs.headers:
-        cliargs.ansi = True
-        cliargs.t42 = False
-        cliargs.numbered = True
-        cliargs.rows = {0}
+def deconvolve(inputfile, config, ansi=True, extra_roll=4, rows=All, mags=All, numbered=False, squash=1, force_cpu=False, threads=1, start=0, stop=-1, count=-1):
 
     try:
-        config = importlib.import_module('config_' + cliargs.config)
+        config = importlib.import_module('config_' + config)
     except ImportError:
-        sys.stderr.write('No configuration file for ' + cliargs.config + '.\n')
+        sys.stderr.write('No configuration file for ' + config + '.\n')
 
     Line.set_config(config)
 
-    if cliargs.force_cpu:
+    if force_cpu:
         Line.disable_cuda()
 
-    global extra_roll
-    extra_roll = cliargs.extra_roll
+    global _extra_roll
+    _extra_roll = extra_roll
 
-    if cliargs.threads > 0:
-        p = Pool(cliargs.threads)
+    if threads > 1:
+        p = Pool(threads)
         map_func = lambda f, it: p.imap(f, it, chunksize=1000)
     else:
         map_func = map
 
-    with RawLineReader(cliargs.inputfile, config.line_length, start=cliargs.start, stop=cliargs.stop) as rl:
+    with RawLineReader(inputfile, config.line_length, start=start, stop=stop, count=count) as rl:
         with tqdm(rl, unit=' Lines') as rlw:
 
-            it = (l for l in map_func(doit, rlw) if l.is_teletext and l.magazine in cliargs.mags and l.row in cliargs.rows)
+            it = (l for l in map_func(doit, rlw) if l.is_teletext and l.magazine in mags and l.row in rows)
 
-            if cliargs.squash > 1:
-                for l_list in split_seq(it, cliargs.squash):
+            if squash > 1:
+                for l_list in split_seq(it, squash):
                     a = numpy.array([l.bytes_array for l in l_list])
                     best, counts = mode(a)
                     best = best[0].astype(numpy.uint8)
-                    if cliargs.t42:
-                        best.tofile(sys.stdout)
-                    elif cliargs.ansi:
-                        if cliargs.numbered:
+                    if ansi:
+                        if numbered:
                             rlw.write(('%8d ' % l_list[0].offset), end='')
                         rlw.write(Packet(best).to_ansi())
+                    else:
+                        best.tofile(sys.stdout)
 
             else:
                 for l in it:
-                    if cliargs.t42:
-                        l.bytes_array.tofile(sys.stdout)
-                    elif cliargs.ansi:
-                        if cliargs.numbered:
+                    if ansi:
+                        if numbered:
                             rlw.write(('%8d ' % l.offset), end='')
                         rlw.write(Packet(l.bytes_array).to_ansi())
+                    else:
+                        l.bytes_array.tofile(sys.stdout)

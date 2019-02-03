@@ -11,7 +11,7 @@ setup(
     scripts=['vbiview'],
     entry_points={
         'console_scripts': [
-            'deconvolve = teletext.vbi.deconvolve:deconvolve',
+            'deconvolve = teletext.cli:deconvolve',
             'training = teletext.vbi.training:training',
             't42interactive = teletext.t42.interactive:interactive',
             't42service = teletext.t42.service:service',

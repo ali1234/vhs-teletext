@@ -13,7 +13,13 @@ import os
 
 
 class RawLineReader(object):
-    def __init__(self, filename, line_length, start=0, stop=-1, count=-1):
+    def __init__(self, filename, line_length, start=None, stop=None, count=None):
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = -1
+        if count is None:
+            count = -1
         self.filename = filename
         self.line_length = line_length
         self.start = start
