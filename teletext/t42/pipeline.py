@@ -189,7 +189,7 @@ def pipe():
         if args.windowed:
             term.change_terminal(term.urxvt('Teletext',
                                             ['-geometry', '67x32', '+sb', '-fg', 'white', '-bg', 'black', '-fn',
-                                             'teletext']))
+                                             'teletext', '-fb', 'teletext']))
             if args.less:
                 term.less()
         else:
