@@ -133,7 +133,7 @@ class PageLink(Page):
     @property
     def magazine(self):
         values = hamming16_decode(self._array[2:6])
-        magazine = ((values[0] >> 7) | (values[1] >> 6)) ^ (self._mrag.magazine & 0x7)
+        magazine = ((values[0] >> 7) | (values[1] >> 5)) ^ (self._mrag.magazine & 0x7)
         return magazine or 8
 
     @subpage.setter
