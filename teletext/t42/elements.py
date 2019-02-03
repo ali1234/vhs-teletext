@@ -119,6 +119,17 @@ class Header(Page):
             self.displayable_fixed = self.displayable
 
 
+class DesignationCode(Element):
+
+    @property
+    def dc(self):
+        return hamming8_decode(self._array[0])
+
+    @dc.setter
+    def dc(self, dc):
+        self._array[0] = hamming8_encode(dc)
+
+
 class PageLink(Page):
 
     def __init__(self, array, mrag):
@@ -161,7 +172,22 @@ class PageLink(Page):
         return f'{self.magazine}{self.page:02x}:{self.subpage:x}'
 
 
-class BroadcastData(Element):
+class Fastext(DesignationCode):
+
+    def __init__(self, array, mrag):
+        super().__init__(array)
+        self._mrag = mrag
+
+    @property
+    def links(self):
+        return tuple(PageLink(self._array[n:n+6], self._mrag) for n in range(1, 37, 6))
+
+    def to_ansi(self, colour=True):
+        return f'DC={self.dc} ' + ' '.join((str(link) for link in self.links))
+
+
+
+class BroadcastData(DesignationCode):
 
     def __init__(self, array, mrag):
         super().__init__(array)
@@ -174,14 +200,6 @@ class BroadcastData(Element):
     @property
     def initial_page(self):
         return PageLink(self._array[1:7], self._mrag)
-
-    @property
-    def dc(self):
-        return hamming8_decode(self._array[0])
-
-    @dc.setter
-    def dc(self, dc):
-        self._array[0] = hamming8_encode(dc)
 
     def to_ansi(self, colour=True):
         return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} '

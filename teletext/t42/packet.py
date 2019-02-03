@@ -54,8 +54,8 @@ class Packet(object):
         return Displayable(self._array[2:])
 
     @property
-    def links(self):
-        return tuple(PageLink(self._array[n:n+6], self.mrag) for n in range(3, 39, 6))
+    def fastext(self):
+        return Fastext(self._array[2:], self.mrag)
 
     @property
     def broadcast(self):
@@ -69,7 +69,7 @@ class Packet(object):
         elif t == 'display':
             return self.displayable.to_ansi(colour)
         elif t == 'fastext':
-            return ' '.join((str(link) for link in self.links))
+            return self.fastext.to_ansi(colour)
         elif t == 'broadcast':
             return self.broadcast.to_ansi(colour)
         else:
