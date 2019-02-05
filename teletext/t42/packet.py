@@ -80,6 +80,11 @@ class Packet(object):
         else:
             return f'Unknown packet {self.mrag}'
 
+    def to_binary(self):
+        b = np.unpackbits(self._array[::-1])[::-1]
+        x = b[0::2] | (b[1::2]<<1)
+        return ''.join([' ', chr(0x258C), chr(0x2590), chr(0x2588)][n] for n in x)
+
     def to_bytes(self):
         return self._array.tobytes()
 
