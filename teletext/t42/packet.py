@@ -88,6 +88,22 @@ class Packet(object):
     def to_bytes(self):
         return self._array.tobytes()
 
+    @property
+    def ansi(self):
+        return self.to_ansi(colour=True).encode('utf8') + b'\n'
+
+    @property
+    def text(self):
+        return self.to_ansi(colour=False).encode('utf8') + b'\n'
+
+    @property
+    def bar(self):
+        return self.to_binary().encode('utf8') + b'\n'
+
+    @property
+    def bytes(self):
+        return self._array.tobytes()
+
 
 
 
