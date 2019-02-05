@@ -79,11 +79,9 @@ def deconvolve(input, start, stop, step, limit, mags, rows, output, config, forc
     _extra_roll = extra_roll
 
     chunks = FileChunker(input, config.line_length, start, stop, step, limit)
-    pbar = tqdm(chunks, unit=' Lines')
-
-    lines = (Line(chunk, number) for number, chunk in pbar)
+    bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+    lines = (Line(chunk, number) for number, chunk in bar)
     packets = (l.deconvolve(extra_roll, mags, rows) for l in lines)
-
     packets = (p for p in packets if p is not None)
 
     for attr, f in output:
