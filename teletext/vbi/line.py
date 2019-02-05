@@ -99,36 +99,32 @@ class Line(object):
         """Rolls the raw samples to an absolute position."""
         self.roll(roll - self.total_roll)
 
-    def bits(self):
-        """Chops and averages the raw samples to produce an array where one byte = one bit of the original signal."""
-        self.bits_array = normalise(numpy.add.reduceat(self.line, Line.config.bits, dtype=numpy.float32)[:-1]/Line.config.bit_lengths)
-
-    def mrag(self):
-        """Finds the mrag for the line."""
-        self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
-        m = Mrag(self.bytes_array[:2])
-        self.magazine = m.magazine
-        self.row = m.row
-
-    def bytes(self):
-        """Finds the rest of the line."""
-        #if self.row == 0:
-        #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
-        #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
-        #elif self.row == 27:
-        #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
-        #    # skip the last two bytes as they are not really useful
-        #else:
-
-        # it is faster to just use the same pattern array all the time
-        self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
-
     def deconvolve(self, extra_roll=4, mags=All, rows=All):
+
         if self.is_teletext:
             self.roll(extra_roll)
-            self.bits()
-            self.mrag()
-            if self.magazine in mags and self.row in rows:
-                self.bytes()
+
+            # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
+            self.bits_array = normalise(numpy.add.reduceat(self.line, Line.config.bits, dtype=numpy.float32)[:-1]/Line.config.bit_lengths)
+
+            # mrag - Find only the mrag for the line.
+            self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
+            m = Mrag(self.bytes_array[:2])
+            mag = m.magazine
+            row = m.row
+
+            if mag in mags and row in rows:
+                # bytes - Finds the rest of the line.
+                # if self.row == 0:
+                #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
+                #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
+                # elif self.row == 27:
+                #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
+                #    # skip the last two bytes as they are not really useful
+                # else:
+
+                # it is faster to just use the same pattern array all the time
+                self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
                 return Packet(self.bytes_array, self._number)
+
         return None
