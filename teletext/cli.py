@@ -22,8 +22,9 @@ def pipe(input, start, stop, step, limit, mags, rows):
     chunks = FileChunker(input, 42, start, stop, step, limit)
     pbar = tqdm(chunks, unit=' Lines')
     packets = (Packet(data, number) for number, data in chunks)
+    filtered = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
 
-    for p in packets:
+    for p in filtered:
         pbar.write(p.to_ansi(colour=True))
 
 
