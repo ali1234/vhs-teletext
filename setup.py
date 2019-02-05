@@ -15,7 +15,7 @@ setup(
             'training = teletext.vbi.training:training',
             't42interactive = teletext.t42.interactive:interactive',
             't42service = teletext.t42.service:service',
-            't42pipe = teletext.t42.pipeline:pipe',
+            't42pipe = teletext.cli:pipe',
             't42html = teletext.t42.printer:html',
             'vbicat = teletext.vbi.util:vbicat',
         ]

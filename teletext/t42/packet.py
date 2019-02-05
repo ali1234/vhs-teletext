@@ -9,7 +9,7 @@ from .finders import Finders
 
 class Packet(object):
 
-    def __init__(self, data):
+    def __init__(self, data, number=None):
 
         if type(data) == bytes:
             array = np.fromstring(data, dtype=np.uint8)
@@ -20,12 +20,17 @@ class Packet(object):
             raise IndexError('Packet.from_bytes requires 42 bytes.')
 
         self._array = array
+        self._number = number
 
     def __getitem__(self, item):
         return self._array[item]
 
     def __setitem__(self, item, value):
         self._array[item] = value
+
+    @property
+    def number(self):
+        return self._number
 
     @property
     def type(self):

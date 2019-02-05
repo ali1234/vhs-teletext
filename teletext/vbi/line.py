@@ -12,6 +12,9 @@ import os
 import sys
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
+
+from teletext.misc.all import All
+from teletext.t42.packet import Packet
 from .util import normalise
 
 from .pattern import Pattern
@@ -53,14 +56,12 @@ class Line(object):
             sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
         Line.try_cuda = False
 
-
-    def __init__(self, args):
-        offset, data = args
+    def __init__(self, data, number=None):
         if Line.try_cuda:
             Line.try_init_cuda()
 
         self.total_roll = 0
-        self.offset = offset
+        self._number = number
         self.data = data
 
         # Normalise and filter the data.
@@ -85,7 +86,6 @@ class Line(object):
         if self.is_teletext:
             self.bytes_array = numpy.zeros((42,), dtype=numpy.uint8)
 
-
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
         roll = int(roll)
@@ -95,16 +95,13 @@ class Line(object):
             self.gline = numpy.roll(self.gline, roll)
             self.total_roll += roll
 
-
     def roll_abs(self, roll):
         """Rolls the raw samples to an absolute position."""
         self.roll(roll - self.total_roll)
-        
 
     def bits(self):
         """Chops and averages the raw samples to produce an array where one byte = one bit of the original signal."""
         self.bits_array = normalise(numpy.add.reduceat(self.line, Line.config.bits, dtype=numpy.float32)[:-1]/Line.config.bit_lengths)
-
 
     def mrag(self):
         """Finds the mrag for the line."""
@@ -112,7 +109,6 @@ class Line(object):
         m = Mrag(self.bytes_array[:2])
         self.magazine = m.magazine
         self.row = m.row
-
 
     def bytes(self):
         """Finds the rest of the line."""
@@ -127,3 +123,12 @@ class Line(object):
         # it is faster to just use the same pattern array all the time
         self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
 
+    def deconvolve(self, extra_roll=4, mags=All, rows=All):
+        if self.is_teletext:
+            self.roll(extra_roll)
+            self.bits()
+            self.mrag()
+            if self.magazine in mags and self.row in rows:
+                self.bytes()
+                return Packet(self.bytes_array, self._number)
+        return None
