@@ -8,7 +8,6 @@ from teletext.file import FileChunker
 from teletext.t42.packet import Packet
 
 
-
 @click.command()
 @click.argument('input', type=click.File('rb'))
 @click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.')
@@ -26,13 +25,6 @@ def pipe(input, start, stop, step, limit, mags, rows):
 
     for p in filtered:
         pbar.write(p.to_ansi(colour=True))
-
-
-if __name__ == '__main__':
-    pipe()
-
-
-import teletext.vbi.deconvolve
 
 
 # TODO: parser.add_argument('-H', '--headers', help='Synonym for --ansi --numbered --rows 0.', action='store_true')
@@ -79,6 +71,3 @@ def deconvolve(input, start, stop, step, limit, mags, rows, config, force_cpu, e
     for p in packets:
         if p is not None:
             pbar.write(p.to_ansi(colour=True))
-
-
-
