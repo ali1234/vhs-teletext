@@ -13,7 +13,7 @@ setup(
         'console_scripts': [
             'deconvolve = teletext.cli:deconvolve',
             'training = teletext.vbi.training:training',
-            't42interactive = teletext.interactive:interactive',
+            't42interactive = teletext.cli:interactive',
             't42service = teletext.service:service',
             't42pipe = teletext.cli:pipe',
             't42html = teletext.printer:html',

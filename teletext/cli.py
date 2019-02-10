@@ -87,6 +87,13 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, squash, o
 
 
 @click.command()
+@click.argument('input', type=click.File('rb'), default='-')
+def interactive(input):
+    from . import interactive
+    interactive.main(input)
+
+
+@click.command()
 @baseparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')

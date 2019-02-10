@@ -3,7 +3,8 @@ import os
 import time
 import locale
 
-from .pipeline import reader
+from .file import FileChunker
+from .packet import Packet
 from .printer import PrinterANSI
 
 
@@ -13,6 +14,8 @@ def setstyle(self, fg=None, bg=None):
 
 PrinterANSI.setstyle = setstyle
 
+class Quit(Exception):
+    pass
 
 class Interactive(object):
     colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
@@ -51,7 +54,7 @@ class Interactive(object):
 
     def addstr(self, row, st):
         s = iter(st.split('\033['))
-        self.scr.addstr(row, 0, s.next())
+        self.scr.addstr(row, 0, next(s))
         for fragment in s:
             fg = ord(fragment[0])
             bg = ord(fragment[1])
@@ -108,10 +111,12 @@ class Interactive(object):
             self.do_hold()
         elif c == ord('r'):
             self.do_reveal()
+        elif c == ord('q'):
+            self.running = False
 
     def handle_one_packet(self):
 
-        packet = self.packet_iter.next()
+        packet = next(self.packet_iter)
         if self.inputstate == 0 and not self.hold:
             if packet.mrag.magazine == self.magazine % 8:
                 if packet.mrag.row == 0:
@@ -124,7 +129,8 @@ class Interactive(object):
                     self.addstr(packet.mrag.row, packet.to_ansi(colour=False))
 
     def main(self):
-        while True:
+        self.running = True
+        while self.running:
             for i in range(32):
                 self.handle_one_packet()
 
@@ -134,17 +140,17 @@ class Interactive(object):
             time.sleep(0.02)
 
 
-def interactive():
+def main(input):
     locale.setlocale(locale.LC_ALL, '')
 
-    pipe = os.fdopen(os.dup(0))
-    packet_iter = reader(pipe)
-
-    f = open("/dev/tty", 'rw')
+    input_dup = os.fdopen(os.dup(input.fileno()), 'rb')
+    f = open("/dev/tty", 'r')
     os.dup2(f.fileno(), 0)
 
+    chunks = FileChunker(input_dup, 42)
+    packets = (Packet(data, number) for number, data in chunks)
+
     def main(scr):
-        i = Interactive(packet_iter, scr)
-        i.main()
+        Interactive(packets, scr).main()
 
     curses.wrapper(main)
