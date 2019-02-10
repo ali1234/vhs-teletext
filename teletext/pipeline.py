@@ -43,6 +43,9 @@ def paginate(packet_iter, pages=range(0x000, 0x900), yield_func=packets, drop_em
 
 
 def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x000, 0x900), yield_func=packets):
+    """
+            iter = subpage_squash(iter, pages=args.pages)
+    """
     subpages = defaultdict(list)
     for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
@@ -73,7 +76,9 @@ def split_seq(iterable, size):
 
 
 def row_squash(packet_iter, n_rows):
-
+    """
+            iter = row_squash(iter, args.squash_rows)
+    """
     for l_list in split_seq(packet_iter, n_rows):
         a = numpy.array([numpy.fromstring(l.to_bytes(), dtype=numpy.uint8) for l in l_list])
         best, counts = mode(a)
@@ -92,98 +97,3 @@ def make_service(packet_iter, pages=range(0x100)):
         v.magazineno = k
 
     return service
-
-"""
-def pipe():
-    import sys
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-a', '--ansi',
-                       help='Output lines in ANSI format suitable for console display. Default if STDOUT is a tty.',
-                       action='store_true')
-    group.add_argument('-t', '--t42',
-                       help='Output lines in T42 format for further processing. Default if STDOUT is not a tty.',
-                       action='store_true')
-
-    parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.',
-                        default=range(32))
-    parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+',
-                        help='Only pass packets from these magazines.', default=range(9))
-    parser.add_argument('-n', '--numbered',
-                        help='When output is ascii, number packets according to offset in input file.',
-                        action='store_true')
-    parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+',
-                        help='Only pass packets from these magazines.', default=range(0x100))
-    parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
-    parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
-    parser.add_argument('-s', '--squash-rows', metavar='N', type=int, help='Merge N consecutive rows to reduce output.',
-                        default=1)
-
-    parser.add_argument('--spellcheck', help='Try to fix common errors with a spell checking dictionary.',
-                        action='store_true')
-
-    parser.add_argument('-H', '--headers', help='Synonym for --rows 0 31.', action='store_true')
-
-    parser.add_argument('-W', '--windowed', help='Output in a separate window.', action='store_true')
-    parser.add_argument('-L', '--less', help='Page the output with less.', action='store_true')
-
-    parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
-    group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.',
-                       default=-1)
-
-    args = parser.parse_args()
-
-    if not args.t42 and not args.ansi:
-        if sys.stdout.isatty():
-            args.ansi = True
-        else:
-            args.t42 = True
-
-    if args.stop == -1 and args.count > -1:
-        args.stop = args.start + args.count
-
-    if args.headers:
-        args.rows = {0, 31}
-
-    # this sucks but it will get removed soon
-    if any(i not in args.pages for i in range(0x100)):
-        args.paginate = True
-
-    if args.windowed or args.less:
-        from .terminal import termify
-        termify(args.windowed, args.less)
-
-    infile = open(args.inputfile, 'rb')
-
-    iter = demux(reader(infile, args.start, args.stop), magazines=args.mags, rows=args.rows)
-
-    if args.squash:
-        iter = subpage_squash(iter, pages=args.pages)
-    elif args.paginate:
-        iter = paginate(iter, pages=args.pages)
-    elif args.squash_rows > 1:
-        iter = row_squash(iter, args.squash_rows)
-
-    if args.spellcheck:
-        from .spellcheck import spellcheck
-    else:
-        spellcheck = None
-
-    for packet in iter:
-        if spellcheck is not None:
-            spellcheck(packet)
-        if args.ansi:
-            if args.numbered:
-                print('%8d' % packet._offset, end='')
-            print(packet.to_ansi())
-        else:
-            x = packet.to_bytes()
-            if len(x) != 42 and len(x) != 0:
-                raise IndexError("No" + str(type(packet)))
-            sys.stdout.write(x)
-"""
