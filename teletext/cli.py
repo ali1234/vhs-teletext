@@ -55,8 +55,9 @@ def termparams(f):
 @click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
 @click.option('--spellcheck', is_flag=True, help='Try to fix common errors with a spell checking dictionary.')
+@click.option('--squash', is_flag=True, help='Squash subpages to reduce errors.')
 @termparams
-def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output, spellcheck):
+def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, squash, output, spellcheck):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -70,11 +71,13 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output, s
     bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
     packets = (Packet(data, number) for number, data in bar)
     packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+    if squash:
+        packets = pipeline.subpage_squash(packets, pages)
+    elif paginate:
+        packets = pipeline.paginate(packets, pages)
     if spellcheck:
         from .spellcheck import spellcheck_packet
         packets = (spellcheck_packet(p) for p in packets)
-    if paginate:
-        packets = pipeline.paginate(packets, pages)
 
     for attr, f in output:
         packets = to_file(packets, f, attr)

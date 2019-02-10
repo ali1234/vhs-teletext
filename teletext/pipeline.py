@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 
 from collections import defaultdict
 
@@ -42,29 +42,18 @@ def paginate(packet_iter, pages=range(0x000, 0x900), yield_func=packets, drop_em
         yield from check_buffer(mb, pages, yield_func, 1 if drop_empty else 0)
 
 
-def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x000, 0x900), yield_func=packets):
+def subpage_squash(packet_iter, pages=range(0x000, 0x900), yield_func=packets, minimum_dups=3):
     """
             iter = subpage_squash(iter, pages=args.pages)
     """
-    subpages = defaultdict(list)
-    for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
-        subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
-        arr = numpy.zeros((42, 32), dtype=numpy.uint8)
-        for p in pl:
-            arr[:,p.mrag.row] = p._original_bytes
-        subpages[subpagekey].append(arr)
+    spdict = defaultdict(list)
+    for subpage in paginate(packet_iter, pages=pages, yield_func=subpages, drop_empty=True):
+        spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
 
-    for arrlist in subpages.values():
-        if len(arrlist) >= minimum_dups:
-            arr = mode(numpy.array(arrlist), axis=0)[0][0].astype(numpy.uint8)
-            packets = []
-
-            for i in range(32):
-                if arr[:,i].any():
-                    packets.append(Packet.from_bytes(arr[:,i]))
-
-            for item in yield_func(packets):
-                yield item
+    for splist in spdict.values():
+        if len(splist) >= minimum_dups:
+            arr = mode(np.stack(sp[:] for sp in splist), axis=0)[0][0].astype(np.uint8)
+            yield from yield_func(Subpage(arr, np.clip(splist[0].numbers, -100, -1)).packets)
 
 
 def split_seq(iterable, size):
@@ -80,9 +69,9 @@ def row_squash(packet_iter, n_rows):
             iter = row_squash(iter, args.squash_rows)
     """
     for l_list in split_seq(packet_iter, n_rows):
-        a = numpy.array([numpy.fromstring(l.to_bytes(), dtype=numpy.uint8) for l in l_list])
+        a = np.array([np.fromstring(l.to_bytes(), dtype=np.uint8) for l in l_list])
         best, counts = mode(a)
-        best = best[0].astype(numpy.uint8)
+        best = best[0].astype(np.uint8)
         p = Packet.from_bytes(best)
         p._offset = l_list[0]._offset
         yield p
