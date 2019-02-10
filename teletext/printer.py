@@ -1,6 +1,5 @@
 import re
 
-from teletext.all import All
 
 class PrinterANSI(object):
 
@@ -113,7 +112,7 @@ class PrinterANSI(object):
 
 class PrinterHTML(PrinterANSI):
 
-    def __init__(self, tt, codepage=0, pages_set=All):
+    def __init__(self, tt, codepage=0, pages_set=range(0x100)):
         PrinterANSI.__init__(self, tt, colour=False, codepage=codepage)
         self.fastext = False
         self.pages_set = pages_set

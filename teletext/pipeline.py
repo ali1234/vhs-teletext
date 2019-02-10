@@ -5,7 +5,6 @@ from collections import defaultdict
 from scipy.stats.mstats import mode
 
 from functools import partial
-from teletext.all import All
 from .packet import Packet, HeaderPacket
 from .subpage import Subpage
 from .service import Service
@@ -29,7 +28,7 @@ def reader(infile, start=0, stop=-1):
             yield p
 
 
-def demux(packet_iter, magazines=All, rows=All):
+def demux(packet_iter, magazines=range(9), rows=range(32)):
     """Filters t42 stream to a subset of magazines and packets."""
     for packet in packet_iter:
         if packet.mrag.magazine in magazines:
@@ -50,7 +49,7 @@ def subpages(packet_list):
     yield Subpage.from_packets(packet_list)
 
 
-def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
+def paginate(packet_iter, pages=range(0x100), yield_func=packets, drop_empty=False):
     """Reorders lines in a t42 stream so that pages are continuous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
     for packet in packet_iter:
@@ -71,7 +70,7 @@ def paginate(packet_iter, pages=All, yield_func=packets, drop_empty=False):
                     yield item
 
 
-def subpage_squash(packet_iter, minimum_dups=3, pages=All, yield_func=packets):
+def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x100), yield_func=packets):
     subpages = defaultdict(list)
     for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
@@ -112,7 +111,7 @@ def row_squash(packet_iter, n_rows):
         yield p
 
 
-def make_service(packet_iter, pages=All):
+def make_service(packet_iter, pages=range(0x100)):
     service = Service()
     for s in paginate(packet_iter, pages=pages, yield_func=subpages):
         service.magazines[s._original_magazine].pages[s._original_page].subpages[s._original_subpage] = s
@@ -127,8 +126,6 @@ def pipe():
     import sys
     import argparse
 
-    from ..misc.all import All
-
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
     group = parser.add_mutually_exclusive_group()
@@ -140,14 +137,14 @@ def pipe():
                        action='store_true')
 
     parser.add_argument('-r', '--rows', type=int, metavar='R', nargs='+', help='Only pass packets from these rows.',
-                        default=All)
+                        default=range(32))
     parser.add_argument('-m', '--mags', type=int, metavar='M', nargs='+',
-                        help='Only pass packets from these magazines.', default=All)
+                        help='Only pass packets from these magazines.', default=range(9))
     parser.add_argument('-n', '--numbered',
                         help='When output is ascii, number packets according to offset in input file.',
                         action='store_true')
     parser.add_argument('-p', '--pages', type=str, metavar='M', nargs='+',
-                        help='Only pass packets from these magazines.', default=All)
+                        help='Only pass packets from these magazines.', default=range(0x100))
     parser.add_argument('-P', '--paginate', help='Re-order output lines so pages are continuous.', action='store_true')
     parser.add_argument('-S', '--squash', help='Squash pages.', action='store_true')
     parser.add_argument('-s', '--squash-rows', metavar='N', type=int, help='Merge N consecutive rows to reduce output.',
@@ -181,7 +178,8 @@ def pipe():
     if args.headers:
         args.rows = {0, 31}
 
-    if args.pages is not All:
+    # this sucks but it will get removed soon
+    if any(i not in args.pages for i in range(0x100)):
         args.paginate = True
 
     if args.windowed or args.less:
@@ -209,9 +207,11 @@ def pipe():
 
     if args.spellcheck:
         from .spellcheck import spellcheck
+    else:
+        spellcheck = None
 
     for packet in iter:
-        if args.spellcheck:
+        if spellcheck is not None:
             spellcheck(packet)
         if args.ansi:
             if args.numbered:

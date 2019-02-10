@@ -2,7 +2,7 @@ import datetime
 
 from collections import defaultdict
 
-from .packet import *
+from .packet import Packet
 from .subpage import Subpage
 
 
