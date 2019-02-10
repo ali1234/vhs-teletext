@@ -1,6 +1,6 @@
 import re
 
-from teletext.misc.all import All
+from teletext.all import All
 
 class PrinterANSI(object):
 

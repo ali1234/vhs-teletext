@@ -5,7 +5,7 @@ from collections import defaultdict
 from scipy.stats.mstats import mode
 
 from functools import partial
-from ..misc.all import All
+from teletext.all import All
 from .packet import Packet, HeaderPacket
 from .subpage import Subpage
 from .service import Service
@@ -185,7 +185,7 @@ def pipe():
         args.paginate = True
 
     if args.windowed or args.less:
-        import teletext.misc.terminal as term
+        import teletext.terminal as term
         if args.windowed:
             term.change_terminal(term.urxvt('Teletext',
                                             ['-geometry', '67x32', '+sb', '-fg', 'white', '-bg', 'black', '-fn',

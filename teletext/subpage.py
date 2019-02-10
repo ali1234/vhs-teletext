@@ -1,7 +1,7 @@
 from .packet import *
 from .printer import PrinterHTML
 
-from teletext.misc.all import All
+from teletext.all import All
 
 class Subpage(object):
     control = ControlBits()

@@ -16,7 +16,7 @@ from random import shuffle, randrange
 import numpy
 import sys
 
-from teletext.t42.coding import hamming8_encode, parity_encode
+from teletext.coding import hamming8_encode, parity_encode
 
 def mrag_encode(m, r):
     a = (m&0x7) | ((r&0x1) << 3)

@@ -5,7 +5,7 @@ import click
 from tqdm import tqdm
 
 from teletext.file import FileChunker
-from teletext.t42.packet import Packet
+from teletext.packet import Packet
 
 
 def to_file(packets, f, attr):

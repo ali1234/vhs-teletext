@@ -5,8 +5,8 @@
 import sys
 import numpy
 
-from teletext.t42.service import Service
-from teletext.t42.subpage import Subpage
+from teletext.service import Service
+from teletext.subpage import Subpage
 
 # Create a subpage
 subpage = Subpage()

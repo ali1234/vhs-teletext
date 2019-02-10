@@ -1,6 +1,4 @@
-from functools import wraps
-
-from teletext.t42.printer import PrinterANSI
+from teletext.printer import PrinterANSI
 from .coding import *
 
 

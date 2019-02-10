@@ -1,6 +1,6 @@
 import enchant
 
-from teletext.t42.packet import DisplayPacket, HeaderPacket, PrinterANSI
+from teletext.packet import DisplayPacket, HeaderPacket, PrinterANSI
 
 d = enchant.Dict('en_GB')
 
