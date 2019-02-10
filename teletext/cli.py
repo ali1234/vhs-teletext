@@ -10,6 +10,7 @@ from .terminal import termify
 from . import pipeline
 from .spellcheck import spellcheck_packet
 
+
 def to_file(packets, f, attr):
     if attr == 'auto':
         attr = 'ansi' if f.isatty() else 'bytes'
@@ -37,10 +38,10 @@ def baseparams(f):
     return f
 
 
-def termopts(f):
-    def t(windowed, less, *args, **kwargs):
+def termparams(f):
+    def t(windowed, less, **kwargs):
         termify(windowed, less)
-        f(*args, **kwargs)
+        f(**kwargs)
 
     for d in [
         click.option('--windowed', '-W', is_flag=True, help='Connect stdout to a new terminal window.'),
@@ -55,7 +56,7 @@ def termopts(f):
 @click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
 @click.option('--spellcheck', is_flag=True, help='Try to fix common errors with a spell checking dictionary.')
-@termopts
+@termparams
 def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output, spellcheck):
 
     """Demultiplex and display t42 packet streams."""
