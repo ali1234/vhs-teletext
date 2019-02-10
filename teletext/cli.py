@@ -4,8 +4,9 @@ import sys
 import click
 from tqdm import tqdm
 
-from teletext.file import FileChunker
-from teletext.packet import Packet
+from .file import FileChunker
+from .packet import Packet
+from .terminal import termify
 
 
 def to_file(packets, f, attr):
@@ -19,24 +20,38 @@ def to_file(packets, f, attr):
 
 def baseparams(f):
     for d in [
-         click.argument('input', type=click.File('rb'), default='-'),
-         click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.'),
-         click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
-         click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
-         click.option('--limit', type=int, default=None,
-                        help='Stop after processing N lines from the input file.'),
-         click.option('--mags', '-m', type=int, multiple=True, default=range(9)),
-         click.option('--rows', '-r', type=int, multiple=True, default=range(32)),
-         click.option('-o', '--output',
-                        type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
-                        multiple=True, default=[('auto', '-')]),
+        click.argument('input', type=click.File('rb'), default='-'),
+        click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.'),
+        click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
+        click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
+        click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
+        click.option('--mags', '-m', type=int, multiple=True, default=range(9)),
+        click.option('--rows', '-r', type=int, multiple=True, default=range(32)),
+        click.option(
+            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
+            multiple=True, default=[('auto', '-')]
+        ),
     ]:
         f = d(f)
     return f
 
 
+def termopts(f):
+    def t(windowed, less, *args, **kwargs):
+        termify(windowed, less)
+        f(*args, **kwargs)
+
+    for d in [
+        click.option('--windowed', '-W', is_flag=True, help='Connect stdout to a new terminal window.'),
+        click.option('--less', '-L', is_flag=True, help='Page the output through less.'),
+    ]:
+        t = d(t)
+    return t
+
+
 @click.command()
 @baseparams
+@termopts
 def pipe(input, start, stop, step, limit, mags, rows, output):
 
     """Demultiplex and display t42 packet streams."""

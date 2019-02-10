@@ -183,16 +183,8 @@ def pipe():
         args.paginate = True
 
     if args.windowed or args.less:
-        import teletext.terminal as term
-        if args.windowed:
-            term.change_terminal(term.urxvt('Teletext',
-                                            ['-geometry', '67x32', '+sb', '-fg', 'white', '-bg', 'black', '-fn',
-                                             'teletext', '-fb', 'teletext']))
-            if args.less:
-                term.less()
-        else:
-            if args.less:
-                term.less(['-F'])
+        from .terminal import termify
+        termify(args.windowed, args.less)
 
     infile = open(args.inputfile, 'rb')
 
