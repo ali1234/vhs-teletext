@@ -1,17 +1,28 @@
 import numpy as np
 
 from .packet import Packet
-from .elements import Displayable
+from .elements import Element, Displayable
 
 
-class Subpage(object):
+class Subpage(Element):
 
-    def __init__(self):
-        self._array = np.zeros((32, 42), dtype=np.uint8)
-        self._numbers = np.full((32,), -100, dtype=np.int64)
+    def __init__(self, array=None, numbers=None):
+        super().__init__((32, 42), array)
+        if numbers is None:
+            self._numbers = np.full((32,), -100, dtype=np.int64)
+        else:
+            self._numbers = numbers
+
+    @property
+    def numbers(self):
+        return self._numbers[:]
 
     def row(self, row):
         return Packet(self._array[row, :])
+
+    @property
+    def mrag(self):
+        return Packet(self._array[0, :]).mrag
 
     @property
     def header(self):
@@ -23,7 +34,7 @@ class Subpage(object):
 
     @property
     def displayable(self):
-        return Displayable(self._array[1:26,2:])
+        return Displayable((25, 40), self._array[1:26,2:])
 
     @staticmethod
     def from_packets(packet_iter):

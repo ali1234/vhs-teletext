@@ -4,8 +4,16 @@ from .coding import *
 
 class Element(object):
 
-    def __init__(self, array):
-        self._array = array
+    def __init__(self, shape, array):
+        if array is None:
+            self._array = np.zeros(shape, dtype=np.uint8)
+        elif type(array) == bytes:
+            self._array = np.fromstring(array, dtype=np.uint8)
+        else:
+            self._array = array
+
+        if self._array.shape != shape:
+            raise IndexError('Element got wrong shaped data.')
 
     def __getitem__(self, item):
         return self._array[item]
@@ -22,6 +30,9 @@ class Element(object):
 
 
 class Mrag(Element):
+
+    def __init__(self, array):
+        super().__init__((2,), array)
 
     @property
     def magazine(self):
@@ -47,6 +58,7 @@ class Mrag(Element):
 
     def __str__(self):
         return f'{self.magazine} {self.row} {self.errors}'
+
 
 class Displayable(Element):
 
@@ -74,6 +86,9 @@ class Page(Element):
 
 class Header(Page):
 
+    def __init__(self, array):
+        super().__init__((40,), array)
+
     @property
     def subpage(self):
         values = hamming16_decode(self._array[2:6])
@@ -86,7 +101,7 @@ class Header(Page):
 
     @property
     def displayable(self):
-        return Displayable(self._array[8:])
+        return Displayable((32,), self._array[8:])
 
     @subpage.setter
     def subpage(self, subpage):
@@ -136,7 +151,7 @@ class DesignationCode(Element):
 class PageLink(Page):
 
     def __init__(self, array, mrag):
-        super().__init__(array)
+        super().__init__((6,), array)
         self._mrag = mrag
 
     @property
@@ -178,7 +193,7 @@ class PageLink(Page):
 class Fastext(DesignationCode):
 
     def __init__(self, array, mrag):
-        super().__init__(array)
+        super().__init__((40,), array)
         self._mrag = mrag
 
     @property
@@ -193,12 +208,12 @@ class Fastext(DesignationCode):
 class BroadcastData(DesignationCode):
 
     def __init__(self, array, mrag):
-        super().__init__(array)
+        super().__init__((40,), array)
         self._mrag = mrag
 
     @property
     def displayable(self):
-        return Displayable(self._array[20:])
+        return Displayable((20,), self._array[20:])
 
     @property
     def initial_page(self):

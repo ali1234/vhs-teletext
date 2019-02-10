@@ -1,25 +1,10 @@
-from typing import Any, Tuple
-
-import numpy as np
-
 from .elements import *
-from .printer import PrinterANSI
-from .finders import Finders
 
 
-class Packet(object):
+class Packet(Element):
 
-    def __init__(self, data, number=None):
-
-        if type(data) == bytes:
-            array = np.fromstring(data, dtype=np.uint8)
-        else:
-            array = data
-
-        if array.shape != (42, ):
-            raise IndexError('Packet.from_bytes requires 42 bytes.')
-
-        self._array = array
+    def __init__(self, array=None, number=None):
+        super().__init__((42, ), array)
         self._number = number
 
     def __getitem__(self, item):
@@ -56,7 +41,7 @@ class Packet(object):
 
     @property
     def displayable(self):
-        return Displayable(self._array[2:])
+        return Displayable((40,), self._array[2:])
 
     @property
     def fastext(self):
