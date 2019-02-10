@@ -8,7 +8,6 @@ from .file import FileChunker
 from .packet import Packet
 from .terminal import termify
 from . import pipeline
-from .spellcheck import spellcheck_packet
 
 
 def to_file(packets, f, attr):
@@ -72,6 +71,7 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output, s
     packets = (Packet(data, number) for number, data in bar)
     packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
     if spellcheck:
+        from .spellcheck import spellcheck_packet
         packets = (spellcheck_packet(p) for p in packets)
     if paginate:
         packets = pipeline.paginate(packets, pages)
