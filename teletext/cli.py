@@ -8,6 +8,7 @@ from .file import FileChunker
 from .packet import Packet
 from .terminal import termify
 from . import pipeline
+from .spellcheck import spellcheck_packet
 
 def to_file(packets, f, attr):
     if attr == 'auto':
@@ -27,8 +28,6 @@ def baseparams(f):
         click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
         click.option('--mags', '-m', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
         click.option('--rows', '-r', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
-        click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.'),
-        click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.'),
         click.option(
             '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
             multiple=True, default=[('auto', '-')]
@@ -53,8 +52,11 @@ def termopts(f):
 
 @click.command()
 @baseparams
+@click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
+@click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
+@click.option('--spellcheck', is_flag=True, help='Try to fix common errors with a spell checking dictionary.')
 @termopts
-def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output):
+def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output, spellcheck):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -68,6 +70,8 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output):
     bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
     packets = (Packet(data, number) for number, data in bar)
     packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+    if spellcheck:
+        packets = (spellcheck_packet(p) for p in packets)
     if paginate:
         packets = pipeline.paginate(packets, pages)
 

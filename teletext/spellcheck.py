@@ -5,22 +5,13 @@ from .printer import PrinterANSI
 
 d = enchant.Dict('en_GB')
 
-freecombos = {
-    {'e', 'i', 'j'},
-    {'r', 's', 't', 'u', 'k'},
-    {'y', 'z'},
-    {'k', 'g', 'o'},
-    {'n', 'm'},
-    {'d', 'h'},
-}
-
 
 def check_pair(x, y):
     x = x.lower()
     y = y.lower()
     if x == y:
         return 0
-    for s in freecombos:
+    for s in ['eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh']:
         if x in s and y in s:
             return 0
     return 1
@@ -34,15 +25,8 @@ def case_match(word, src):
     return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
 
 
-def spellcheck(packet):
-    array = None
-    t = packet.type
-    if t == 'display':
-        array = packet.displayable
-    elif t == 'header':
-        array = packet.header.displayable
-
-    words = ''.join(c if c.isalpha() else ' ' for c in str(PrinterANSI(array, False))).split(' ')
+def spellcheck_displayable(displayable):
+    words = ''.join(c if c.isalpha() else ' ' for c in displayable.to_ansi(colour=False)).split(' ')
 
     for n,w in enumerate(words):
         if len(w) > 2 and not d.check(w.lower()):
@@ -53,5 +37,12 @@ def spellcheck(packet):
     line = ' '.join(words).encode('ascii')
     for n, b in enumerate(line):
         if b != ord(b' '):
-            array[n] = parity_encode(b)
+            displayable[n] = parity_encode(b)
 
+def spellcheck_packet(packet):
+    t = packet.type
+    if t == 'display':
+        spellcheck_displayable(packet.displayable)
+    elif t == 'header':
+        spellcheck_displayable(packet.header.displayable)
+    return packet
