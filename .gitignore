@@ -5,5 +5,5 @@
 /build
 /dist
 /MANIFEST
-/vhs_teletext.egg-info
+/*.egg-info
 /vbi
