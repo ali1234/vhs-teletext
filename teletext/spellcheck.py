@@ -1,9 +1,9 @@
 import enchant
 
-from teletext.packet import DisplayPacket, HeaderPacket, PrinterANSI
+from .coding import parity_encode
+from .printer import PrinterANSI
 
 d = enchant.Dict('en_GB')
-
 
 freecombos = {
     {'e', 'i', 'j'},
@@ -35,19 +35,23 @@ def case_match(word, src):
 
 
 def spellcheck(packet):
-    if type(packet) == DisplayPacket or type(packet) == HeaderPacket:
-        words = str(PrinterANSI(packet.displayable, False))
-        words = ''.join([c if c.isalnum() else ' ' for c in words])
-        words = words.split(' ')
+    array = None
+    t = packet.type
+    if t == 'display':
+        array = packet.displayable
+    elif t == 'header':
+        array = packet.header.displayable
 
-        for n,w in enumerate(words):
-            if len(w) > 2 and not d.check(w.lower()):
-                s = filter(lambda x: len(x) == len(w) and weighted_hamming(x, w) == 0, d.suggest(w.lower()))
-                if len(s) > 0:
-                    words[n] = case_match(s[0], w)
+    words = ''.join(c if c.isalpha() else ' ' for c in str(PrinterANSI(array, False))).split(' ')
 
-        words = ' '.join(words)
-        for n,c in enumerate(words):
-            if c != ' ':
-                packet.displayable[n] = ord(c)
+    for n,w in enumerate(words):
+        if len(w) > 2 and not d.check(w.lower()):
+            s = list(filter(lambda x: len(x) == len(w) and weighted_hamming(x, w) == 0, d.suggest(w.lower())))
+            if len(s) > 0:
+                words[n] = case_match(s[0], w)
+
+    line = ' '.join(words).encode('ascii')
+    for n, b in enumerate(line):
+        if b != ord(b' '):
+            array[n] = parity_encode(b)
 
