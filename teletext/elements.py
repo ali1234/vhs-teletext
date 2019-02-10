@@ -25,6 +25,14 @@ class Element(object):
         return f'{self.__class__.__name__}({repr(self._array)})'
 
     @property
+    def bytes(self):
+        return self._array.tobytes()
+
+    @property
+    def sevenbit(self):
+        return np.packbits(np.unpackbits(self._array).reshape(-1, 8)[:, 1:].flatten()).tobytes()
+
+    @property
     def errors(self):
         return hamming8_errors(self._array)
 

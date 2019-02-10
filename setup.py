@@ -16,6 +16,7 @@ setup(
             't42interactive = teletext.cli:interactive',
             't42service = teletext.service:service',
             't42pipe = teletext.cli:pipe',
+            't42urls = teletext.cli:urls',
             't42html = teletext.printer:html',
             'vbicat = teletext.vbi.util:vbicat',
         ]

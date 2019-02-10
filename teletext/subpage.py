@@ -1,3 +1,5 @@
+import base64
+
 import numpy as np
 
 from .packet import Packet
@@ -50,6 +52,11 @@ class Subpage(Element):
         for n, a in enumerate(self._array):
             if self._numbers[n] > -100:
                 yield Packet(a, number=None if self._numbers[n] < 0 else self._numbers[n])
+
+    @property
+    def url(self):
+        data = base64.b64encode(self.displayable.sevenbit, b'-_').decode('ascii')
+        return f'0:{data}'
 
 # still broken
 #    def to_html(self, magazineno, pageno, subpageno, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8), pages_set=All):

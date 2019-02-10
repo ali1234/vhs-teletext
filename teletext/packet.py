@@ -84,11 +84,3 @@ class Packet(Element):
     @property
     def bar(self):
         return self.to_binary().encode('utf8') + b'\n'
-
-    @property
-    def bytes(self):
-        return self._array.tobytes()
-
-
-
-

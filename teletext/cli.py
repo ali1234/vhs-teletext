@@ -94,6 +94,19 @@ def interactive(input):
 
 
 @click.command()
+@click.argument('input', type=click.File('rb'), default='-')
+@click.option('--editor', '-e', required=True, help='Teletext editor URL.')
+def urls(input, editor):
+
+    chunks = FileChunker(input, 42)
+    packets = (Packet(data, number) for number, data in chunks)
+    subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
+
+    for s in subpages:
+        print(f'{editor}{s.url}')
+
+
+@click.command()
 @baseparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
