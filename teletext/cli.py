@@ -7,7 +7,7 @@ from tqdm import tqdm
 from .file import FileChunker
 from .packet import Packet
 from .terminal import termify
-
+from . import pipeline
 
 def to_file(packets, f, attr):
     if attr == 'auto':
@@ -25,8 +25,10 @@ def baseparams(f):
         click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
         click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
         click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
-        click.option('--mags', '-m', type=int, multiple=True, default=range(9)),
-        click.option('--rows', '-r', type=int, multiple=True, default=range(32)),
+        click.option('--mags', '-m', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
+        click.option('--rows', '-r', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
+        click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.'),
+        click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.'),
         click.option(
             '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
             multiple=True, default=[('auto', '-')]
@@ -52,14 +54,22 @@ def termopts(f):
 @click.command()
 @baseparams
 @termopts
-def pipe(input, start, stop, step, limit, mags, rows, output):
+def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, output):
 
     """Demultiplex and display t42 packet streams."""
+
+    if pages is None or len(pages) == 0:
+        pages = range(0x900)
+    else:
+        pages = {int(x, 16) for x in pages}
+        paginate = True
 
     chunks = FileChunker(input, 42, start, stop, step, limit)
     bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
     packets = (Packet(data, number) for number, data in bar)
     packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+    if paginate:
+        packets = pipeline.paginate(packets, pages)
 
     for attr, f in output:
         packets = to_file(packets, f, attr)

@@ -4,41 +4,14 @@ from collections import defaultdict
 
 from scipy.stats.mstats import mode
 
-from functools import partial
-from .packet import Packet, HeaderPacket
+from .packet import Packet
 from .subpage import Subpage
 from .service import Service
 import itertools
 
 
-def reader(infile, start=0, stop=-1):
-    """Helper to read t42 lines from a file-like object."""
-    if start > 0:
-        infile.seek(start * 42)
-    lines = iter(partial(infile.read, 42), b'')
-    for n,l in enumerate(lines):
-        offset = n + start
-        if len(l) < 42:
-            return
-        elif offset == stop:
-            return
-        else:
-            p = Packet.from_bytes(l)
-            p._offset = offset
-            yield p
-
-
-def demux(packet_iter, magazines=range(9), rows=range(32)):
-    """Filters t42 stream to a subset of magazines and packets."""
-    for packet in packet_iter:
-        if packet.mrag.magazine in magazines:
-            if packet.mrag.row in rows:
-                yield packet
-
-
 def packets(packet_list):
-    for p in packet_list:
-        yield p
+    yield from packet_list
 
 
 def packet_lists(packet_list):
@@ -49,28 +22,27 @@ def subpages(packet_list):
     yield Subpage.from_packets(packet_list)
 
 
-def paginate(packet_iter, pages=range(0x100), yield_func=packets, drop_empty=False):
-    """Reorders lines in a t42 stream so that pages are continuous."""
+def check_buffer(mb, pages, yield_func, min_rows=0):
+    if (len(mb) > min_rows) and mb[0].type == 'header':
+        page = mb[0].header.page | (mb[0].mrag.magazine * 0x100)
+        if page in pages:
+            yield from yield_func(sorted(mb, key=lambda p: p.mrag.row))
+
+
+def paginate(packet_iter, pages=range(0x000, 0x900), yield_func=packets, drop_empty=False):
+    """Reorders lines in a t42 stream so that pages are contiguous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
     for packet in packet_iter:
-        mag = packet.mrag.magazine
-        if type(packet) == HeaderPacket:
-            if ((drop_empty==False and len(magbuffers[mag]) > 0) or len(magbuffers[mag]) > 1) and type(magbuffers[mag][0]) == HeaderPacket:
-                if magbuffers[mag][0].page_str() in pages:
-                    magbuffers[mag].sort(key=lambda p: p.mrag.row)
-                    for item in yield_func(magbuffers[mag]):
-                        yield item
+        mag = packet.mrag.magazine & 0x7
+        if packet.type == 'header':
+            yield from check_buffer(magbuffers[mag], pages, yield_func, 1 if drop_empty else 0)
             magbuffers[mag] = []
         magbuffers[mag].append(packet)
     for mb in magbuffers:
-        if ((drop_empty==False and len(mb) > 0) or len(mb) > 1) and type(mb[0]) == HeaderPacket:
-            if mb[0].page_str() in pages:
-                mb.sort(key=lambda p: p.mrag.row)
-                for item in yield_func(mb):
-                    yield item
+        yield from check_buffer(mb, pages, yield_func, 1 if drop_empty else 0)
 
 
-def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x100), yield_func=packets):
+def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x000, 0x900), yield_func=packets):
     subpages = defaultdict(list)
     for pl in paginate(packet_iter, pages=pages, yield_func=packet_lists, drop_empty=True):
         subpagekey = (pl[0].mrag.magazine, pl[0].header.page, pl[0].header.subpage)
@@ -79,7 +51,7 @@ def subpage_squash(packet_iter, minimum_dups=3, pages=range(0x100), yield_func=p
             arr[:,p.mrag.row] = p._original_bytes
         subpages[subpagekey].append(arr)
 
-    for arrlist in subpages.itervalues():
+    for arrlist in subpages.values():
         if len(arrlist) >= minimum_dups:
             arr = mode(numpy.array(arrlist), axis=0)[0][0].astype(numpy.uint8)
             packets = []
@@ -121,7 +93,7 @@ def make_service(packet_iter, pages=range(0x100)):
 
     return service
 
-
+"""
 def pipe():
     import sys
     import argparse
@@ -214,3 +186,4 @@ def pipe():
             if len(x) != 42 and len(x) != 0:
                 raise IndexError("No" + str(type(packet)))
             sys.stdout.write(x)
+"""
