@@ -52,7 +52,7 @@ def subpage_squash(packet_iter, pages=range(0x000, 0x900), yield_func=packets, m
 
     for splist in spdict.values():
         if len(splist) >= minimum_dups:
-            arr = mode(np.stack(sp[:] for sp in splist), axis=0)[0][0].astype(np.uint8)
+            arr = mode(np.stack([sp[:] for sp in splist]), axis=0)[0][0].astype(np.uint8)
             yield from yield_func(Subpage(arr, np.clip(splist[0].numbers, -100, -1)).packets)
 
 
