@@ -51,7 +51,12 @@ class Mrag(Element):
 class Displayable(Element):
 
     def to_ansi(self, colour=True):
-        return str(PrinterANSI(self._array, colour))
+        if len(self._array.shape) == 1:
+            return str(PrinterANSI(self._array, colour))
+        else:
+            return '\n'.join(
+                [str(PrinterANSI(a, colour)) for a in self._array]
+            )
 
 
 class Page(Element):
