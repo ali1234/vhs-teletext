@@ -116,10 +116,10 @@ class Header(Page):
         if subpage < 0 or subpage > 0x3f7f:
             raise ValueError('Subpage numbers must be between 0 and 0x3f7f.')
         control = self.control
-        self._array[2:6] = hamming16_encode([
+        self._array[2:6] = hamming16_encode(np.array([
             (subpage & 0x7f) | ((control & 1) << 7),
             (subpage >> 8) | ((control & 6) << 6),
-        ])
+        ], dtype=np.uint8))
 
     @control.setter
     def control(self, control):

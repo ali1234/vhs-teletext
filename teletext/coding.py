@@ -115,10 +115,10 @@ def hamming8_decode(a):
 
 
 def hamming16_encode(a):
-    return np.ravel(np.column_stack(
-        hamming8_enc[a[0::2] & 0xf],
-        hamming8_enc[a[1::2] >> 4]
-    ))
+    return np.ravel(np.column_stack((
+        hamming8_enc[a & 0xf],
+        hamming8_enc[a >> 4],
+    )))
 
 
 def hamming16_decode(a):

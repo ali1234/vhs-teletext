@@ -4,77 +4,79 @@ from collections import defaultdict
 
 import numpy as np
 
+from .coding import parity_encode
 from .packet import Packet
-from .subpage import Subpage
 
 
 class Page(object):
     def __init__(self):
-        self.subpages = defaultdict(Subpage)
-        self.stream = self._stream()
+        self.subpages = {}
+        self._iter = self._gen()
 
-    def _stream(self):
+    def _gen(self):
         while True:
             if len(self.subpages) == 0:
-                yield None
-            for item in self.subpages.copy().iteritems():
-                yield item
+                yield 0x3f7f, None
+            else:
+                yield from sorted(self.subpages.items())
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._iter)
 
 class Magazine(object):
-    def __init__(self, magazineno=1, title='Unnamed  '):
+    def __init__(self, title='Unnamed  '):
         self.title = title
-        self.magazineno = magazineno
         self.pages = defaultdict(Page)
-        self.stream = self._stream()
+        self._iter = self._gen()
 
-    def header(self, pageno, sp=None):
-        try:
-            return sp._original_displayable
-        except:
-            t = datetime.datetime.now()
-            data = '%9s%1d%02x' % (self.title, self.magazineno, pageno) + t.strftime(" %a %d %b\x03%H:%M/%S")
-            return np.fromstring(data[:32], dtype=np.uint8)
-
-    def _stream(self):
+    def _gen(self):
         while True:
-            for pageno, page in self.pages.copy().iteritems():
-                ret = page.stream.next()
-                if ret:
-                    spno, sp = ret
-                    for packet in sp.to_packets(0, pageno, spno, self.header(pageno, sp)):
-                        yield packet
-            yield HeaderPacket(Mrag(0, 0), PageHeader(0xff, 0x3f7f, 0), self.header(0xff))
+            for pageno, page in sorted(self.pages.items()):
+                spno, subpage = next(page)
+                if subpage is None:
+                    p = Packet()
+                    p.mrag.row = 0
+                    p.header.page = 0xff
+                    p.header.subpage = spno
+                    yield p
+                else:
+                    subpage.header.page = pageno
+                    subpage.header.subpage = spno
+                    yield from subpage.packets
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._iter)
 
 class Service(object):
-    def __init__(self):
+    def __init__(self, replace_headers=False):
         self.magazines = defaultdict(Magazine)
+        self.priorities = [1,1,1,1,1,1,1,1]
+        self.replace_headers = replace_headers
+        self._iter = self._gen()
 
-    def next_packets(self, prio=[1,1,1,1,1,1,1,1]):
-        for n,m in self.magazines.copy().iteritems():
-            for count in range(prio[n]):
-                packet = m.stream.next()
-                packet.mrag.magazine = n
-                yield packet
+    def fill_header(self, title, mag, page):
+        t = datetime.datetime.now()
+        data = '%9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
+        return parity_encode(np.fromstring(data, dtype=np.uint8))
 
-    def pages_set(self):
-        return set(['%1d%02X' % (m, p) for m,mag in self.magazines.iteritems() for p,_ in mag.pages.iteritems()])
+    def _gen(self):
+        while True:
+            for n,m in sorted(self.magazines.items()):
+                for count in range(self.priorities[n&0x7]):
+                    packet = next(m)
+                    packet.mrag.magazine = n
+                    if self.replace_headers and packet.type == 'header':
+                        packet.header.displayable[:] = self.fill_header(m.title, n, packet.header.page)
+                    yield packet
 
+    def __iter__(self):
+        return self
 
-def service():
-
-    import sys
-
-    from .pipeline import reader, make_service
-
-    s = make_service(reader(open(sys.argv[1])))
-
-    while True:
-        for packet in s.next_packets(prio=[3, 3, 3, 3, 3, 3, 3, 3]):
-
-            x = packet.to_bytes()
-            if len(x) == 42 or len(x) == 0:
-                sys.stdout.write(x)
-            else:
-                raise IndexError(type(packet), len(x))
+    def __next__(self):
+        return next(self._iter)

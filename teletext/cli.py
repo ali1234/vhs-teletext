@@ -14,11 +14,15 @@ from . import pipeline
 def to_file(packets, f, attr):
     if attr == 'auto':
         attr = 'ansi' if f.isatty() else 'bytes'
-    for p in packets:
-        with tqdm.external_write_mode():
-            tqdm.write(getattr(p, attr), file=f, end=b'')
-        yield p
-
+    if f.isatty():
+        for p in packets:
+            with tqdm.external_write_mode():
+                f.write(getattr(p, attr))
+            yield p
+    else:
+        for p in packets:
+            f.write(getattr(p, attr))
+            yield p
 
 def ioparams(f):
     for d in [
@@ -134,6 +138,30 @@ def spellcheck(input, output, language):
 
 
 @teletext.command()
+@ioparams
+def service(input, output):
+
+    """Build a service carousel from a t42 stream."""
+
+    from teletext.service import Service
+
+    svc = Service()
+
+    chunks = FileChunker(input, 42)
+    packets = (Packet(data, number) for number, data in chunks)
+    subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
+
+    for s in subpages:
+        svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
+
+    for attr, f in output:
+        packets = to_file(svc, f, attr)
+
+    for p in packets:
+        pass
+
+
+@teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
 
@@ -165,7 +193,6 @@ def vbi():
 
 
 @vbi.command()
-@click.argument('output', type=click.File('wb'), default='-')
 @click.option('--device', '-d', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 def record(output, device):
 
