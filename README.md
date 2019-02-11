@@ -3,9 +3,9 @@ well as tools for processing teletext packet streams. The software has only
 been tested with bt8x8 capture hardware, but should work with any VBI capture
 hardware if you write a new configuration file (see config_bt8x8_pal.py).
 
-This is a rewrite of the original software using a new CUDA-accelerated
-algorithm. It is much faster than the original and also somewhat more
-accurate. The old code is still available in the 'v1' branch of this repo.
+This is the second rewrite of the original software. The old versions are
+still available in the `v1` and `v2` branches of this repo, or from the
+releases page.
 
 You can see my collection of pages recovered with this software at:
 
