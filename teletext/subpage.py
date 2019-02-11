@@ -8,12 +8,18 @@ from .elements import Element, Displayable
 
 class Subpage(Element):
 
-    def __init__(self, array=None, numbers=None):
+    def __init__(self, array=None, numbers=None, prefill=False):
         super().__init__((32, 42), array)
         if numbers is None:
-            self._numbers = np.full((32,), -100, dtype=np.int64)
+            self._numbers = np.full((32,), fill_value=-100, dtype=np.int64)
         else:
             self._numbers = numbers
+
+        if prefill:
+            for i in range(27):
+                self.row(i).mrag.row = i
+                self._numbers[i] = -1
+                self.displayable[:] = 0x20
 
     @property
     def numbers(self):

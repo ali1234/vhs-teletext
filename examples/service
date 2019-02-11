@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+
+# An example of generating a service from scratch.
+
+import sys
+import numpy as np
+
+from teletext.coding import parity_encode
+from teletext.service import Service
+from teletext.subpage import Subpage
+
+# Create a subpage
+subpage = Subpage(prefill=True)
+
+# Fill with clock cracker
+subpage.displayable[:,0::2] = 0xfe
+subpage.displayable[:,1::2] = 0x7f
+subpage.displayable[:,0] = 0x20
+
+# Put a message in the middle
+subpage.displayable[11,15:26] = parity_encode(np.fromstring('Hello World', dtype=np.uint8))
+
+# Create the service
+service = Service(replace_headers=True)
+
+# Add the subpage to the service.
+service.magazines[1].pages[0].subpages[0] = subpage
+
+# Set magazine name and number
+service.magazines[1].title = 'Example '
+
+# Broadcast it forever
+while True:
+    # Stream some packets
+    for packet in service.packets(32):
+        sys.stdout.buffer.write(packet.bytes)
+
+    # Modify the service if required
