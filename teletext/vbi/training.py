@@ -19,10 +19,11 @@ import numpy as np
 
 from tqdm import tqdm
 
-from .map import RawLineReader
+from teletext.file import FileChunker
+from teletext.coding import parity_encode, hamming8_enc as hamming_set
+
 from .pattern import build_pattern
 
-from ..coding import parity_encode, hamming8_enc as hamming_set
 
 parity_set = parity_encode(np.arange(0x80))
 
@@ -137,7 +138,7 @@ def training():
 
         code_bit_nums = np.array(range(257, 257 + (32 * 3), 3))
 
-        def doit(rl):
+        def doit(n, rl):
             l = Line(rl)
             l.bits()
 
@@ -154,7 +155,7 @@ def training():
 
         pattern = load_pattern()
 
-        with RawLineReader(args.train, config.line_length) as it:
+        with FileChunker(args.train, config.line_length) as it:
             for l in tqdm(map(doit, it), unit=' Lines'):
                 if l.is_teletext and l.pattern_offset != prev_offset:
                     for x, bytes in get_subpatterns(l.pattern_offset, pattern):
@@ -164,13 +165,13 @@ def training():
     elif args.split:
         files = [open('training.%02x.dat' % n, 'wb') for n in range(256)]
 
-        with RawLineReader(args.split, 27) as it:
+        with FileChunker(args.split, 27) as it:
             for n, line in tqdm(it, unit=' Lines'):
                 files[ord(line[0])].write(line)
 
     elif args.sort:
         lines = []
-        with RawLineReader(args.sort, 27) as it:
+        with FileChunker(args.sort, 27) as it:
             for n, line in tqdm(it, unit=' Lines'):
                 lines.append(line)
 
@@ -181,14 +182,12 @@ def training():
         f.close()
 
     elif args.dump:
-        lines = []
-        with RawLineReader(args.dump, 27) as it:
+        with FileChunker(args.dump, 27) as it:
             for n, line in tqdm(it, unit=' Lines'):
                 print(' '.join(['%02x' % ord(c) for c in line]))
 
     elif args.squash:
-        with RawLineReader(args.squash, 27) as it:
-
+        with FileChunker(args.squash, 27) as it:
             with open(args.squash + '.squashed', 'wb') as f:
                 for k, g in itertools.groupby((item[1] for item in tqdm(it, unit=' Lines')), lambda x: x[:3]):
                     a = list(g)

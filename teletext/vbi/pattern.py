@@ -9,13 +9,14 @@
 # * GNU General Public License for more details.
 
 import struct
-import numpy as np
-
 from collections import defaultdict
+
+import numpy as np
 
 from tqdm import tqdm
 
-from teletext.vbi.map import RawLineReader
+from teletext.file import FileChunker
+
 
 class Pattern(object):
     def __init__(self, filename):
@@ -85,7 +86,7 @@ def build_pattern(infilename, outfilename, start, end, pattern_set=range(256)):
         post = chr(ord(s[2])&(0xff>>(24-end)))
         return pre + s[1] + post
 
-    with RawLineReader(infilename, 27) as it:
+    with FileChunker(infilename, 27) as it:
         for n,line in tqdm(it, unit=' patterns'):
             if ord(line[1]) in pattern_set:
                 pb.add_pattern(key(line), line[3:])
