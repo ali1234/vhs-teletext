@@ -1,5 +1,6 @@
 import importlib
 import sys
+from functools import wraps
 
 import click
 from tqdm import tqdm
@@ -38,6 +39,7 @@ def baseparams(f):
 
 
 def termparams(f):
+    @wraps(f)
     def t(windowed, less, **kwargs):
         termify(windowed, less)
         f(**kwargs)
@@ -50,14 +52,19 @@ def termparams(f):
     return t
 
 
-@click.command()
+@click.group()
+def teletext():
+    pass
+
+
+@teletext.command()
 @baseparams
 @click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
 @click.option('--spellcheck', is_flag=True, help='Try to fix common errors with a spell checking dictionary.')
 @click.option('--squash', is_flag=True, help='Squash subpages to reduce errors.')
 @termparams
-def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, squash, output, spellcheck):
+def filter(input, start, stop, step, limit, mags, rows, pages, paginate, squash, output, spellcheck):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -78,7 +85,6 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, squash, o
     if spellcheck:
         from .spellcheck import spellcheck_packet
         packets = (spellcheck_packet(p) for p in packets)
-
     for attr, f in output:
         packets = to_file(packets, f, attr)
 
@@ -86,14 +92,14 @@ def pipe(input, start, stop, step, limit, mags, rows, pages, paginate, squash, o
         pass
 
 
-@click.command()
+@teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
     from . import interactive
     interactive.main(input)
 
 
-@click.command()
+@teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('--editor', '-e', required=True, help='Teletext editor URL.')
 def urls(input, editor):
@@ -106,7 +112,7 @@ def urls(input, editor):
         print(f'{editor}{s.url}')
 
 
-@click.command()
+@teletext.command()
 @baseparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
