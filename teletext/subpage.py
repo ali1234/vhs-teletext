@@ -16,10 +16,10 @@ class Subpage(Element):
             self._numbers = numbers
 
         if prefill:
-            for i in range(27):
+            for i in range(25):
                 self.row(i).mrag.row = i
                 self._numbers[i] = -1
-                self.displayable[:] = 0x20
+            self.displayable[:] = 0x20
 
     @property
     def numbers(self):
@@ -42,7 +42,7 @@ class Subpage(Element):
 
     @property
     def displayable(self):
-        return Displayable((25, 40), self._array[1:26,2:])
+        return Displayable((24, 40), self._array[1:25,2:])
 
     @staticmethod
     def from_packets(packet_iter):
@@ -61,7 +61,7 @@ class Subpage(Element):
 
     @property
     def url(self):
-        data = base64.b64encode(self.displayable.sevenbit, b'-_').decode('ascii')
+        data = base64.b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit, b'-_').decode('ascii')
         return f'0:{data}'
 
 # still broken
