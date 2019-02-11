@@ -15,7 +15,6 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
-from teletext.misc.all import All
 from teletext.vbi.map import RawLineReader
 
 class Pattern(object):
@@ -77,7 +76,7 @@ class PatternBuilder(object):
         self.patterns[bytes].append(pattern)
 
 
-def build_pattern(infilename, outfilename, start, end, pattern_set=All):
+def build_pattern(infilename, outfilename, start, end, pattern_set=range(256)):
 
     pb = PatternBuilder(24)
 

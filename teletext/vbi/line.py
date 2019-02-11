@@ -13,13 +13,12 @@ import sys
 import numpy
 from scipy.ndimage import gaussian_filter1d as gauss
 
-from teletext.misc.all import All
-from teletext.t42.packet import Packet
-from .util import normalise
+from teletext.packet import Packet
+from teletext.elements import Mrag
 
+from .util import normalise
 from .pattern import Pattern
 
-from teletext.t42.elements import Mrag
 
 
 # Line: Handles a single line of raw VBI samples.
@@ -99,7 +98,7 @@ class Line(object):
         """Rolls the raw samples to an absolute position."""
         self.roll(roll - self.total_roll)
 
-    def deconvolve(self, extra_roll=4, mags=All, rows=All):
+    def deconvolve(self, extra_roll=4, mags=range(9), rows=range(32)):
 
         if self.is_teletext:
             self.roll(extra_roll)
