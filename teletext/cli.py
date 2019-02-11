@@ -83,8 +83,10 @@ def filter(input, start, stop, step, limit, mags, rows, pages, paginate, squash,
     elif paginate:
         packets = pipeline.paginate(packets, pages)
     if spellcheck:
-        from .spellcheck import spellcheck_packet
-        packets = (spellcheck_packet(p) for p in packets)
+        from .spellcheck import SpellChecker
+        s = SpellChecker('en_GB')
+        packets = s.spellcheck_iter(packets)
+        
     for attr, f in output:
         packets = to_file(packets, f, attr)
 
