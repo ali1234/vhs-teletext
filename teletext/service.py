@@ -15,10 +15,9 @@ class Page(object):
 
     def _gen(self):
         while True:
-            if len(self.subpages) == 0:
-                yield 0x3f7f, None
-            else:
+            if len(self.subpages) > 0:
                 yield from sorted(self.subpages.items())
+            yield 0x3f7f, None
 
     def __iter__(self):
         return self
@@ -80,3 +79,7 @@ class Service(object):
 
     def __next__(self):
         return next(self._iter)
+
+    def packets(self, n):
+        for i in range(n):
+            yield next(self)
