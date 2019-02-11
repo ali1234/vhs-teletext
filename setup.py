@@ -21,5 +21,9 @@ setup(
             'vbicat = teletext.vbi.util:vbicat',
         ]
     },
-    install_requires=['numpy', 'scipy', 'click', 'pycuda', 'scikit-cuda', 'tqdm', 'pyenchant'],
+    install_requires=['numpy', 'scipy', 'click', 'tqdm'],
+    extras_require={
+        'spellcheck': ['pyenchant'],
+        'CUDA': ['pycuda', 'scikit-cuda'],
+    }
 )
