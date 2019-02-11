@@ -4,7 +4,7 @@ from .coding import parity_encode
 
 class SpellChecker(object):
 
-    def __init__(self, language):
+    def __init__(self, language='en_GB'):
         self.dictionary = enchant.Dict(language)
 
     def check_pair(self, x, y):
@@ -23,14 +23,17 @@ class SpellChecker(object):
     def case_match(self, word, src):
         return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
 
+    def suggest(self, word):
+        if len(word) > 2 and not self.dictionary.check(word.lower()):
+            for suggestion in self.dictionary.suggest(word.lower()):
+                if len(suggestion) == len(word) and self.weighted_hamming(suggestion, word) == 0:
+                    return self.case_match(suggestion, word)
+        return word
+
     def spellcheck(self, displayable):
         words = ''.join(c if c.isalpha() else ' ' for c in displayable.to_ansi(colour=False)).split(' ')
 
-        for n,w in enumerate(words):
-            if len(w) > 2 and not self.dictionary.check(w.lower()):
-                s = list(filter(lambda x: len(x) == len(w) and self.weighted_hamming(x, w) == 0, self.dictionary.suggest(w.lower())))
-                if len(s) > 0:
-                    words[n] = self.case_match(s[0], w)
+        words = [self.suggest(w) for w in words]
 
         line = ' '.join(words).encode('ascii')
         for n, b in enumerate(line):
