@@ -70,6 +70,13 @@ class Mrag(Element):
 
 class Displayable(Element):
 
+    def place_string(self, string, x=0, y=None):
+        a = np.fromstring(string, dtype=np.uint8)
+        if y is None:
+            self._array[x:x+a.shape[0]] = parity_encode(a)
+        else:
+            self._array[y, x:x + a.shape[0]] = parity_encode(a)
+
     def to_ansi(self, colour=True):
         if len(self._array.shape) == 1:
             return str(PrinterANSI(self._array, colour))

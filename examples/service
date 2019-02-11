@@ -3,9 +3,7 @@
 # An example of generating a service from scratch.
 
 import sys
-import numpy as np
 
-from teletext.coding import parity_encode
 from teletext.service import Service
 from teletext.subpage import Subpage
 
@@ -18,7 +16,7 @@ subpage.displayable[:,1::2] = 0x7f
 subpage.displayable[:,0] = 0x20
 
 # Put a message in the middle
-subpage.displayable[11,15:26] = parity_encode(np.fromstring('Hello World', dtype=np.uint8))
+subpage.displayable.place_string('Hello World', 15, 11)
 
 # Create the service
 service = Service(replace_headers=True)

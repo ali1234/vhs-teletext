@@ -59,10 +59,9 @@ class Service(object):
         self.replace_headers = replace_headers
         self._iter = self._gen()
 
-    def fill_header(self, title, mag, page):
+    def header(self, title, mag, page):
         t = datetime.datetime.now()
-        data = '%9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
-        return parity_encode(np.fromstring(data, dtype=np.uint8))
+        return '%9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
 
     def _gen(self):
         while True:
@@ -71,7 +70,7 @@ class Service(object):
                     packet = next(m)
                     packet.mrag.magazine = n
                     if self.replace_headers and packet.type == 'header':
-                        packet.header.displayable[:] = self.fill_header(m.title, n, packet.header.page)
+                        packet.header.displayable.place_string(self.header(m.title, n, packet.header.page))
                     yield packet
 
     def __iter__(self):
