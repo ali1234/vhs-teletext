@@ -186,13 +186,7 @@ def urls(input, editor):
         print(f'{editor}{s.url}')
 
 
-@teletext.group()
-def vbi():
-    """Commands dealing with raw VBI sampling."""
-    pass
-
-
-@vbi.command()
+@teletext.command()
 @click.option('--device', '-d', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 def record(output, device):
 
@@ -220,10 +214,10 @@ def record(output, device):
         pass
 
 
-@vbi.command()
+@teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
-def view(input, config):
+def vbiview(input, config):
 
     """Display raw VBI samples with OpenGL."""
 
@@ -245,7 +239,7 @@ def view(input, config):
     VBIViewer(lines, config)
 
 
-@vbi.command()
+@teletext.command()
 @ioparams
 @filterparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
