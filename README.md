@@ -24,13 +24,12 @@ INSTALLATION
 
 In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
-Install python dependencies:
+To install with optional dependencies run:
 
-    sudo apt-get install python-numpy python-scipy python-pycuda nvidia-modprobe python-enchant
-    pip install --user scikit-cuda
+    pip3 install .[CUDA,spellcheck]
 
-You can use setup.py to install, or just add the source directory to your
-path.
+If CUDA or pyenchant are not available for your platform simply omit them
+from the install command.
 
 In order for the output to be rendered correctly you need to use a specific
 font and terminal:
@@ -47,7 +46,7 @@ After doing this you may need to reboot.
 
 Finally open a terminal with the required font:
 
-    urxvt -fg white -bg black -fn teletext -geometry 41x25 +sb &
+    urxvt -fg white -bg black -fn teletext -fb teletext -geometry 41x25 +sb &
 
 
 USAGE
@@ -59,7 +58,7 @@ First capture VBI from VHS:
 
 Scan for headers in the capture:
 
-    deconvolve -H -S 20 capture.vbi > headers.txt
+    teletext deconvolve -H -S 20 capture.vbi > headers.txt
 
 Examine the headers to find services on the tape:
 
@@ -67,15 +66,15 @@ Examine the headers to find services on the tape:
 
 Deconvolve a section of the capture corresponding to one service:
 
-    deconvolve --start <N> --stop <N> capture.vbi > stream.t42
+    teletext deconvolve --start <N> --stop <N> capture.vbi > stream.t42
 
 Display all copies of a page in a stream:
 
-    t42pipe stream.t42 -P -p 100
+    teletext filter stream.t42 -p 100
 
 Squash duplicate subpages, which reduces errors:
 
-    t42pipe stream.t42 -S > output.t42
+    teletext filter stream.t42 --squash > output.t42
 
 Generate HTML pages from a stream:
 
@@ -84,7 +83,7 @@ Generate HTML pages from a stream:
 
 Interactively view the pages in a t42 stream:
 
-    t42service stream.t42 | t42interactive
+    cat stream.t42 | teletext interactive
 
 In the interactive viewer you can type page numbers, or '.' for hold.
 
