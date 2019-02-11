@@ -2,6 +2,8 @@ import datetime
 
 from collections import defaultdict
 
+import numpy as np
+
 from .packet import Packet
 from .subpage import Subpage
 
@@ -32,7 +34,7 @@ class Magazine(object):
         except:
             t = datetime.datetime.now()
             data = '%9s%1d%02x' % (self.title, self.magazineno, pageno) + t.strftime(" %a %d %b\x03%H:%M/%S")
-            return numpy.fromstring(data[:32], dtype=numpy.uint8)
+            return np.fromstring(data[:32], dtype=np.uint8)
 
     def _stream(self):
         while True:

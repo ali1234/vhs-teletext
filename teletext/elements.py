@@ -1,4 +1,4 @@
-from teletext.printer import PrinterANSI
+from .printer import PrinterANSI
 from .coding import *
 
 

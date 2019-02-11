@@ -8,7 +8,7 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
-import numpy
+import numpy as np
 
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
@@ -54,15 +54,15 @@ class PatternCUDA(Pattern):
         cuda.memcpy_htod(self.patterns_gpu, self.patterns)
 
         self.input_gpu = cuda.mem_alloc(4*((40*8)+16))
-        self.result_gpu = gpuarray.empty((40,self.n), dtype=numpy.float32, allocator=cuda.mem_alloc)
+        self.result_gpu = gpuarray.empty((40,self.n), dtype=np.float32, allocator=cuda.mem_alloc)
 
 
     def match(self, inp):
         l = (len(inp)//8)-2
         x = l & -l # highest power of two which divides l, up to 8
         y = min(1024//x, self.n)
-        cuda.memcpy_htod(self.input_gpu, inp.astype(numpy.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, numpy.int32(self.start+2), numpy.int32(self.end-1), block=(x, y, 1), grid=(l//x, self.n//y))
+        cuda.memcpy_htod(self.input_gpu, inp.astype(np.float32))
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, np.int32(self.start+2), np.int32(self.end-1), block=(x, y, 1), grid=(l//x, self.n//y))
         result = argmin(self.result_gpu, axis=1).get()
         return self.bytes[result[:l],0]
 

@@ -9,7 +9,7 @@
 # * GNU General Public License for more details.
 
 import struct
-import numpy
+import numpy as np
 
 from collections import defaultdict
 
@@ -21,22 +21,22 @@ class Pattern(object):
     def __init__(self, filename):
         with open(filename, 'rb') as f:
             self.inlen,self.outlen,self.n,self.start,self.end = struct.unpack('>IIIBB', f.read(14))
-            self.patterns = numpy.fromfile(f, dtype=numpy.uint8, count=self.inlen*self.n)
+            self.patterns = np.fromfile(f, dtype=np.uint8, count=self.inlen*self.n)
             self.patterns = self.patterns.reshape((self.n, self.inlen))
-            self.patterns = self.patterns.astype(numpy.float32)
-            self.bytes = numpy.fromfile(f, dtype=numpy.uint8, count=self.outlen*self.n)
+            self.patterns = self.patterns.astype(np.float32)
+            self.bytes = np.fromfile(f, dtype=np.uint8, count=self.outlen*self.n)
             self.bytes = self.bytes.reshape((self.n, self.outlen))
 
     def match(self, inp):
         l = (len(inp)//8)-2
-        idx = numpy.zeros((l,), dtype=numpy.uint32)
+        idx = np.zeros((l,), dtype=np.uint32)
         pslice = self.patterns[:, self.start:self.end]
         for i in range(l):
             start = (i*8) + self.start
             end = (i*8) + self.end
             diffs = pslice - inp[start:end]
             diffs = diffs * diffs
-            idx[i] = numpy.argmin(numpy.sum(diffs, axis=1))
+            idx[i] = np.argmin(np.sum(diffs, axis=1))
         return self.bytes[idx][:,0]
 
 
@@ -51,15 +51,15 @@ class PatternBuilder(object):
 
     def read_array(self, filename):
         data = open(filename, 'rb').read()
-        a = numpy.fromstring(data, dtype=numpy.uint8)
+        a = np.fromstring(data, dtype=np.uint8)
         a = a.reshape((len(a)/self.inwidth,self.inwidth))
-        return numpy.mean(a, axis=0).astype(numpy.uint8)
+        return np.mean(a, axis=0).astype(np.uint8)
 
     def write_patterns(self, filename, start, end):
         f = open(filename, 'wb')
         flat_patterns = []
         for (k,v) in self.patterns.iteritems():
-            pattn = numpy.mean(numpy.fromstring(''.join(v), dtype=numpy.uint8).reshape((len(v), self.inwidth)), axis=0).astype(numpy.uint8)
+            pattn = np.mean(np.fromstring(''.join(v), dtype=np.uint8).reshape((len(v), self.inwidth)), axis=0).astype(np.uint8)
             flat_patterns.append((pattn,k[1]))
 
         header = struct.pack('>IIIBB', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns), start, end)

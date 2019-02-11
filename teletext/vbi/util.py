@@ -8,7 +8,7 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
-import numpy
+import numpy as np
 
 
 def normalise(a, start=None, end=None):
@@ -18,7 +18,7 @@ def normalise(a, start=None, end=None):
     if r == 0:
         r = 1
     a -= mn
-    return numpy.clip(a.astype(numpy.float32) * (255.0/r), 0, 255)
+    return np.clip(a.astype(np.float32) * (255.0/r), 0, 255)
 
 
 def vbicat():

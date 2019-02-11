@@ -12,17 +12,19 @@
 import os
 import sys
 
-import numpy
-
 import argparse
 import itertools
+
+import numpy as np
 
 from tqdm import tqdm
 
 from .map import RawLineReader
 from .pattern import build_pattern
 
-from ..t42.coding import parity_set, hamming_set
+from ..coding import parity_encode, hamming8_enc as hamming_set
+
+parity_set = parity_encode(np.arange(0x80))
 
 pattern_length = 27
 
@@ -50,12 +52,12 @@ def de_bruijn(k, n):
 
 def load_pattern():
     data = open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat')).read()
-    pattern = numpy.fromstring(data + data[:pattern_length], dtype=numpy.uint8)
+    pattern = np.fromstring(data + data[:pattern_length], dtype=np.uint8)
     return pattern
 
 
 def save_pattern(filename):
-    pattern = numpy.packbits(numpy.array(de_bruijn(2, 24), dtype=numpy.uint8)[::-1])[::-1]
+    pattern = np.packbits(np.array(de_bruijn(2, 24), dtype=np.uint8)[::-1])[::-1]
     data = open(filename, 'wb')
     pattern.tofile(data)
     data.close()
@@ -66,16 +68,16 @@ def checksum(array):
 
 
 def get_subpatterns(offset, pattern):
-    block = numpy.unpackbits(pattern[offset:offset + pattern_length][::-1])[::-1]
+    block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])[::-1]
     for x in range(len(block) - 23):
-        bytes = numpy.packbits(block[x:x + 24][::-1])[::-1]
+        bytes = np.packbits(block[x:x + 24][::-1])[::-1]
         yield x, bytes
 
 
 def generate_lines():
     pattern = load_pattern()
 
-    line = numpy.zeros((42,), dtype=numpy.uint8)
+    line = np.zeros((42,), dtype=np.uint8)
 
     # constant bytes. can be used for horizontal alignment.
     line[0] = 0x18
@@ -92,9 +94,9 @@ def generate_lines():
         # add a checksum
         offset_list.append(checksum(offset_list))
         # convert to a list of bits, LSB first
-        offset_arr = numpy.array(offset_list, dtype=numpy.uint8)
+        offset_arr = np.array(offset_list, dtype=np.uint8)
         # repeat each bit 3 times, then convert back in to t42 bytes
-        offset_arr = numpy.packbits(numpy.repeat(numpy.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
+        offset_arr = np.packbits(np.repeat(np.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
 
         # insert encoded offset into line
         line[2 + pattern_length:14 + pattern_length] = offset_arr
@@ -133,17 +135,17 @@ def training():
         Line.set_config(config)
         Line.disable_cuda()
 
-        code_bit_nums = numpy.array(range(257, 257 + (32 * 3), 3))
+        code_bit_nums = np.array(range(257, 257 + (32 * 3), 3))
 
         def doit(rl):
             l = Line(rl)
             l.bits()
 
-            code_bits = numpy.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(numpy.uint8)
-            code = numpy.packbits(code_bits[::-1])[::-1]
+            code_bits = np.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(np.uint8)
+            code = np.packbits(code_bits[::-1])[::-1]
             if checksum(code) == code[3]:
                 l.pattern_offset = code[0] | (code[1] << 8) | (code[2] << 16)
-                l.uint8bits = numpy.clip(l.bits_array, 0, 255).astype(numpy.uint8)
+                l.uint8bits = np.clip(l.bits_array, 0, 255).astype(np.uint8)
             else:
                 l.is_teletext = False
             return l
@@ -190,8 +192,8 @@ def training():
             with open(args.squash + '.squashed', 'wb') as f:
                 for k, g in itertools.groupby((item[1] for item in tqdm(it, unit=' Lines')), lambda x: x[:3]):
                     a = list(g)
-                    b = numpy.fromstring(''.join(a), dtype=numpy.uint8).reshape((len(a), 27))
-                    b = numpy.mean(b, axis=0).astype(numpy.uint8)
+                    b = np.fromstring(''.join(a), dtype=np.uint8).reshape((len(a), 27))
+                    b = np.mean(b, axis=0).astype(np.uint8)
                     b.tofile(f)
 
     elif args.full:

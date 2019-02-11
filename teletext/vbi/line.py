@@ -10,7 +10,7 @@
 
 import os
 import sys
-import numpy
+import numpy as np
 from scipy.ndimage import gaussian_filter1d as gauss
 
 from teletext.packet import Packet
@@ -64,8 +64,8 @@ class Line(object):
         self.data = data
 
         # Normalise and filter the data.
-        self.orig = numpy.fromstring(data, dtype=numpy.uint8).astype(numpy.float32)
-        self.line = normalise(numpy.fromstring(data, dtype=numpy.uint8), end=Line.config.line_trim)
+        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.float32)
+        self.line = normalise(np.fromstring(data, dtype=np.uint8), end=Line.config.line_trim)
         self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
 
         # Find the steepest part of the curve within line_start_range. This is where
@@ -73,7 +73,7 @@ class Line(object):
         start = self.gline[Line.config.line_start_range[0]:Line.config.line_start_range[1]].copy()
 
         # Roll the arrays to align all packets.
-        self.roll(Line.config.line_start_shift - numpy.argmax(numpy.gradient(start)))
+        self.roll(Line.config.line_start_shift - np.argmax(np.gradient(start)))
 
         # Detect teletext line based on known properties of the clock run in and frame code.
         pre = self.gline[Line.config.line_start_pre[0]:Line.config.line_start_pre[1]]
@@ -83,15 +83,15 @@ class Line(object):
         self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
 
         if self.is_teletext:
-            self.bytes_array = numpy.zeros((42,), dtype=numpy.uint8)
+            self.bytes_array = np.zeros((42,), dtype=np.uint8)
 
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
         roll = int(roll)
         if roll != 0:
-            self.orig = numpy.roll(self.orig, roll)
-            self.line = numpy.roll(self.line, roll)
-            self.gline = numpy.roll(self.gline, roll)
+            self.orig = np.roll(self.orig, roll)
+            self.line = np.roll(self.line, roll)
+            self.gline = np.roll(self.gline, roll)
             self.total_roll += roll
 
     def roll_abs(self, roll):
@@ -104,7 +104,7 @@ class Line(object):
             self.roll(extra_roll)
 
             # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
-            self.bits_array = normalise(numpy.add.reduceat(self.line, Line.config.bits, dtype=numpy.float32)[:-1]/Line.config.bit_lengths)
+            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
 
             # mrag - Find only the mrag for the line.
             self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])

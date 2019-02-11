@@ -1,13 +1,13 @@
-import numpy as np
-
+import itertools
 from collections import defaultdict
+
+import numpy as np
 
 from scipy.stats.mstats import mode
 
 from .packet import Packet
 from .subpage import Subpage
 from .service import Service
-import itertools
 
 
 def packets(packet_list):
