@@ -194,6 +194,31 @@ def record(output, device):
 
 
 @vbi.command()
+@click.argument('input', type=click.File('rb'), default='-')
+@click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
+def view(input, config):
+
+    """Display raw VBI samples with OpenGL."""
+
+    from teletext.vbi.viewer import VBIViewer
+    from teletext.vbi.line import Line
+
+    try:
+        config = importlib.import_module('config_' + config)
+    except ImportError:
+        sys.stderr.write('No configuration file for ' + config + '.\n')
+
+    Line.set_config(config)
+    Line.disable_cuda()
+
+    chunks = FileChunker(input, config.line_length)
+    bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+    lines = (Line(chunk, number) for number, chunk in bar)
+
+    VBIViewer(lines, config)
+
+
+@vbi.command()
 @ioparams
 @filterparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
@@ -214,9 +239,6 @@ def deconvolve(input, start, stop, step, limit, mags, rows, output, config, forc
 
     if force_cpu:
         Line.disable_cuda()
-
-    global _extra_roll
-    _extra_roll = extra_roll
 
     chunks = FileChunker(input, config.line_length, start, stop, step, limit)
     bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)

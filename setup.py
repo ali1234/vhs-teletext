@@ -6,9 +6,8 @@ setup(
     author='Alistair Buxton',
     author_email='a.j.buxton@gmail.com',
     url='http://github.com/ali1234/vhs-teletext',
-    packages=['teletext', 'teletext.vbi', 'teletext.misc'],
+    packages=['teletext', 'teletext.vbi'],
     package_data={'teletext.vbi': ['data/debruijn.dat', 'data/parity.dat', 'data/hamming.dat']},
-    scripts=['vbiview'],
     entry_points={
         'console_scripts': [
             'teletext = teletext.cli:teletext',
@@ -21,5 +20,6 @@ setup(
     extras_require={
         'spellcheck': ['pyenchant'],
         'CUDA': ['pycuda', 'scikit-cuda'],
+        'viewer': ['PyOpenGL'],
     }
 )

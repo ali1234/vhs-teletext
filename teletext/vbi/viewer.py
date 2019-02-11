@@ -1,27 +1,19 @@
-#!/usr/bin/env python
-
-import sys
-import argparse
-import importlib
 from itertools import islice
-import numpy
+import numpy as np
 
 from OpenGL.GLUT import *
-from OpenGL.GLU import *
 from OpenGL.GL import *
 
-from teletext.vbi.line import Line
 
 class VBIViewer(object):
 
-    def __init__(self, filename, config, start, stop, name = "VBI Viewer", width=1024, height=1024, nlines=32, pass_teletext=True, pass_rejects=False, show_grid=False):
+    def __init__(self, lines, config, name = "VBI Viewer", width=1024, height=512, nlines=32, pass_teletext=True, pass_rejects=False, show_grid=False):
         self.config = config
         self.show_grid = show_grid
 
         self.nlines = nlines
-        self.file = open(filename, 'rb')
 
-        self.lines_src = raw_line_map(filename, self.config.line_length, Line, start=start, stop=stop, threads=0, show_speed=True, pass_teletext=pass_teletext, pass_rejects=pass_rejects)
+        self.lines_src = lines
 
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
@@ -50,12 +42,12 @@ class VBIViewer(object):
 
     def display(self):
 
-        vbi = numpy.array([x.orig for x in islice(self.lines_src, 0, self.nlines)], dtype=numpy.uint8).tostring()
+        vbi = np.array([x.orig for x in islice(self.lines_src, 0, self.nlines)], dtype=np.uint8).tostring()
 #        time.sleep(0.1)
         if not sys.stdout.isatty():
             sys.stdout.write(vbi)
 
-        if len(vbi) != config.line_length*self.nlines:
+        if len(vbi) != self.config.line_length*self.nlines:
 #            return
             exit(0)
 
@@ -110,10 +102,8 @@ class VBIViewer(object):
                 glVertex2f(x, self.nlines)
 
 
-            glVertex2f(config.line_trim, 0)
-            glVertex2f(config.line_trim, self.nlines)
-
-
+            glVertex2f(self.config.line_trim, 0)
+            glVertex2f(self.config.line_trim, self.nlines)
 
         if self.show_grid:
             glColor3f(0, 0, 1)
@@ -124,39 +114,5 @@ class VBIViewer(object):
         if 1:
             glEnd()
 
-
-
-
         glutSwapBuffers()
         glutPostRedisplay()
-
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('inputfile', type=str, help='Read VBI samples from this file.')
-
-    parser.add_argument('-c', '--config', help='Configuration. Default bt8x8_pal.', default='bt8x8_pal')
-
-    parser.add_argument('--start', type=int, metavar='N', help='Start after the Nth line of the input file.', default=0)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--stop', type=int, metavar='N', help='Stop before the Nth line of the input file.', default=-1)
-    group.add_argument('--count', type=int, metavar='N', help='Stop after processing N lines from the input file.', default=-1)
-
-    parser.add_argument('-t', '--hide-teletext', help='Don\'t show lines which are detected as teletext.', action='store_true', default=False)
-    parser.add_argument('-r', '--pass-rejects', help='Display lines which are detected as NOT teletext.', action='store_true', default=False)
-    parser.add_argument('-g', '--show-grid', help='Draw a grid over the data, showing where the software expects the data to be.', action='store_true', default=False)
-
-    args = parser.parse_args()
-
-    if args.stop == -1 and args.count > -1:
-        args.stop = args.start + args.count
-
-    try:
-        config = importlib.import_module('config_'+args.config)
-    except ImportError:
-        sys.stderr.write('No configuration file for '+args.config+'.\n')
-
-    Line.set_config(config)
-    Line.disable_cuda()
-
-    v = VBIViewer(args.inputfile, config, args.start, args.stop, pass_teletext=(not args.hide_teletext), pass_rejects=args.pass_rejects, show_grid=args.show_grid)
