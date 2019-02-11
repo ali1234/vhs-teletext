@@ -15,7 +15,6 @@ setup(
             'training = teletext.vbi.training:training',
             't42service = teletext.service:service',
             't42html = teletext.printer:html',
-            'vbicat = teletext.vbi.util:vbicat',
         ]
     },
     install_requires=['numpy', 'scipy', 'click', 'tqdm'],

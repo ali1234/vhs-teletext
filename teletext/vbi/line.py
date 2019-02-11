@@ -16,9 +16,17 @@ from scipy.ndimage import gaussian_filter1d as gauss
 from teletext.packet import Packet
 from teletext.elements import Mrag
 
-from .util import normalise
 from .pattern import Pattern
 
+
+def normalise(a, start=None, end=None):
+    mn = a[start:end].min()
+    mx = a[start:end].max()
+    r = (mx-mn)
+    if r == 0:
+        r = 1
+    a -= mn
+    return np.clip(a.astype(np.float32) * (255.0/r), 0, 255)
 
 
 # Line: Handles a single line of raw VBI samples.

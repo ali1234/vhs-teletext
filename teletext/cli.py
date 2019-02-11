@@ -158,7 +158,42 @@ def urls(input, editor):
         print(f'{editor}{s.url}')
 
 
-@teletext.command()
+@teletext.group()
+def vbi():
+    """Commands dealing with raw VBI sampling."""
+    pass
+
+
+@vbi.command()
+@click.argument('output', type=click.File('wb'), default='-')
+@click.option('--device', '-d', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
+def record(output, device):
+
+    """Record VBI samples from a capture device."""
+
+    import struct
+    import sys
+
+    chunks = FileChunker(device, 2048*32)
+    bar = tqdm(chunks, unit=' Frames')
+
+    prev_seq = None
+    dropped = 0
+
+    try:
+        for n, chunk in bar:
+            output.write(chunk)
+            seq, = struct.unpack('<I', chunk[-4:])
+            if prev_seq is not None and seq != (prev_seq + 1):
+               dropped += 1
+               sys.stderr.write('Frame drop? %d\n' % dropped)
+            prev_seq = seq
+
+    except KeyboardInterrupt:
+        pass
+
+
+@vbi.command()
 @ioparams
 @filterparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
