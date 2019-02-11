@@ -20,19 +20,26 @@ def to_file(packets, f, attr):
         yield p
 
 
-def baseparams(f):
+def ioparams(f):
     for d in [
         click.argument('input', type=click.File('rb'), default='-'),
+        click.option(
+            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
+            multiple=True, default=[('auto', '-')]
+        ),
+    ]:
+        f = d(f)
+    return f
+
+
+def filterparams(f):
+    for d in [
         click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.'),
         click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
         click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
         click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
         click.option('--mags', '-m', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
         click.option('--rows', '-r', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
-        click.option(
-            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
-            multiple=True, default=[('auto', '-')]
-        ),
     ]:
         f = d(f)
     return f
@@ -54,17 +61,17 @@ def termparams(f):
 
 @click.group()
 def teletext():
+    """Teletext stream processing toolkit."""
     pass
 
 
 @teletext.command()
-@baseparams
+@ioparams
+@filterparams
 @click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
-@click.option('--spellcheck', is_flag=True, help='Try to fix common errors with a spell checking dictionary.')
-@click.option('--squash', is_flag=True, help='Squash subpages to reduce errors.')
 @termparams
-def filter(input, start, stop, step, limit, mags, rows, pages, paginate, squash, output, spellcheck):
+def filter(input, output, start, stop, step, limit, mags, rows, pages, paginate):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -78,15 +85,47 @@ def filter(input, start, stop, step, limit, mags, rows, pages, paginate, squash,
     bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
     packets = (Packet(data, number) for number, data in bar)
     packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
-    if squash:
-        packets = pipeline.subpage_squash(packets, pages)
-    elif paginate:
+    if paginate:
         packets = pipeline.paginate(packets, pages)
-    if spellcheck:
-        from .spellcheck import SpellChecker
-        s = SpellChecker('en_GB')
-        packets = s.spellcheck_iter(packets)
-        
+
+    for attr, f in output:
+        packets = to_file(packets, f, attr)
+
+    for p in packets:
+        pass
+
+
+@teletext.command()
+@ioparams
+def squash(input, output):
+
+    """Reduce errors in t42 stream by using frequency analysis."""
+
+    chunks = FileChunker(input, 42)
+    packets = (Packet(data, number) for number, data in chunks)
+    packets = pipeline.subpage_squash(packets)
+
+    for attr, f in output:
+        packets = to_file(packets, f, attr)
+
+    for p in packets:
+        pass
+
+
+@teletext.command()
+@ioparams
+@click.option('--language', '-l', default='en_GB', help='Language. Default: en_GB')
+def spellcheck(input, output, language):
+
+    """Spell check a t42 stream."""
+
+    from .spellcheck import SpellChecker
+
+    chunks = FileChunker(input, 42)
+    packets = (Packet(data, number) for number, data in chunks)
+    s = SpellChecker(language)
+    packets = s.spellcheck_iter(packets)
+
     for attr, f in output:
         packets = to_file(packets, f, attr)
 
@@ -97,6 +136,9 @@ def filter(input, start, stop, step, limit, mags, rows, pages, paginate, squash,
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
+
+    """Interactive teletext emulator."""
+
     from . import interactive
     interactive.main(input)
 
@@ -105,6 +147,8 @@ def interactive(input):
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('--editor', '-e', required=True, help='Teletext editor URL.')
 def urls(input, editor):
+
+    """Paginate a t42 stream and print edit.tf URLs."""
 
     chunks = FileChunker(input, 42)
     packets = (Packet(data, number) for number, data in chunks)
@@ -115,7 +159,8 @@ def urls(input, editor):
 
 
 @teletext.command()
-@baseparams
+@ioparams
+@filterparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
