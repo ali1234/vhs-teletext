@@ -25,6 +25,7 @@ Single bit errors can be identified and corrected. Double bit errors
 can be detected.
 
 """
+from functools import wraps
 
 import numpy as np
 
@@ -122,7 +123,10 @@ def hamming16_encode(a):
 
 
 def hamming16_decode(a):
-    return hamming8_dec[a[0::2]] | (hamming8_dec[a[1::2]] << 4)
+    if len(a) == 2:
+        return hamming8_dec[a[0]] | (hamming8_dec[a[1]] << 4)
+    else:
+        return hamming8_dec[a[0::2]] | (hamming8_dec[a[1::2]] << 4)
 
 
 def hamming8_correctable_errors(a):

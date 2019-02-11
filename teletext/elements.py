@@ -49,7 +49,7 @@ class Mrag(Element):
 
     @property
     def row(self):
-        return hamming16_decode(self._array[:2])[0] >> 3
+        return hamming16_decode(self._array[:2]) >> 3
 
     @magazine.setter
     def magazine(self, magazine):
@@ -90,7 +90,7 @@ class Page(Element):
 
     @property
     def page(self):
-        return hamming16_decode(self._array[:2])[0]
+        return hamming16_decode(self._array[:2])
 
     @page.setter
     def page(self, page):
