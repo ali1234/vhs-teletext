@@ -42,8 +42,8 @@ def filterparams(f):
         click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
         click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
         click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
-        click.option('--mags', '-m', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
-        click.option('--rows', '-r', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
+        click.option('-m', '--mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
+        click.option('-r', '--rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
     ]:
         f = d(f)
     return f
@@ -56,8 +56,8 @@ def termparams(f):
         f(**kwargs)
 
     for d in [
-        click.option('--windowed', '-W', is_flag=True, help='Connect stdout to a new terminal window.'),
-        click.option('--less', '-L', is_flag=True, help='Page the output through less.'),
+        click.option('-W', '--windowed', is_flag=True, help='Connect stdout to a new terminal window.'),
+        click.option('-L', '--less', is_flag=True, help='Page the output through less.'),
     ]:
         t = d(t)
     return t
@@ -68,12 +68,11 @@ def teletext():
     """Teletext stream processing toolkit."""
     pass
 
-
 @teletext.command()
 @ioparams
 @filterparams
-@click.option('--pages', '-p', type=str, multiple=True, help='Limit output to specific pages.')
-@click.option('--paginate', '-P', is_flag=True, help='Sort rows into contiguous pages.')
+@click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
+@click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
 @termparams
 def filter(input, output, start, stop, step, limit, mags, rows, pages, paginate):
 
@@ -118,7 +117,7 @@ def squash(input, output):
 
 @teletext.command()
 @ioparams
-@click.option('--language', '-l', default='en_GB', help='Language. Default: en_GB')
+@click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
 def spellcheck(input, output, language):
 
     """Spell check a t42 stream."""
@@ -168,7 +167,7 @@ def interactive(input):
 
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
-@click.option('--editor', '-e', required=True, help='Teletext editor URL.')
+@click.option('-e', '--editor', required=True, help='Teletext editor URL.')
 def urls(input, editor):
 
     """Paginate a t42 stream and print edit.tf URLs."""
@@ -182,7 +181,7 @@ def urls(input, editor):
 
 
 @teletext.command()
-@click.option('--device', '-d', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
+@click.option('-d', '--device', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 def record(output, device):
 
     """Record VBI samples from a capture device."""
