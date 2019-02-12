@@ -5,6 +5,7 @@ from functools import wraps
 import click
 from tqdm import tqdm
 
+from teletext.stats import StatsList, MagHistogram, RowHistogram, Rejects
 from .file import FileChunker
 from .packet import Packet
 from .terminal import termify
@@ -44,9 +45,22 @@ def filterparams(f):
         click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
         click.option('-m', '--mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
         click.option('-r', '--rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
-    ]:
+    ][::-1]:
         f = d(f)
     return f
+
+
+def progressparams(progress=False, mag_hist=False, row_hist=False):
+
+    def p(f):
+        for d in [
+            click.option('--progress/--no-progress', default=progress, help='Display progress bar.'),
+            click.option('--mag-hist/--no-mag-hist', default=mag_hist, help='Display magazine histogram.'),
+            click.option('--row-hist/--no-row-hist', default=row_hist, help='Display row histogram.'),
+        ][::-1]:
+            f = d(f)
+        return f
+    return p
 
 
 def termparams(f):
@@ -58,9 +72,44 @@ def termparams(f):
     for d in [
         click.option('-W', '--windowed', is_flag=True, help='Connect stdout to a new terminal window.'),
         click.option('-L', '--less', is_flag=True, help='Page the output through less.'),
-    ]:
+    ][::-1]:
         t = d(t)
     return t
+
+
+def packethandler(f):
+    @wraps(f)
+    @ioparams
+    @filterparams
+    @progressparams()
+    def wrapper(input, output, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+
+        chunks = FileChunker(input, 42, start, stop, step, limit)
+
+        if progress:
+            chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
+            if any((mag_hist, row_hist)):
+                chunks.postfix = StatsList()
+
+        packets = (Packet(data, number) for number, data in chunks)
+        packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+
+        if progress and mag_hist:
+            packets = MagHistogram(packets)
+            chunks.postfix.append(packets)
+        if progress and row_hist:
+            packets = RowHistogram(packets)
+            chunks.postfix.append(packets)
+
+        packets = f(packets, *args, **kwargs)
+
+        for attr, o in output:
+            packets = to_file(packets, o, attr)
+
+        for p in packets:
+            pass
+
+    return wrapper
 
 
 @click.group()
@@ -68,13 +117,12 @@ def teletext():
     """Teletext stream processing toolkit."""
     pass
 
+
 @teletext.command()
-@ioparams
-@filterparams
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
-@termparams
-def filter(input, output, start, stop, step, limit, mags, rows, pages, paginate):
+@packethandler
+def filter(packets, pages, paginate):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -84,75 +132,42 @@ def filter(input, output, start, stop, step, limit, mags, rows, pages, paginate)
         pages = {int(x, 16) for x in pages}
         paginate = True
 
-    chunks = FileChunker(input, 42, start, stop, step, limit)
-    bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
-    packets = (Packet(data, number) for number, data in bar)
-    packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
     if paginate:
         packets = pipeline.paginate(packets, pages)
 
-    for attr, f in output:
-        packets = to_file(packets, f, attr)
-
-    for p in packets:
-        pass
+    return packets
 
 
 @teletext.command()
-@ioparams
-def squash(input, output):
+@packethandler
+def squash(packets):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
-    chunks = FileChunker(input, 42)
-    packets = (Packet(data, number) for number, data in chunks)
-    packets = pipeline.subpage_squash(packets)
-
-    for attr, f in output:
-        packets = to_file(packets, f, attr)
-
-    for p in packets:
-        pass
+    return pipeline.subpage_squash(packets)
 
 
 @teletext.command()
-@ioparams
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
-def spellcheck(input, output, language):
+@packethandler
+def spellcheck(packets, language):
 
     """Spell check a t42 stream."""
 
     from .spellcheck import SpellChecker
-
-    chunks = FileChunker(input, 42)
-    packets = (Packet(data, number) for number, data in chunks)
-    s = SpellChecker(language)
-    packets = s.spellcheck_iter(packets)
-
-    for attr, f in output:
-        packets = to_file(packets, f, attr)
-
-    for p in packets:
-        pass
+    return SpellChecker(language).spellcheck_iter(packets)
 
 
 @teletext.command()
 @ioparams
-def service(input, output):
+@progressparams()
+def service(packets):
 
     """Build a service carousel from a t42 stream."""
 
     from teletext.service import Service
 
-    chunks = FileChunker(input, 42)
-    packets = (Packet(data, number) for number, data in chunks)
-    svc = Service.from_packets(packets)
-
-    for attr, f in output:
-        packets = to_file(svc, f, attr)
-
-    for p in packets:
-        pass
+    return Service.from_packets(packets)
 
 
 @teletext.command()
@@ -168,6 +183,7 @@ def interactive(input):
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('-e', '--editor', required=True, help='Teletext editor URL.')
+@filterparams
 def urls(input, editor):
 
     """Paginate a t42 stream and print edit.tf URLs."""
@@ -234,12 +250,14 @@ def vbiview(input, config):
 
 
 @teletext.command()
-@ioparams
-@filterparams
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
-def deconvolve(input, start, stop, step, limit, mags, rows, output, config, force_cpu, extra_roll, ):
+@ioparams
+@filterparams
+@progressparams(progress=True, mag_hist=True)
+@click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
+def deconvolve(input, output, start, stop, step, limit, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -256,10 +274,26 @@ def deconvolve(input, start, stop, step, limit, mags, rows, output, config, forc
         Line.disable_cuda()
 
     chunks = FileChunker(input, config.line_length, start, stop, step, limit)
-    bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
-    lines = (Line(chunk, number) for number, chunk in bar)
+
+    if progress:
+        chunks = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+        if any((mag_hist, row_hist, rejects)):
+            chunks.postfix = StatsList()
+
+    lines = (Line(chunk, number) for number, chunk in chunks)
+    if progress and rejects:
+        lines = Rejects(lines)
+        chunks.postfix.append(lines)
+
     packets = (l.deconvolve(extra_roll, mags, rows) for l in lines)
     packets = (p for p in packets if p is not None)
+
+    if progress and mag_hist:
+        packets = MagHistogram(packets)
+        chunks.postfix.append(packets)
+    if progress and row_hist:
+        packets = RowHistogram(packets)
+        chunks.postfix.append(packets)
 
     for attr, f in output:
         packets = to_file(packets, f, attr)
