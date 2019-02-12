@@ -145,14 +145,9 @@ def service(input, output):
 
     from teletext.service import Service
 
-    svc = Service()
-
     chunks = FileChunker(input, 42)
     packets = (Packet(data, number) for number, data in chunks)
-    subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
-
-    for s in subpages:
-        svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
+    svc = Service.from_packets(packets)
 
     for attr, f in output:
         packets = to_file(svc, f, attr)

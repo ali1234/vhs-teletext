@@ -2,10 +2,8 @@ import datetime
 
 from collections import defaultdict
 
-import numpy as np
-
-from .coding import parity_encode
 from .packet import Packet
+from . import pipeline
 
 
 class Page(object):
@@ -82,3 +80,13 @@ class Service(object):
     def packets(self, n):
         for i in range(n):
             yield next(self)
+
+    @classmethod
+    def from_packets(cls, packets):
+        svc = cls(replace_headers=False)
+        subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
+
+        for s in subpages:
+            svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
+
+        return svc

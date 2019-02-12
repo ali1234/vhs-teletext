@@ -7,7 +7,6 @@ from scipy.stats.mstats import mode
 
 from .packet import Packet
 from .subpage import Subpage
-from .service import Service
 
 
 def packets(packet_list):
@@ -75,14 +74,3 @@ def row_squash(packet_iter, n_rows):
         p = Packet.from_bytes(best)
         p._offset = l_list[0]._offset
         yield p
-
-
-def make_service(packet_iter, pages=range(0x100)):
-    service = Service()
-    for s in paginate(packet_iter, pages=pages, yield_func=subpages):
-        service.magazines[s._original_magazine].pages[s._original_page].subpages[s._original_subpage] = s
-
-    for k,v in service.magazines.iteritems():
-        v.magazineno = k
-
-    return service
