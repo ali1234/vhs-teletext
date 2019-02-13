@@ -182,7 +182,6 @@ def interactive(input):
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('-e', '--editor', required=True, help='Teletext editor URL.')
-@filterparams
 def urls(input, editor):
 
     """Paginate a t42 stream and print edit.tf URLs."""
@@ -193,6 +192,40 @@ def urls(input, editor):
 
     for s in subpages:
         print(f'{editor}{s.url}')
+
+
+@teletext.command()
+@click.argument('input', type=click.File('rb'), default='-')
+@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
+@progressparams(progress=True)
+def html(input, outdir, template, progress, mag_hist, row_hist):
+
+    """Generate HTML files from the input stream in the given directory."""
+
+    from teletext.service import Service
+
+    if template is not None:
+        template = template.read()
+
+    chunks = FileChunker(input, 42)
+
+    if progress:
+        chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
+        if any((mag_hist, row_hist)):
+            chunks.postfix = StatsList()
+
+    packets = (Packet(data, number) for number, data in chunks)
+
+    if progress and mag_hist:
+        packets = MagHistogram(packets)
+        chunks.postfix.append(packets)
+    if progress and row_hist:
+        packets = RowHistogram(packets)
+        chunks.postfix.append(packets)
+
+    svc = Service.from_packets(packets)
+    svc.to_html(outdir, template)
 
 
 @teletext.command()

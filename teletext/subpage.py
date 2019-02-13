@@ -4,6 +4,7 @@ import numpy as np
 
 from .packet import Packet
 from .elements import Element, Displayable
+from .printer import PrinterHTML
 
 
 class Subpage(Element):
@@ -64,23 +65,25 @@ class Subpage(Element):
         data = base64.b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit, b'-_').decode('ascii')
         return f'0:{data}'
 
-# still broken
-#    def to_html(self, magazineno, pageno, subpageno, header_displayable=numpy.full((32,), 0x20, dtype=numpy.uint8), pages_set=All):
-#        body = []
-#
-#        p = PrinterHTML(header_displayable)
-#        p.anchor = '#%04X' % subpageno
-#        body.append('   <span class="pgnum">P%d%02x</span> ' % (magazineno, pageno) + str(p))
-#
-#        for i in range(0,25):
-#            if i == 0 or numpy.all(self.displayable[:,i-1] != 0x0d):
-#                p = PrinterHTML(self.displayable[:,i], pages_set=pages_set)
-#                if i == 23:
-#                    p.fastext = True
-#                    p.links = ['%d%02X' % (l.magazine, l.page) for l in self.links]
-#                body.append(str(p))
-#
-#        head = '<div class="subpage" id="%04X">' % subpageno
-#
-#        return head + "".join(body) + '</div>'
+
+    def to_html(self, pages_set):
+        lines = []
+
+        lines.append(f'<div class="subpage" id="{self.header.subpage:04x}"><pre>')
+        p = PrinterHTML(self.header.displayable[:])
+        p.anchor = f'#{self.header.subpage:04x}'
+        lines.append(f'    <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x}{str(p)}')
+
+        for i in range(0,24):
+            # only draw the line if previous line does not contain double height code
+            if i == 0 or np.all(self.displayable[i-1,:] != 0x0d):
+                p = PrinterHTML(self.displayable[i,:], pages_set=pages_set)
+                if i == 23:
+                    p.fastext = True
+                    p.links = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links]
+                lines.append(str(p))
+
+        lines.append('</pre></div>')
+
+        return '\n'.join(lines)
 

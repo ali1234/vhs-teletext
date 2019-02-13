@@ -1,6 +1,10 @@
 import datetime
+import os
+import textwrap
 
 from collections import defaultdict
+
+from tqdm import tqdm
 
 from .packet import Packet
 from . import pipeline
@@ -22,6 +26,7 @@ class Page(object):
 
     def __next__(self):
         return next(self._iter)
+
 
 class Magazine(object):
     def __init__(self, title='Unnamed  '):
@@ -49,6 +54,7 @@ class Magazine(object):
 
     def __next__(self):
         return next(self._iter)
+
 
 class Service(object):
     def __init__(self, replace_headers=False):
@@ -81,6 +87,10 @@ class Service(object):
         for i in range(n):
             yield next(self)
 
+    @property
+    def pages_set(self):
+        return set(f'{m}{p:02x}' for m, mag in self.magazines.items() for p, _ in mag.pages.items())
+
     @classmethod
     def from_packets(cls, packets):
         svc = cls(replace_headers=False)
@@ -90,3 +100,33 @@ class Service(object):
             svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
 
         return svc
+
+    def to_html(self, outdir, template=None):
+
+        pages_set = self.pages_set
+
+        if template is None:
+            template = textwrap.dedent("""\
+                <html>
+                    <head>
+                        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                        <title>Page {page}</title>
+                        <link rel="stylesheet" type="text/css" href="teletext.css" title="Default Style"/>
+                        <link rel="alternative stylesheet" type="text/css" href="teletext-noscanlines.css" title="No Scanlines"/>
+                        <script type="text/javascript" src="cssswitch.js"></script>
+                    </head>
+                    <body onload="set_style_from_cookie()">
+                    {body}
+                    </body>
+                </html>
+            """)
+
+        for magazineno, magazine in tqdm(self.magazines.items(), desc='Magazines', unit='M'):
+            for pageno, page in tqdm(magazine.pages.items(), desc='Pages', unit='P'):
+                pagestr = f'{magazineno}{pageno:02x}'
+                outfile = open(os.path.join(outdir, f'{pagestr}.html'), 'w')
+                body = '\n'.join(
+                    subpage.to_html(pages_set) for subpage in page.subpages.values()
+                )
+                outfile.write(template.format(page=pagestr, body=body))
+
