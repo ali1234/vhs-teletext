@@ -51,7 +51,7 @@ class Subpage(Element):
 
         for p in packet_iter:
             s._array[p.mrag.row, :] = p[:]
-            s._numbers[p.mrag.row] = -1 if p.number is None else -2
+            s._numbers[p.mrag.row] = -1 if p.number is None else p.number
         return s
 
     @property
