@@ -25,7 +25,7 @@ def subpages(packet_list):
 def check_buffer(mb, pages, yield_func, min_rows=0):
     if (len(mb) > min_rows) and mb[0].type == 'header':
         page = mb[0].header.page | (mb[0].mrag.magazine * 0x100)
-        if page in pages:
+        if page in pages or (page & 0x7f00) in pages:
             yield from yield_func(sorted(mb, key=lambda p: p.mrag.row))
 
 
