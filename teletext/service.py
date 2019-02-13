@@ -126,7 +126,7 @@ class Service(object):
                 pagestr = f'{magazineno}{pageno:02x}'
                 outfile = open(os.path.join(outdir, f'{pagestr}.html'), 'w')
                 body = '\n'.join(
-                    subpage.to_html(pages_set) for subpage in page.subpages.values()
+                    subpage.to_html(pages_set) for n, subpage in sorted(page.subpages.items())
                 )
                 outfile.write(template.format(page=pagestr, body=body))
 
