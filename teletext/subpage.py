@@ -46,10 +46,10 @@ class Subpage(Element):
         return Displayable((24, 40), self._array[1:25,2:])
 
     @staticmethod
-    def from_packets(packet_iter):
+    def from_packets(packets):
         s = Subpage()
 
-        for p in packet_iter:
+        for p in packets:
             s._array[p.mrag.row, :] = p[:]
             s._numbers[p.mrag.row] = -1 if p.number is None else p.number
         return s

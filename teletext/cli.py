@@ -5,10 +5,12 @@ from functools import wraps
 import click
 from tqdm import tqdm
 
-from teletext.stats import StatsList, MagHistogram, RowHistogram, Rejects
 from .file import FileChunker
 from .packet import Packet
+from .stats import StatsList, MagHistogram, RowHistogram, Rejects
+from .subpage import Subpage
 from .terminal import termify
+
 from . import pipeline
 
 
@@ -124,9 +126,10 @@ def teletext():
 
 @teletext.command()
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
+@click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
 @packethandler
-def filter(packets, pages, paginate):
+def filter(packets, pages, subpages, paginate):
 
     """Demultiplex and display t42 packet streams."""
 
@@ -136,17 +139,25 @@ def filter(packets, pages, paginate):
         pages = {int(x, 16) for x in pages}
         paginate = True
 
-    if paginate:
-        packets = pipeline.paginate(packets, pages)
+    if subpages is None or len(subpages) == 0:
+        subpages = range(0x3f7f)
+    else:
+        subpages = {int(x, 16) for x in subpages}
+        paginate = True
 
-    return packets
+    if paginate:
+        for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
+            yield from pl
+    else:
+        yield from packets
 
 
 @teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
+@click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
 @packethandler
-def squash(packets, min_duplicates, pages):
+def squash(packets, min_duplicates, pages, subpages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
@@ -155,7 +166,16 @@ def squash(packets, min_duplicates, pages):
     else:
         pages = {int(x, 16) for x in pages}
 
-    return pipeline.subpage_squash(packets, pages=pages, min_duplicates=min_duplicates)
+    if subpages is None or len(subpages) == 0:
+        subpages = range(0x3f7f)
+    else:
+        subpages = {int(x, 16) for x in subpages}
+
+    for sp in pipeline.subpage_squash(
+            pipeline.paginate(packets, pages=pages, subpages=subpages),
+            min_duplicates=min_duplicates
+    ):
+        yield from sp.packets
 
 
 @teletext.command()
@@ -201,7 +221,7 @@ def urls(input, editor):
 
     chunks = FileChunker(input, 42)
     packets = (Packet(data, number) for number, data in chunks)
-    subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
+    subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets))
 
     for s in subpages:
         print(f'{editor}{s.url}')
