@@ -29,7 +29,7 @@ def check_buffer(mb, pages, yield_func, min_rows=0):
             yield from yield_func(sorted(mb, key=lambda p: p.mrag.row))
 
 
-def paginate(packet_iter, pages=range(0x000, 0x900), yield_func=packets, drop_empty=False):
+def paginate(packet_iter, pages=range(0x900), yield_func=packets, drop_empty=False):
     """Reorders lines in a t42 stream so that pages are contiguous."""
     magbuffers = [[],[],[],[],[],[],[],[]]
     for packet in packet_iter:
@@ -42,7 +42,7 @@ def paginate(packet_iter, pages=range(0x000, 0x900), yield_func=packets, drop_em
         yield from check_buffer(mb, pages, yield_func, 1 if drop_empty else 0)
 
 
-def subpage_squash(packet_iter, pages=range(0x000, 0x900), yield_func=packets, minimum_dups=3):
+def subpage_squash(packet_iter, pages=range(0x900), yield_func=packets, min_duplicates=3):
     """
             iter = subpage_squash(iter, pages=args.pages)
     """
@@ -51,7 +51,7 @@ def subpage_squash(packet_iter, pages=range(0x000, 0x900), yield_func=packets, m
         spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
 
     for splist in tqdm(spdict.values(), unit=' Subpages'):
-        if len(splist) >= minimum_dups:
+        if len(splist) >= min_duplicates:
             arr = mode(np.stack([sp[:] for sp in splist]), axis=0)[0][0].astype(np.uint8)
             numbers = mode(np.stack([np.clip(sp.numbers, -100, -1) for sp in splist]), axis=0)[0][0].astype(np.int64)
             yield from yield_func(Subpage(arr, numbers).packets)

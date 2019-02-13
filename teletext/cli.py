@@ -143,12 +143,19 @@ def filter(packets, pages, paginate):
 
 
 @teletext.command()
+@click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
+@click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @packethandler
-def squash(packets):
+def squash(packets, min_duplicates, pages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
-    return pipeline.subpage_squash(packets)
+    if pages is None or len(pages) == 0:
+        pages = range(0x900)
+    else:
+        pages = {int(x, 16) for x in pages}
+
+    return pipeline.subpage_squash(packets, pages=pages, min_duplicates=min_duplicates)
 
 
 @teletext.command()
