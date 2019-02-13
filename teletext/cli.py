@@ -25,6 +25,7 @@ def to_file(packets, f, attr):
             f.write(getattr(p, attr))
             yield p
 
+
 def ioparams(f):
     for d in [
         click.argument('input', type=click.File('rb'), default='-'),
@@ -32,7 +33,7 @@ def ioparams(f):
             '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
             multiple=True, default=[('auto', '-')]
         ),
-    ]:
+    ][::-1]:
         f = d(f)
     return f
 
@@ -166,7 +167,6 @@ def service(packets):
     """Build a service carousel from a t42 stream."""
 
     from teletext.service import Service
-
     return Service.from_packets(packets)
 
 
