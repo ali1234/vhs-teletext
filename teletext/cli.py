@@ -85,6 +85,9 @@ def packethandler(f):
     @progressparams()
     def wrapper(input, output, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
 
+        if input.isatty():
+            raise click.UsageError('No input file and stdin is a tty - exiting.')
+
         chunks = FileChunker(input, 42, start, stop, step, limit)
 
         if progress:
@@ -186,6 +189,9 @@ def urls(input, editor):
 
     """Paginate a t42 stream and print edit.tf URLs."""
 
+    if input.isatty():
+        raise click.UsageError('No input file and stdin is a tty - exiting.')
+
     chunks = FileChunker(input, 42)
     packets = (Packet(data, number) for number, data in chunks)
     subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
@@ -201,7 +207,10 @@ def urls(input, editor):
 @progressparams(progress=True)
 def html(input, outdir, template, progress, mag_hist, row_hist):
 
-    """Generate HTML files from the input stream in the given directory."""
+    """Generate HTML files from the input stream."""
+
+    if input.isatty():
+        raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.service import Service
 
@@ -263,6 +272,9 @@ def vbiview(input, config):
 
     """Display raw VBI samples with OpenGL."""
 
+    if input.isatty():
+        raise click.UsageError('No input file and stdin is a tty - exiting.')
+
     from teletext.vbi.viewer import VBIViewer
     from teletext.vbi.line import Line
 
@@ -292,6 +304,9 @@ def vbiview(input, config):
 def deconvolve(input, output, start, stop, step, limit, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
+
+    if input.isatty():
+        raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.vbi.line import Line
 
