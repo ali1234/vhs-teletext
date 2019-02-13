@@ -160,8 +160,7 @@ def spellcheck(packets, language):
 
 
 @teletext.command()
-@ioparams
-@progressparams()
+@packethandler
 def service(packets):
 
     """Build a service carousel from a t42 stream."""
