@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from scipy.stats.mstats import mode
+from tqdm import tqdm
 
 from .packet import Packet
 from .subpage import Subpage
@@ -49,7 +50,7 @@ def subpage_squash(packet_iter, pages=range(0x000, 0x900), yield_func=packets, m
     for subpage in paginate(packet_iter, pages=pages, yield_func=subpages, drop_empty=True):
         spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
 
-    for splist in spdict.values():
+    for splist in tqdm(spdict.values(), unit=' Subpages'):
         if len(splist) >= minimum_dups:
             arr = mode(np.stack([sp[:] for sp in splist]), axis=0)[0][0].astype(np.uint8)
             yield from yield_func(Subpage(arr, np.clip(splist[0].numbers, -100, -1)).packets)
