@@ -69,7 +69,7 @@ class Subpage(Element):
     def to_html(self, pages_set):
         lines = []
 
-        lines.append(f'<div class="subpage" id="{self.header.subpage:04x}"><pre>')
+        lines.append(f'<div class="subpage" id="{self.header.subpage:04x}">')
         p = PrinterHTML(self.header.displayable[:])
         p.anchor = f'#{self.header.subpage:04x}'
         lines.append(f'    <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x}{str(p)}')
@@ -83,7 +83,7 @@ class Subpage(Element):
                     p.links = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links]
                 lines.append(str(p))
 
-        lines.append('</pre></div>')
+        lines.append('</div>')
 
         return '\n'.join(lines)
 
