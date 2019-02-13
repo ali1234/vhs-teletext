@@ -14,7 +14,7 @@ from . import pipeline
 
 def to_file(packets, f, attr):
     if attr == 'auto':
-        attr = 'ansi' if f.isatty() else 'bytes'
+        attr = 'debug' if f.isatty() else 'bytes'
     if f.isatty():
         for p in packets:
             with tqdm.external_write_mode():
@@ -30,7 +30,7 @@ def ioparams(f):
     for d in [
         click.argument('input', type=click.File('rb'), default='-'),
         click.option(
-            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'bar', 'bytes']), click.File('wb')),
+            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes']), click.File('wb')),
             multiple=True, default=[('auto', '-')]
         ),
     ][::-1]:

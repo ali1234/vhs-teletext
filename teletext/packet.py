@@ -84,3 +84,10 @@ class Packet(Element):
     @property
     def bar(self):
         return self.to_binary().encode('utf8') + b'\n'
+
+    @property
+    def debug(self):
+        if self.number is None:
+            return f'None     {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)}\n'.encode('utf8')
+        else:
+            return f'{self.number:8d} {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)}\n'.encode('utf8')
