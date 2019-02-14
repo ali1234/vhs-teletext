@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
+from teletext.subpage import Subpage
 from .packet import Packet
 from . import pipeline
 
@@ -94,7 +95,7 @@ class Service(object):
     @classmethod
     def from_packets(cls, packets):
         svc = cls(replace_headers=False)
-        subpages = pipeline.paginate(packets, yield_func=pipeline.subpages)
+        subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets))
 
         for s in subpages:
             svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s

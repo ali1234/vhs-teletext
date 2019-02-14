@@ -28,18 +28,6 @@ def to_file(packets, f, attr):
             yield p
 
 
-def ioparams(f):
-    for d in [
-        click.argument('input', type=click.File('rb'), default='-'),
-        click.option(
-            '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes']), click.File('wb')),
-            multiple=True, default=[('auto', '-')]
-        ),
-    ][::-1]:
-        f = d(f)
-    return f
-
-
 def filterparams(f):
     for d in [
         click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.'),
@@ -53,7 +41,7 @@ def filterparams(f):
     return f
 
 
-def progressparams(progress=False, mag_hist=False, row_hist=False):
+def progressparams(progress=None, mag_hist=None, row_hist=None):
 
     def p(f):
         for d in [
@@ -80,15 +68,15 @@ def termparams(f):
     return t
 
 
-def packethandler(f):
-    @wraps(f)
-    @ioparams
+def packetreader(f):
+    @click.argument('input', type=click.File('rb'), default='-')
     @filterparams
     @progressparams()
-    def wrapper(input, output, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+    @wraps(f)
+    def wrapper(input, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
 
         if input.isatty():
-            raise click.UsageError('No input file and stdin is a tty - exiting.')
+            raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
         chunks = FileChunker(input, 42, start, stop, step, limit)
 
@@ -106,6 +94,19 @@ def packethandler(f):
         if progress and row_hist:
             packets = RowHistogram(packets)
             chunks.postfix.append(packets)
+
+        return f(packets, *args, **kwargs)
+
+    return wrapper
+
+
+def packetwriter(f):
+    @click.option(
+        '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes']), click.File('wb')),
+        multiple=True, default=[('auto', '-')]
+    )
+    @wraps(f)
+    def wrapper(packets, output, *args, **kwargs):
 
         packets = f(packets, *args, **kwargs)
 
@@ -128,7 +129,8 @@ def teletext():
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
-@packethandler
+@packetwriter
+@packetreader
 def filter(packets, pages, subpages, paginate):
 
     """Demultiplex and display t42 packet streams."""
@@ -156,7 +158,8 @@ def filter(packets, pages, subpages, paginate):
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
-@packethandler
+@packetwriter
+@packetreader
 def squash(packets, min_duplicates, pages, subpages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
@@ -180,7 +183,8 @@ def squash(packets, min_duplicates, pages, subpages):
 
 @teletext.command()
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
-@packethandler
+@packetwriter
+@packetreader
 def spellcheck(packets, language):
 
     """Spell check a t42 stream."""
@@ -190,7 +194,8 @@ def spellcheck(packets, language):
 
 
 @teletext.command()
-@packethandler
+@packetwriter
+@packetreader
 def service(packets):
 
     """Build a service carousel from a t42 stream."""
@@ -210,17 +215,12 @@ def interactive(input):
 
 
 @teletext.command()
-@click.argument('input', type=click.File('rb'), default='-')
 @click.option('-e', '--editor', required=True, help='Teletext editor URL.')
-def urls(input, editor):
+@packetreader
+def urls(packets, editor):
 
     """Paginate a t42 stream and print edit.tf URLs."""
 
-    if input.isatty():
-        raise click.UsageError('No input file and stdin is a tty - exiting.')
-
-    chunks = FileChunker(input, 42)
-    packets = (Packet(data, number) for number, data in chunks)
     subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets))
 
     for s in subpages:
@@ -228,37 +228,17 @@ def urls(input, editor):
 
 
 @teletext.command()
-@click.argument('input', type=click.File('rb'), default='-')
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
-@progressparams(progress=True)
-def html(input, outdir, template, progress, mag_hist, row_hist):
+@packetreader
+def html(packets, outdir, template, progress, mag_hist, row_hist):
 
     """Generate HTML files from the input stream."""
-
-    if input.isatty():
-        raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.service import Service
 
     if template is not None:
         template = template.read()
-
-    chunks = FileChunker(input, 42)
-
-    if progress:
-        chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
-        if any((mag_hist, row_hist)):
-            chunks.postfix = StatsList()
-
-    packets = (Packet(data, number) for number, data in chunks)
-
-    if progress and mag_hist:
-        packets = MagHistogram(packets)
-        chunks.postfix.append(packets)
-    if progress and row_hist:
-        packets = RowHistogram(packets)
-        chunks.postfix.append(packets)
 
     svc = Service.from_packets(packets)
     svc.to_html(outdir, template)
@@ -321,14 +301,15 @@ def vbiview(input, config):
 
 
 @teletext.command()
+@click.argument('input', type=click.File('rb'), default='-')
+@packetwriter
 @click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
-@ioparams
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(input, output, start, stop, step, limit, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
+def deconvolve(input, start, stop, step, limit, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -369,8 +350,4 @@ def deconvolve(input, output, start, stop, step, limit, mags, rows, config, forc
         packets = RowHistogram(packets)
         chunks.postfix.append(packets)
 
-    for attr, f in output:
-        packets = to_file(packets, f, attr)
-
-    for p in packets:
-        pass
+    return packets
