@@ -45,3 +45,20 @@ def subpage_squash(packet_lists, min_duplicates=3):
             arr = mode(np.stack([sp[:] for sp in splist]), axis=0)[0][0].astype(np.uint8)
             numbers = mode(np.stack([np.clip(sp.numbers, -100, -1) for sp in splist]), axis=0)[0][0].astype(np.int64)
             yield Subpage(arr, numbers)
+
+
+def to_file(packets, f, format):
+
+    """Write packets to f as format."""
+
+    if format == 'auto':
+        format = 'debug' if f.isatty() else 'bytes'
+    if f.isatty():
+        for p in packets:
+            with tqdm.external_write_mode():
+                f.write(getattr(p, format))
+            yield p
+    else:
+        for p in packets:
+            f.write(getattr(p, format))
+            yield p

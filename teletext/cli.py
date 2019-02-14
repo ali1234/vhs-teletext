@@ -16,20 +16,6 @@ from . import pipeline
 from .vbi.config import Config
 
 
-def to_file(packets, f, attr):
-    if attr == 'auto':
-        attr = 'debug' if f.isatty() else 'bytes'
-    if f.isatty():
-        for p in packets:
-            with tqdm.external_write_mode():
-                f.write(getattr(p, attr))
-            yield p
-    else:
-        for p in packets:
-            f.write(getattr(p, attr))
-            yield p
-
-
 def filterparams(f):
     for d in [
         click.option('-m', '--mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
@@ -151,7 +137,7 @@ def packetwriter(f):
         packets = f(*args, **kwargs)
 
         for attr, o in output:
-            packets = to_file(packets, o, attr)
+            packets = pipeline.to_file(packets, o, attr)
 
         for p in packets:
             pass
