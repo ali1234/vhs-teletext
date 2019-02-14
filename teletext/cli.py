@@ -1,4 +1,6 @@
 import importlib
+import os
+import stat
 import sys
 from functools import wraps
 
@@ -86,6 +88,10 @@ def chunkreader(f):
         if input.isatty():
             raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
+        if 'progress' in kwargs and kwargs['progress'] is None:
+            if stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
+                kwargs['progress'] = False
+
         chunker = lambda size: FileChunker(input, size, start, stop, step, limit)
 
         return f(chunker=chunker, *args, **kwargs)
@@ -105,6 +111,9 @@ def packetreader(f):
             chunks = (c[:42] for c in chunks)
         else:
             chunks = chunker(42)
+
+        if progress is None:
+            progress = True
 
         if progress:
             chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
@@ -134,6 +143,11 @@ def packetwriter(f):
     @wraps(f)
     def wrapper(output, *args, **kwargs):
 
+        if 'progress' in kwargs and kwargs['progress'] is None:
+            for attr, o in output:
+                if o.isatty():
+                    kwargs['progress'] = False
+
         packets = f(*args, **kwargs)
 
         for attr, o in output:
@@ -155,8 +169,8 @@ def teletext():
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
-@packetreader
 @packetwriter
+@packetreader
 def filter(packets, pages, subpages, paginate):
 
     """Demultiplex and display t42 packet streams."""
@@ -184,8 +198,8 @@ def filter(packets, pages, subpages, paginate):
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
-@packetreader
 @packetwriter
+@packetreader
 def squash(packets, min_duplicates, pages, subpages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
@@ -209,8 +223,8 @@ def squash(packets, min_duplicates, pages, subpages):
 
 @teletext.command()
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
-@packetreader
 @packetwriter
+@packetreader
 def spellcheck(packets, language):
 
     """Spell check a t42 stream."""
@@ -220,8 +234,8 @@ def spellcheck(packets, language):
 
 
 @teletext.command()
-@packetreader
 @packetwriter
+@packetreader
 def service(packets):
 
     """Build a service carousel from a t42 stream."""
@@ -322,11 +336,11 @@ def vbiview(chunker, config):
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
 @carduser(extended=True)
+@packetwriter
 @chunkreader
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-@packetwriter
 def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
