@@ -155,8 +155,8 @@ def teletext():
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
-@packetwriter
 @packetreader
+@packetwriter
 def filter(packets, pages, subpages, paginate):
 
     """Demultiplex and display t42 packet streams."""
@@ -184,8 +184,8 @@ def filter(packets, pages, subpages, paginate):
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
-@packetwriter
 @packetreader
+@packetwriter
 def squash(packets, min_duplicates, pages, subpages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
@@ -209,8 +209,8 @@ def squash(packets, min_duplicates, pages, subpages):
 
 @teletext.command()
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
-@packetwriter
 @packetreader
+@packetwriter
 def spellcheck(packets, language):
 
     """Spell check a t42 stream."""
@@ -220,8 +220,8 @@ def spellcheck(packets, language):
 
 
 @teletext.command()
-@packetwriter
 @packetreader
+@packetwriter
 def service(packets):
 
     """Build a service carousel from a t42 stream."""
@@ -300,9 +300,8 @@ def record(output, device, config):
 
 
 @teletext.command()
-@click.argument('input', type=click.File('rb'), default='-')
-@chunkreader
 @carduser(extended=True)
+@chunkreader
 def vbiview(chunker, config):
 
     """Display raw VBI samples with OpenGL."""
@@ -323,11 +322,11 @@ def vbiview(chunker, config):
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
 @carduser(extended=True)
+@chunkreader
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
 @packetwriter
-@chunkreader
 def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
