@@ -132,7 +132,8 @@ def training():
 
     elif args.train:
         from teletext.vbi.line import Line
-        import config_bt8x8_pal as config
+        from teletext.vbi.config import Config
+        config = Config()
         Line.set_config(config)
         Line.disable_cuda()
 

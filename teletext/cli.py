@@ -13,6 +13,8 @@ from .terminal import termify
 
 from . import pipeline
 
+from .vbi.config import Config
+
 
 def to_file(packets, f, attr):
     if attr == 'auto':
@@ -52,6 +54,28 @@ def progressparams(progress=None, mag_hist=None, row_hist=None):
             f = d(f)
         return f
     return p
+
+
+def carduser(extended=False):
+    def c(f):
+        if extended:
+            for d in [
+                click.option('--sample-rate', type=float, default=None, help='Override capture card sample rate (Hz).'),
+                click.option('--line-trim', type=int, default=None, help='Override capture card line trim.'),
+                click.option('--line-start-range', type=(int, int), default=(None, None), help='Override capture card line start offset.'),
+            ][::-1]:
+                f = d(f)
+
+        @click.option('-c', '--card', type=click.Choice(list(Config.cards.keys())), default='bt8x8', help='Capture device type. Default: bt8x8.')
+        @click.option('--line-length', type=int, default=None, help='Override capture card samples per line.')
+        @wraps(f)
+        def wrapper(card, line_length=None, sample_rate=None, line_trim=None, line_start_range=None, *args, **kwargs):
+            if line_start_range == (None, None):
+                line_start_range = None
+            config = Config(card=card, line_length=line_length, sample_rate=sample_rate, line_trim=line_trim, line_start_range=line_start_range)
+            return f(config=config, *args,**kwargs)
+        return wrapper
+    return c
 
 
 def termparams(f):
@@ -100,7 +124,7 @@ def packetreader(f):
             packets = RowHistogram(packets)
             chunks.postfix.append(packets)
 
-        return f(packets, *args, **kwargs)
+        return f(packets=packets, *args, **kwargs)
 
     return wrapper
 
@@ -251,14 +275,15 @@ def html(packets, outdir, template, progress, mag_hist, row_hist):
 
 @teletext.command()
 @click.option('-d', '--device', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
-def record(output, device):
+@carduser()
+def record(output, device, config):
 
     """Record VBI samples from a capture device."""
 
     import struct
     import sys
 
-    chunks = FileChunker(device, 2048*32)
+    chunks = FileChunker(device, config.line_length*32)
     bar = tqdm(chunks, unit=' Frames')
 
     prev_seq = None
@@ -279,7 +304,7 @@ def record(output, device):
 
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
-@click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
+@carduser(extended=True)
 def vbiview(input, config):
 
     """Display raw VBI samples with OpenGL."""
@@ -289,11 +314,6 @@ def vbiview(input, config):
 
     from teletext.vbi.viewer import VBIViewer
     from teletext.vbi.line import Line
-
-    try:
-        config = importlib.import_module('config_' + config)
-    except ImportError:
-        sys.stderr.write('No configuration file for ' + config + '.\n')
 
     Line.set_config(config)
     Line.disable_cuda()
@@ -307,10 +327,10 @@ def vbiview(input, config):
 
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
-@packetwriter
-@click.option('-c', '--config', default='bt8x8_pal', help='Capture card configuration. Default: bt8x8_pal.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
+@carduser(extended=True)
+@packetwriter
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
@@ -322,11 +342,6 @@ def deconvolve(input, start, stop, step, limit, mags, rows, config, force_cpu, e
         raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.vbi.line import Line
-
-    try:
-        config = importlib.import_module('config_' + config)
-    except ImportError:
-        sys.stderr.write('No configuration file for ' + config + '.\n')
 
     Line.set_config(config)
 

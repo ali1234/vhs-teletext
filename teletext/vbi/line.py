@@ -16,6 +16,7 @@ from scipy.ndimage import gaussian_filter1d as gauss
 from teletext.packet import Packet
 from teletext.elements import Mrag
 
+from .config import Config
 from .pattern import Pattern
 
 
@@ -33,6 +34,8 @@ def normalise(a, start=None, end=None):
 
 class Line(object):
     """Container for a single line of raw samples."""
+
+    config: Config
 
     @staticmethod
     def set_config(config):
@@ -64,6 +67,9 @@ class Line(object):
         Line.try_cuda = False
 
     def __init__(self, data, number=None):
+        if Line.config is None:
+            Line.config = Config()
+
         if Line.try_cuda:
             Line.try_init_cuda()
 
@@ -78,15 +84,15 @@ class Line(object):
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
-        start = self.gline[Line.config.line_start_range[0]:Line.config.line_start_range[1]].copy()
+        start = self.gline[Line.config.line_start_slice]
 
         # Roll the arrays to align all packets.
         self.roll(Line.config.line_start_shift - np.argmax(np.gradient(start)))
 
         # Detect teletext line based on known properties of the clock run in and frame code.
-        pre = self.gline[Line.config.line_start_pre[0]:Line.config.line_start_pre[1]]
-        post = self.gline[Line.config.line_start_post[0]:Line.config.line_start_post[1]]
-        frcmrag = self.gline[Line.config.line_start_frcmrag[0]:Line.config.line_start_frcmrag[1]]
+        pre = self.gline[Line.config.line_start_pre]
+        post = self.gline[Line.config.line_start_post]
+        frcmrag = self.gline[Line.config.line_start_frcmrag]
 
         self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
 
