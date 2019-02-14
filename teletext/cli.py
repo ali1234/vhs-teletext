@@ -70,15 +70,20 @@ def termparams(f):
 
 def packetreader(f):
     @click.argument('input', type=click.File('rb'), default='-')
+    @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
     @filterparams
     @progressparams()
     @wraps(f)
-    def wrapper(input, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+    def wrapper(input, wst, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
 
         if input.isatty():
             raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
-        chunks = FileChunker(input, 42, start, stop, step, limit)
+        if wst:
+            chunks = FileChunker(input, 43, start, stop, step, limit)
+            chunks = (c[:42] for c in chunks)
+        else:
+            chunks = FileChunker(input, 42, start, stop, step, limit)
 
         if progress:
             chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
