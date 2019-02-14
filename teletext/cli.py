@@ -106,9 +106,9 @@ def packetwriter(f):
         multiple=True, default=[('auto', '-')]
     )
     @wraps(f)
-    def wrapper(packets, output, *args, **kwargs):
+    def wrapper(output, *args, **kwargs):
 
-        packets = f(packets, *args, **kwargs)
+        packets = f(*args, **kwargs)
 
         for attr, o in output:
             packets = to_file(packets, o, attr)
