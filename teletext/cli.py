@@ -32,10 +32,6 @@ def to_file(packets, f, attr):
 
 def filterparams(f):
     for d in [
-        click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.'),
-        click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.'),
-        click.option('--step', type=int, default=1, help='Process every Nth line from the input file.'),
-        click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.'),
         click.option('-m', '--mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
         click.option('-r', '--rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
     ][::-1]:
@@ -92,22 +88,37 @@ def termparams(f):
     return t
 
 
-def packetreader(f):
+def chunkreader(f):
     @click.argument('input', type=click.File('rb'), default='-')
-    @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
-    @filterparams
-    @progressparams()
+    @click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.')
+    @click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.')
+    @click.option('--step', type=int, default=1, help='Process every Nth line from the input file.')
+    @click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.')
     @wraps(f)
-    def wrapper(input, wst, start, stop, step, limit, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+    def wrapper(input, start, stop, step, limit, *args, **kwargs):
 
         if input.isatty():
             raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
+        chunker = lambda size: FileChunker(input, size, start, stop, step, limit)
+
+        return f(chunker=chunker, *args, **kwargs)
+    return wrapper
+
+
+def packetreader(f):
+    @chunkreader
+    @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
+    @filterparams
+    @progressparams()
+    @wraps(f)
+    def wrapper(chunker, wst, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+
         if wst:
-            chunks = FileChunker(input, 43, start, stop, step, limit)
+            chunks = chunker(43)
             chunks = (c[:42] for c in chunks)
         else:
-            chunks = FileChunker(input, 42, start, stop, step, limit)
+            chunks = chunker(42)
 
         if progress:
             chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
@@ -304,13 +315,11 @@ def record(output, device, config):
 
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
+@chunkreader
 @carduser(extended=True)
-def vbiview(input, config):
+def vbiview(chunker, config):
 
     """Display raw VBI samples with OpenGL."""
-
-    if input.isatty():
-        raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.vbi.viewer import VBIViewer
     from teletext.vbi.line import Line
@@ -318,28 +327,24 @@ def vbiview(input, config):
     Line.set_config(config)
     Line.disable_cuda()
 
-    chunks = FileChunker(input, config.line_length)
-    bar = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
-    lines = (Line(chunk, number) for number, chunk in bar)
+    chunks = chunker(config.line_length)
+    lines = (Line(chunk, number) for number, chunk in chunks)
 
     VBIViewer(lines, config)
 
 
 @teletext.command()
-@click.argument('input', type=click.File('rb'), default='-')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=4, help='')
 @carduser(extended=True)
-@packetwriter
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(input, start, stop, step, limit, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
+@packetwriter
+@chunkreader
+def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
-
-    if input.isatty():
-        raise click.UsageError('No input file and stdin is a tty - exiting.')
 
     from teletext.vbi.line import Line
 
@@ -348,7 +353,7 @@ def deconvolve(input, start, stop, step, limit, mags, rows, config, force_cpu, e
     if force_cpu:
         Line.disable_cuda()
 
-    chunks = FileChunker(input, config.line_length, start, stop, step, limit)
+    chunks = chunker(config.line_length)
 
     if progress:
         chunks = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
