@@ -70,7 +70,7 @@ class VBIViewer(object):
     def draw_bits(self, r, g, b, a=1.0):
         glColor4f(r, g, b, a)
         glBegin(GL_LINES)
-        for x in self.config.bits[::8]:
+        for x in self.config.bits[:-8:8]:
             glVertex2f(x, 0)
             glVertex2f(x, self.nlines)
         glEnd()
