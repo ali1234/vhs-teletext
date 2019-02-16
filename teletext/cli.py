@@ -334,7 +334,7 @@ def vbiview(chunker, config):
 
 @teletext.command()
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
-@click.option('-e', '--extra_roll', type=int, default=4, help='')
+@click.option('-e', '--extra_roll', type=int, default=-4, help='')
 @carduser(extended=True)
 @packetwriter
 @chunkreader
@@ -365,6 +365,51 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
         chunks.postfix.append(lines)
 
     packets = (l.deconvolve(extra_roll, mags, rows) for l in lines)
+    packets = (p for p in packets if p is not None)
+
+    if progress and mag_hist:
+        packets = MagHistogram(packets)
+        chunks.postfix.append(packets)
+    if progress and row_hist:
+        packets = RowHistogram(packets)
+        chunks.postfix.append(packets)
+
+    return packets
+
+
+@teletext.command()
+@click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
+@click.option('-e', '--extra_roll', type=int, default=-2, help='')
+@carduser(extended=True)
+@packetwriter
+@chunkreader
+@filterparams
+@progressparams(progress=True, mag_hist=True)
+@click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
+def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
+
+    """Decode OTA-recorded VBI samples by slice/threshold."""
+
+    from teletext.vbi.line import Line
+
+    Line.set_config(config)
+
+    if force_cpu:
+        Line.disable_cuda()
+
+    chunks = chunker(config.line_length)
+
+    if progress:
+        chunks = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+        if any((mag_hist, row_hist, rejects)):
+            chunks.postfix = StatsList()
+
+    lines = (Line(chunk, number) for number, chunk in chunks)
+    if progress and rejects:
+        lines = Rejects(lines)
+        chunks.postfix.append(lines)
+
+    packets = (l.slice(extra_roll, mags, rows) for l in lines)
     packets = (p for p in packets if p is not None)
 
     if progress and mag_hist:

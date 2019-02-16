@@ -84,17 +84,17 @@ class Line(object):
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
-        start = self.gline[Line.config.line_start_slice]
+        start = np.argmax(np.gradient(self.gline[Line.config.start_slice]))
 
         # Roll the arrays to align all packets.
-        self.roll(Line.config.line_start_shift - np.argmax(np.gradient(start)))
+        self.roll(-start)
 
         # Detect teletext line based on known properties of the clock run in and frame code.
-        pre = self.gline[Line.config.line_start_pre]
-        post = self.gline[Line.config.line_start_post]
-        frcmrag = self.gline[Line.config.line_start_frcmrag]
+        pre = self.gline[Line.config.pre_slice]
+        post = self.gline[Line.config.post_slice]
+        frcmrag = self.gline[Line.config.frcmrag_slice]
 
-        self.is_teletext = pre.std() < Line.config.std_thresh and post.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
+        self.is_teletext = pre.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
 
         if self.is_teletext:
             self.bytes_array = np.zeros((42,), dtype=np.uint8)
@@ -112,7 +112,7 @@ class Line(object):
         """Rolls the raw samples to an absolute position."""
         self.roll(roll - self.total_roll)
 
-    def deconvolve(self, extra_roll=4, mags=range(9), rows=range(32)):
+    def deconvolve(self, extra_roll=-4, mags=range(9), rows=range(32)):
 
         if self.is_teletext:
             self.roll(extra_roll)
@@ -138,6 +138,25 @@ class Line(object):
 
                 # it is faster to just use the same pattern array all the time
                 self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
-                return Packet(self.bytes_array, self._number)
+                return Packet(self.bytes_array.copy(), self._number)
+
+        return None
+
+    def slice(self, extra_roll=-2, mags=range(9), rows=range(32)):
+
+        if self.is_teletext:
+            self.roll(extra_roll)
+
+            # get bits by a simple threshold. produces recognisable results for live broadcasts.
+            # this needs more work.
+            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths) > 120
+            self.bytes_array = np.packbits(self.bits_array.reshape(-1,8)[3:45,::-1])
+
+            m = Mrag(self.bytes_array[:2])
+            mag = m.magazine
+            row = m.row
+
+            if mag in mags and row in rows:
+                return Packet(self.bytes_array.copy(), self._number)
 
         return None

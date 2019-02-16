@@ -37,16 +37,23 @@ class Config(object):
 
         self.bit_width = self.sample_rate / self.teletext_bitrate
 
-        line_start_mid = (sum(self.line_start_range) / 2) + (self.bit_width * 1.5)
+        self.start_slice = slice(*self.line_start_range)
 
-        self.line_start_shift = ((self.line_start_range[1] - self.line_start_range[0]) / 2)
+        self.pre_slice = slice(
+            max(0, int(self.start_slice.start - (self.bit_width * 15))),
+            max(1, int(self.start_slice.start - (self.bit_width * 2)))
+        )
 
-        self.line_start_slice = slice(*self.line_start_range)
+        self.post_slice = slice(
+            int(self.start_slice.start + (self.bit_width * 2)),
+            int(self.start_slice.start + (self.bit_width * 15))
+        )
 
-        self.line_start_pre = slice(max(0, int(line_start_mid - (self.bit_width * 15))), max(1, int(line_start_mid - (self.bit_width * 2))))
-        self.line_start_post = slice(int(line_start_mid + (self.bit_width * 2)), int(line_start_mid + (self.bit_width * 15)))
-        self.line_start_frcmrag = slice(int(line_start_mid + (self.bit_width * 17)), int(line_start_mid + (self.bit_width * 40)))
+        self.frcmrag_slice = slice(
+            int(self.start_slice.start + (self.bit_width * 17)),
+            int(self.start_slice.start + (self.bit_width * 40))
+        )
 
-        self.bits = np.array([int(line_start_mid + (x * self.bit_width)) for x in range((45 * 8) + 9)])
+        self.bits = np.array([int(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
         self.bit_lengths = (self.bits[1:] - self.bits[:-1])
         self.bit_pairs = [x for x in zip(self.bits[:-1], self.bits[1:])]
