@@ -78,7 +78,7 @@ class Line(object):
         self.data = data
 
         # Normalise and filter the data.
-        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.float32)
+        self.orig = np.fromstring(data, dtype=np.uint8)
         self.line = normalise(np.fromstring(data, dtype=np.uint8), end=Line.config.line_trim)
         self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
 
