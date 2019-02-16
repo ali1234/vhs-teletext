@@ -229,8 +229,15 @@ def spellcheck(packets, language):
 
     """Spell check a t42 stream."""
 
-    from .spellcheck import SpellChecker
-    return SpellChecker(language).spellcheck_iter(packets)
+    try:
+        from .spellcheck import SpellChecker
+    except ModuleNotFoundError as e:
+        if e.name == 'enchant':
+            raise click.UsageError(f'{e.msg}. PyEnchant is not installed. Spelling checker is not available.')
+        else:
+            raise e
+    else:
+        return SpellChecker(language).spellcheck_iter(packets)
 
 
 @teletext.command()
@@ -320,16 +327,23 @@ def vbiview(chunker, config):
 
     """Display raw VBI samples with OpenGL."""
 
-    from teletext.vbi.viewer import VBIViewer
-    from teletext.vbi.line import Line
+    try:
+        from teletext.vbi.viewer import VBIViewer
+    except ModuleNotFoundError as e:
+        if e.name.startswith('OpenGL'):
+            raise click.UsageError(f'{e.msg}. PyOpenGL is not installed. VBI viewer is not available.')
+        else:
+            raise e
+    else:
+        from teletext.vbi.line import Line
 
-    Line.set_config(config)
-    Line.disable_cuda()
+        Line.set_config(config)
+        Line.disable_cuda()
 
-    chunks = chunker(config.line_length)
-    lines = (Line(chunk, number) for number, chunk in chunks)
+        chunks = chunker(config.line_length)
+        lines = (Line(chunk, number) for number, chunk in chunks)
 
-    VBIViewer(lines, config)
+        VBIViewer(lines, config)
 
 
 @teletext.command()

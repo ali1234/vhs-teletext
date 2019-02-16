@@ -1,6 +1,4 @@
-import time
 from itertools import islice
-import numpy as np
 
 from OpenGL.GLUT import *
 from OpenGL.GL import *
