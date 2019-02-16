@@ -147,10 +147,14 @@ class Line(object):
         if self.is_teletext:
             self.roll(extra_roll)
 
-            # get bits by a simple threshold. produces recognisable results for live broadcasts.
-            # this needs more work.
-            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths) > 120
-            self.bytes_array = np.packbits(self.bits_array.reshape(-1,8)[3:45,::-1])
+            # get bits by threshold & differential
+            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+            diff = self.bits_array[1:] - self.bits_array[:-1]
+            ones = diff > 48
+            zeros = (diff > -48)
+            result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
+
+            self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
 
             m = Mrag(self.bytes_array[:2])
             mag = m.magazine
