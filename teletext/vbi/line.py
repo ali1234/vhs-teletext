@@ -75,7 +75,7 @@ class Line(object):
         self.total_roll = 0
         self._number = number
 
-        self.orig = np.fromstring(data, dtype=np.uint8)
+        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.float32)
         self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
 
         if not self.is_teletext:
