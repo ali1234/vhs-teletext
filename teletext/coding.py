@@ -25,8 +25,6 @@ Single bit errors can be identified and corrected. Double bit errors
 can be detected.
 
 """
-from functools import wraps
-
 import numpy as np
 
 hamming8_dec = np.array([
