@@ -9,7 +9,7 @@ from OpenGL.GL import *
 
 class VBIViewer(object):
 
-    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=64, tint=True, show_grid=True, show_slices=False):
+    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=256, tint=True, show_grid=True, show_slices=False):
         self.config = config
         self.show_grid = show_grid
         self.show_slices = show_slices
@@ -84,7 +84,7 @@ class VBIViewer(object):
                 l.roll(1)
             elif button == 4:
                 l.roll(-1)
-            print(l.deconvolve().debug.decode('utf8')[:-1], 'extra_roll:', l.extra_roll)
+            print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.extra_roll, 'r:', l.reasons)
             sys.stdout.flush()
 
     def set_title(self):

@@ -406,7 +406,7 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, err_hist, rejects):
+def slice(chunker, mags, rows, config, extra_roll, progress, mag_hist, row_hist, err_hist, rejects):
 
     """Decode OTA-recorded VBI samples by slice/threshold."""
 

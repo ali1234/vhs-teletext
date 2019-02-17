@@ -75,10 +75,14 @@ class Line(object):
         self.total_roll = 0
         self._number = number
 
-        # Normalise and filter the data.
         self.orig = np.fromstring(data, dtype=np.uint8)
-        self.line = normalise(self.orig, end=Line.config.line_trim)
-        self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
+        self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
+
+        if not self.is_teletext:
+            self.reasons = 'no signal'
+
+        self.line = self.orig.copy()
+        self.gline = normalise(gauss(self.orig, Line.config.gauss), end=Line.config.line_trim)
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
@@ -87,16 +91,20 @@ class Line(object):
         # Roll the arrays to align all packets.
         self.roll(self.start)
 
+        self.extra_roll = extra_roll
+
         # Detect teletext line based on known properties of the clock run in and frame code.
         pre = self.gline[Line.config.pre_slice]
         post = self.gline[Line.config.post_slice]
         frcmrag = self.gline[Line.config.frcmrag_slice]
 
-        self.is_teletext = pre.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
-
-        if self.is_teletext:
-            self.extra_roll = extra_roll
-            self.bytes_array = np.zeros((42,), dtype=np.uint8)
+        self.reasons = (
+            pre.mean() < 64,
+            np.max(pre) - np.min(pre) < 80,
+            post.mean() - pre.mean() > 20,
+            np.sum(frcmrag[0:4]-frcmrag[-5:-1]) > 100
+        )
+        self.is_teletext = all(self.reasons)
 
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
@@ -116,6 +124,7 @@ class Line(object):
         self.roll(roll)
 
     def deconvolve(self, mags=range(9), rows=range(32)):
+        self.bytes_array = np.zeros((42,), dtype=np.uint8)
 
         # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
         self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
@@ -142,18 +151,27 @@ class Line(object):
 
     def slice(self, mags=range(9), rows=range(32)):
 
-        # get bits by threshold & differential
-        self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
-        diff = self.bits_array[1:] - self.bits_array[:-1]
-        ones = diff > 48
-        zeros = (diff > -48)
-        result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
+        packets = []
 
-        self.bytes_array[:] = np.packbits(result.reshape(-1,8)[:,::-1])
+        self.roll(2)
+        for i in range(5):
+            # get bits by threshold & differential
+            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+            diff = self.bits_array[1:] - self.bits_array[:-1]
+            ones = diff > 48
+            zeros = (diff > -48)
+            result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
 
-        m = Mrag(self.bytes_array[:2])
+            self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
+            packets.append(Packet(self.bytes_array.copy(), self._number))
+            self.roll(-1)
+        self.roll(3)
+
+        best = sorted([(np.sum(p.errors), n) for n, p in enumerate(packets)])[0][1]
+
+        m = packets[best].mrag
         mag = m.magazine
         row = m.row
 
         if mag in mags and row in rows:
-            return Packet(self.bytes_array.copy(), self._number)
+            return packets[best]
