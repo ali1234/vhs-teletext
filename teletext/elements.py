@@ -34,10 +34,24 @@ class Element(object):
 
     @property
     def errors(self):
+        raise NotImplementedError
+
+
+class ElementParity(Element):
+
+    @property
+    def errors(self):
+        return parity_errors(self._array)
+
+
+class ElementHamming(Element):
+
+    @property
+    def errors(self):
         return hamming8_errors(self._array)
 
 
-class Mrag(Element):
+class Mrag(ElementHamming):
 
     def __init__(self, array):
         super().__init__((2,), array)
@@ -68,7 +82,7 @@ class Mrag(Element):
         return f'{self.magazine} {self.row} {self.errors}'
 
 
-class Displayable(Element):
+class Displayable(ElementParity):
 
     def place_string(self, string, x=0, y=None):
         a = np.fromstring(string, dtype=np.uint8)
@@ -97,6 +111,12 @@ class Page(Element):
         if page < 0 or page > 0xff:
             raise ValueError('Page numbers must be between 0 and 0xff.')
         self._array[:2] = hamming16_encode(page)
+
+    @property
+    def errors(self):
+        e = np.zeros_like(self._array)
+        e[:2] = hamming8_errors(self._array[:2])
+        return e
 
 
 class Header(Page):
@@ -151,6 +171,13 @@ class Header(Page):
             self.name = 'Unknown'
             self.displayable_fixed = self.displayable
 
+    @property
+    def errors(self):
+        e = super().errors
+        e[2:8] = hamming8_errors(self._array[2:8])
+        e[8:] = self.displayable.errors
+        return e
+
 
 class DesignationCode(Element):
 
@@ -161,6 +188,12 @@ class DesignationCode(Element):
     @dc.setter
     def dc(self, dc):
         self._array[0] = hamming8_encode(dc)
+
+    @property
+    def errors(self):
+        e = np.zeros_like(self._array)
+        e[0] = hamming8_errors(self._array[0])
+        return e
 
 
 class PageLink(Page):
@@ -202,7 +235,13 @@ class PageLink(Page):
         ])
 
     def __str__(self):
-        return f'{self.magazine}{self.page:02x}:{self.subpage:x}'
+        return f'{self.magazine}{self.page:02x}:{self.subpage:04x}'
+
+    @property
+    def errors(self):
+        e = super().errors
+        e[2:8] = hamming8_errors(self._array[2:8])
+        return e
 
 
 class Fastext(DesignationCode):
@@ -216,8 +255,14 @@ class Fastext(DesignationCode):
         return tuple(PageLink(self._array[n:n+6], self._mrag) for n in range(1, 37, 6))
 
     def to_ansi(self, colour=True):
-        return f'DC={self.dc} ' + ' '.join((str(link) for link in self.links))
+        return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links))
 
+    @property
+    def errors(self):
+        e = super().errors
+        for l,n in zip(self.links, range(1, 37, 6)):
+            e[n:n+6] = l.errors
+        return e
 
 
 class BroadcastData(DesignationCode):
@@ -236,3 +281,10 @@ class BroadcastData(DesignationCode):
 
     def to_ansi(self, colour=True):
         return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} '
+
+    @property
+    def errors(self):
+        e = super().errors
+        e[1:7] = self.initial_page.errors
+        e[20:] = self.displayable.errors
+        return e

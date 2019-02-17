@@ -88,6 +88,23 @@ class Packet(Element):
     @property
     def debug(self):
         if self.number is None:
-            return f'None     {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)}\n'.encode('utf8')
+            return f'None     {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)} errors: {np.sum(self.errors)}\n'.encode('utf8')
         else:
-            return f'{self.number:8d} {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)}\n'.encode('utf8')
+            return f'{self.number:8d} {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)} errors: {np.sum(self.errors)}\n'.encode('utf8')
+
+    @property
+    def errors(self):
+        e = np.zeros_like(self._array)
+        e[:2] = self.mrag.errors
+        t = self.type
+
+        if t == 'header':
+            e[2:] = self.header.errors
+        elif t == 'display':
+            e[2:] = self.displayable.errors
+        elif t == 'fastext':
+            e[2:] = self.fastext.errors
+        elif t == 'broadcast':
+            e[2:] = self.broadcast.errors
+
+        return e
