@@ -1,3 +1,4 @@
+import numpy as np
 from itertools import islice
 
 from OpenGL.GLUT import *
@@ -81,7 +82,7 @@ class VBIViewer(object):
 
         glEnable(GL_TEXTURE_2D)
         for n,l in enumerate(lines[::-1]):
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.config.line_length, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, l.orig.tostring())
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.config.line_length, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, l.line.astype(np.uint8).tostring())
             if self.tint:
                 if l.is_teletext:
                     glColor4f(0.5, 1.0, 0.7, 1.0)
