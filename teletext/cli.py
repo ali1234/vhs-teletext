@@ -378,7 +378,7 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
         lines = Rejects(lines)
         chunks.postfix.append(lines)
 
-    packets = (l.deconvolve(mags, rows) for l in lines)
+    packets = (l.deconvolve(mags, rows) for l in lines if l.is_teletext)
     packets = (p for p in packets if p is not None)
 
     if progress and mag_hist:
@@ -423,7 +423,7 @@ def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist
         lines = Rejects(lines)
         chunks.postfix.append(lines)
 
-    packets = (l.slice(mags, rows) for l in lines)
+    packets = (l.slice(mags, rows) for l in lines if l.is_teletext)
     packets = (p for p in packets if p is not None)
 
     if progress and mag_hist:

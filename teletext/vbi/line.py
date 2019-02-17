@@ -117,49 +117,43 @@ class Line(object):
 
     def deconvolve(self, mags=range(9), rows=range(32)):
 
-        if self.is_teletext:
-            # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
-            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+        # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
+        self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
 
-            # mrag - Find only the mrag for the line.
-            self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
-            m = Mrag(self.bytes_array[:2])
-            mag = m.magazine
-            row = m.row
+        # mrag - Find only the mrag for the line.
+        self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
+        m = Mrag(self.bytes_array[:2])
+        mag = m.magazine
+        row = m.row
 
-            if mag in mags and row in rows:
-                # bytes - Finds the rest of the line.
-                # if self.row == 0:
-                #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
-                #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
-                # elif self.row == 27:
-                #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
-                #    # skip the last two bytes as they are not really useful
-                # else:
+        if mag in mags and row in rows:
+            # bytes - Finds the rest of the line.
+            # if self.row == 0:
+            #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
+            #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
+            # elif self.row == 27:
+            #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
+            #    # skip the last two bytes as they are not really useful
+            # else:
 
-                # it is faster to just use the same pattern array all the time
-                self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
-                return Packet(self.bytes_array.copy(), self._number)
-
-        return None
+            # it is faster to just use the same pattern array all the time
+            self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
+            return Packet(self.bytes_array.copy(), self._number)
 
     def slice(self, mags=range(9), rows=range(32)):
 
-        if self.is_teletext:
-            # get bits by threshold & differential
-            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
-            diff = self.bits_array[1:] - self.bits_array[:-1]
-            ones = diff > 48
-            zeros = (diff > -48)
-            result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
+        # get bits by threshold & differential
+        self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+        diff = self.bits_array[1:] - self.bits_array[:-1]
+        ones = diff > 48
+        zeros = (diff > -48)
+        result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
 
-            self.bytes_array[:] = np.packbits(result.reshape(-1,8)[:,::-1])
+        self.bytes_array[:] = np.packbits(result.reshape(-1,8)[:,::-1])
 
-            m = Mrag(self.bytes_array[:2])
-            mag = m.magazine
-            row = m.row
+        m = Mrag(self.bytes_array[:2])
+        mag = m.magazine
+        row = m.row
 
-            if mag in mags and row in rows:
-                return Packet(self.bytes_array.copy(), self._number)
-
-        return None
+        if mag in mags and row in rows:
+            return Packet(self.bytes_array.copy(), self._number)
