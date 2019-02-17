@@ -392,7 +392,6 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
 
 
 @teletext.command()
-@click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-e', '--extra_roll', type=int, default=-2, help='')
 @carduser(extended=True)
 @packetwriter
@@ -407,9 +406,7 @@ def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist
     from teletext.vbi.line import Line
 
     Line.set_config(config)
-
-    if force_cpu:
-        Line.disable_cuda()
+    Line.disable_cuda()
 
     chunks = chunker(config.line_length)
 
