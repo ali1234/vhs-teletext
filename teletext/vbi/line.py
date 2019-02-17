@@ -74,7 +74,6 @@ class Line(object):
 
         self.total_roll = 0
         self._number = number
-        self.data = data
 
         # Normalise and filter the data.
         self.orig = np.fromstring(data, dtype=np.uint8)
