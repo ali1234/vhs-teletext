@@ -5,7 +5,6 @@ class Config(object):
     teletext_bitrate = 6937500.0
     gauss = 3.0
     std_thresh = 14
-    mdiff_thresh = 45
 
     sample_rate: float
     line_length: int
