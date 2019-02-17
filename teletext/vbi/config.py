@@ -3,7 +3,7 @@ import numpy as np
 class Config(object):
 
     teletext_bitrate = 6937500.0
-    gauss = 3.0
+    gauss = 4.0
     std_thresh = 14
 
     sample_rate: float
@@ -39,18 +39,18 @@ class Config(object):
         self.start_slice = slice(*self.line_start_range)
 
         self.pre_slice = slice(
-            max(0, int(self.start_slice.start - (self.bit_width * 15))),
+            max(0, int(self.start_slice.start - (self.bit_width * 9))),
             max(1, int(self.start_slice.start - (self.bit_width * 2)))
         )
 
         self.post_slice = slice(
             int(self.start_slice.start + (self.bit_width * 2)),
-            int(self.start_slice.start + (self.bit_width * 15))
+            int(self.start_slice.start + (self.bit_width * 9))
         )
 
         self.frcmrag_slice = slice(
-            int(self.start_slice.start + (self.bit_width * 17)),
-            int(self.start_slice.start + (self.bit_width * 40))
+            int(self.start_slice.start + (self.bit_width * 16)),
+            int(self.start_slice.start + (self.bit_width * 24))
         )
 
         self.bits = np.array([int(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
