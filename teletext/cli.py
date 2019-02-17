@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .file import FileChunker
 from .packet import Packet
-from .stats import StatsList, MagHistogram, RowHistogram, Rejects
+from .stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
 from .subpage import Subpage
 from .terminal import termify
 
@@ -27,13 +27,14 @@ def filterparams(f):
     return f
 
 
-def progressparams(progress=None, mag_hist=None, row_hist=None):
+def progressparams(progress=None, mag_hist=None, row_hist=None, err_hist=None):
 
     def p(f):
         for d in [
             click.option('--progress/--no-progress', default=progress, help='Display progress bar.'),
             click.option('--mag-hist/--no-mag-hist', default=mag_hist, help='Display magazine histogram.'),
             click.option('--row-hist/--no-row-hist', default=row_hist, help='Display row histogram.'),
+            click.option('--err-hist/--no-err-hist', default=err_hist, help='Display error distribution.'),
         ][::-1]:
             f = d(f)
         return f
@@ -104,7 +105,7 @@ def packetreader(f):
     @filterparams
     @progressparams()
     @wraps(f)
-    def wrapper(chunker, wst, mags, rows, progress, mag_hist, row_hist, *args, **kwargs):
+    def wrapper(chunker, wst, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
 
         if wst:
             chunks = chunker(43)
@@ -116,7 +117,7 @@ def packetreader(f):
             progress = True
 
         if progress:
-            chunks = tqdm(chunks, unit='Pkts', dynamic_ncols=True)
+            chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
             if any((mag_hist, row_hist)):
                 chunks.postfix = StatsList()
 
@@ -128,6 +129,9 @@ def packetreader(f):
             chunks.postfix.append(packets)
         if progress and row_hist:
             packets = RowHistogram(packets)
+            chunks.postfix.append(packets)
+        if progress and err_hist:
+            packets = ErrorHistogram(packets)
             chunks.postfix.append(packets)
 
         return f(packets=packets, *args, **kwargs)
@@ -355,7 +359,7 @@ def vbiview(chunker, config):
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
+def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, err_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -369,7 +373,7 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
     chunks = chunker(config.line_length)
 
     if progress:
-        chunks = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
@@ -387,6 +391,9 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
     if progress and row_hist:
         packets = RowHistogram(packets)
         chunks.postfix.append(packets)
+    if progress and err_hist:
+        packets = ErrorHistogram(packets)
+        chunks.postfix.append(packets)
 
     return packets
 
@@ -399,7 +406,7 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, rejects):
+def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist, row_hist, err_hist, rejects):
 
     """Decode OTA-recorded VBI samples by slice/threshold."""
 
@@ -411,7 +418,7 @@ def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist
     chunks = chunker(config.line_length)
 
     if progress:
-        chunks = tqdm(chunks, unit=' Lines', dynamic_ncols=True)
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
@@ -428,6 +435,9 @@ def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist
         chunks.postfix.append(packets)
     if progress and row_hist:
         packets = RowHistogram(packets)
+        chunks.postfix.append(packets)
+    if progress and err_hist:
+        packets = ErrorHistogram(packets)
         chunks.postfix.append(packets)
 
     return packets

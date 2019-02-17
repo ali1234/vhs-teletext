@@ -25,11 +25,11 @@ class Histogram(object):
     @property
     def render(self):
         h = self.histogram
-        m = max(h)
+        m = max(1, np.max(h)) # no div by zero
         if m == 0:
             return (' ' * len(self._bins))
         else:
-            h2 = np.ceil(h * (len(self.bars) - 1) / (max(h))).astype(np.uint8)
+            h2 = np.ceil(h * ((len(self.bars) - 1) / m)).astype(np.uint8)
             return ''.join(self.bars[n] for n in h2)
 
     def __str__(self):
@@ -81,6 +81,29 @@ class Rejects(Histogram):
         h = self.histogram
         total = np.sum(h)
         return f', {self.label}:{100*h[0]/total:.0f}%'
+
+
+class ErrorHistogram(Histogram):
+
+    label = 'E'
+
+    def __init__(self, packets, size=100):
+        self._size = size
+        self._data = np.zeros((size, 6), dtype=np.uint32)
+        self._pos = 0
+        self._packets = packets
+
+    def __iter__(self):
+        for p in self._packets:
+            self.insert(np.sum(p.errors.reshape(6, -1), axis=1))
+            yield p
+
+    def __str__(self):
+        bins = np.sum(self._data, axis=0)
+        #m = max(1, np.max(bins)) # no div by zero
+        bins = np.ceil(bins * ((len(self.bars) - 1) * 2 / self._size)).astype(np.uint8)
+        bins = np.clip(bins, 0, len(self.bars)-1)
+        return f', {self.label}: |{"".join(self.bars[n] for n in bins)}|'
 
 
 class StatsList(list):
