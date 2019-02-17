@@ -341,7 +341,7 @@ def vbiview(chunker, config):
         Line.disable_cuda()
 
         chunks = chunker(config.line_length)
-        lines = (Line(chunk, number) for number, chunk in chunks)
+        lines = (Line(chunk, number, extra_roll=-3) for number, chunk in chunks)
 
         VBIViewer(lines, config)
 
@@ -373,12 +373,12 @@ def deconvolve(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
-    lines = (Line(chunk, number) for number, chunk in chunks)
+    lines = (Line(chunk, number, extra_roll=extra_roll) for number, chunk in chunks)
     if progress and rejects:
         lines = Rejects(lines)
         chunks.postfix.append(lines)
 
-    packets = (l.deconvolve(extra_roll, mags, rows) for l in lines)
+    packets = (l.deconvolve(mags, rows) for l in lines)
     packets = (p for p in packets if p is not None)
 
     if progress and mag_hist:
@@ -418,12 +418,12 @@ def slice(chunker, mags, rows, config, force_cpu, extra_roll, progress, mag_hist
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
-    lines = (Line(chunk, number) for number, chunk in chunks)
+    lines = (Line(chunk, number, extra_roll=extra_roll) for number, chunk in chunks)
     if progress and rejects:
         lines = Rejects(lines)
         chunks.postfix.append(lines)
 
-    packets = (l.slice(extra_roll, mags, rows) for l in lines)
+    packets = (l.slice(mags, rows) for l in lines)
     packets = (p for p in packets if p is not None)
 
     if progress and mag_hist:

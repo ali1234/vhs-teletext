@@ -26,8 +26,7 @@ def normalise(a, start=None, end=None):
     r = (mx-mn)
     if r == 0:
         r = 1
-    a -= mn
-    return np.clip(a.astype(np.float32) * (255.0/r), 0, 255)
+    return np.clip((a.astype(np.float32) - mn) * (255.0/r), 0, 255)
 
 
 # Line: Handles a single line of raw VBI samples.
@@ -66,7 +65,7 @@ class Line(object):
             sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
         Line.try_cuda = False
 
-    def __init__(self, data, number=None):
+    def __init__(self, data, number=None, extra_roll=0):
         if Line.config is None:
             Line.config = Config()
 
@@ -79,15 +78,15 @@ class Line(object):
 
         # Normalise and filter the data.
         self.orig = np.fromstring(data, dtype=np.uint8)
-        self.line = normalise(np.fromstring(data, dtype=np.uint8), end=Line.config.line_trim)
+        self.line = normalise(self.orig, end=Line.config.line_trim)
         self.gline = normalise(gauss(self.line, Line.config.gauss), end=Line.config.line_trim)
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
-        start = np.argmax(np.gradient(self.gline[Line.config.start_slice]))
+        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline[Line.config.start_slice])))
 
         # Roll the arrays to align all packets.
-        self.roll(-start)
+        self.roll(self.start)
 
         # Detect teletext line based on known properties of the clock run in and frame code.
         pre = self.gline[Line.config.pre_slice]
@@ -97,6 +96,7 @@ class Line(object):
         self.is_teletext = pre.std() < Line.config.std_thresh and post.min() > pre.max() and frcmrag.std() > 25
 
         if self.is_teletext:
+            self.extra_roll = extra_roll
             self.bytes_array = np.zeros((42,), dtype=np.uint8)
 
     def roll(self, roll):
@@ -107,15 +107,18 @@ class Line(object):
             self.gline = np.roll(self.gline, roll)
             self.total_roll += roll
 
-    def roll_abs(self, roll):
-        """Rolls the raw samples to an absolute position."""
-        self.roll(roll - self.total_roll)
+    @property
+    def extra_roll(self):
+        return self.total_roll - self.start
 
-    def deconvolve(self, extra_roll=-4, mags=range(9), rows=range(32)):
+    @extra_roll.setter
+    def extra_roll(self, roll):
+        roll = int(roll) - self.extra_roll
+        self.roll(roll)
+
+    def deconvolve(self, mags=range(9), rows=range(32)):
 
         if self.is_teletext:
-            self.roll(extra_roll)
-
             # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
             self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
 
@@ -141,11 +144,9 @@ class Line(object):
 
         return None
 
-    def slice(self, extra_roll=-2, mags=range(9), rows=range(32)):
+    def slice(self, mags=range(9), rows=range(32)):
 
         if self.is_teletext:
-            self.roll(extra_roll)
-
             # get bits by threshold & differential
             self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
             diff = self.bits_array[1:] - self.bits_array[:-1]
@@ -153,7 +154,7 @@ class Line(object):
             zeros = (diff > -48)
             result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
 
-            self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
+            self.bytes_array[:] = np.packbits(result.reshape(-1,8)[:,::-1])
 
             m = Mrag(self.bytes_array[:2])
             mag = m.magazine
