@@ -171,7 +171,7 @@ class VBIViewer(object):
         if self.pause:
             time.sleep(0.1)
         else:
-            self.lines = list(islice(self.lines_src, 0, self.nlines))
+            next_lines = list(islice(self.lines_src, 0, self.nlines))
 
-            if len(self.lines) != self.nlines:
-                exit(0)
+            if len(next_lines) > 0:
+                self.lines = next_lines
