@@ -132,8 +132,10 @@ def hamming16_decode(a):
 def hamming8_correctable_errors(a):
     return hamming8_cor[a]
 
+
 def hamming8_uncorrectable_errors(a):
     return hamming8_unc[a]
+
 
 def hamming8_errors(a):
     return (2 * hamming8_unc[a]) + hamming8_cor[a]
