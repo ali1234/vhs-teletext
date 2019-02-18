@@ -76,13 +76,15 @@ class Line(object):
         self._number = number
 
         self.orig = np.fromstring(data, dtype=np.uint8).astype(np.float32)
-        self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
 
-        if not self.is_teletext:
-            self.reasons = 'no signal'
-
+        # rolled arrays
         self.line = self.orig.copy()
         self.gline = normalise(gauss(self.orig, Line.config.gauss), end=Line.config.line_trim)
+
+        self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
+        if not self.is_teletext:
+            self.reasons = 'no signal'
+            return
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
