@@ -199,6 +199,19 @@ def filter(packets, pages, subpages, paginate):
 
 
 @teletext.command()
+@packetwriter
+@packetreader
+def finders(packets):
+
+    """Apply finders to fix up common packets."""
+
+    for p in packets:
+        if p.type == 'header':
+            p.header.apply_finders()
+        yield p
+
+
+@teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
 @click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')

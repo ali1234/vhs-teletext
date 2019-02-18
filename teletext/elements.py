@@ -1,6 +1,8 @@
 from .printer import PrinterANSI
 from .coding import *
 
+from . import finders
+
 
 class Element(object):
 
@@ -160,16 +162,12 @@ class Header(Page):
     def to_ansi(self, colour=True):
         return f'{self.page:02x} {self.displayable.to_ansi(colour)}'
 
-    def ranks(self):
-        ranks = [(f.match(self.displayable[:]),f) for f in Finders]
+    def apply_finders(self):
+        ranks = [(f.match(self.displayable[:]),f) for f in finders.HeaderFinders]
         ranks.sort(reverse=True, key=lambda x: x[0])
         if ranks[0][0] > 20:
-            self.name = ranks[0][1].name
             self.finder = ranks[0][1]
-            self.displayable_fixed = ranks[0][1].fixup(self.displayable[:].copy())
-        else:
-            self.name = 'Unknown'
-            self.displayable_fixed = self.displayable
+            self.finder.fixup(self.displayable[:])
 
     @property
     def errors(self):

@@ -1,3 +1,6 @@
+import itertools
+
+from .coding import parity_encode, parity_decode
 
 
 class Finder(object):
@@ -20,49 +23,40 @@ class Finder(object):
         'Z': b'12345678',
         'T': b'0123456789ABCDEFabcdef',
         'U': b'0123456789ABCDEFabcdef',
-        'F': b' 0123',
+        'F': b'0123 ',
         'f': b'0123456789',
-        'H': b' 012',
+        'H': b'012 ',
         'h': b'0123456789',
         'L': b'012345',
         'l': b'0123456789',
         'S': b'012345',
         's': b'0123456789',
-        'e': b'',  # exact match
+        'e': b'', # exact match
+        '*': b'', # wildcard
         ' ': b'\x00\x01\x02\x03\x04\x05\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f ', # whitespace/spacing attributes
     }
 
-
     def __init__(self, match1, match2, name, years, channels):
-        self.match1 = match1
+        if len(match1) != len(match2):
+            raise ValueError('Match fields must be equal length.')
+        self.match1 = match1.encode('ascii')
         self.match2 = match2
         self.name = name
         self.years = years
+        self.channels = channels
 
-    def match(self, b):
-        s = (b&0x7f).tostring()
-        rank = 0
-        for n in range(32):
-            if self.match2[n] == 'e' and s[n] == self.match1[n]:
-                rank += 2
-            elif s[n] in self.groups[self.match2[n]]:
-                rank += 1
-        return rank
+    def match(self, arr):
+        a = [2 if (m2 == 'e' and m1 == c) else (1 if c in self.groups[m2] else 0) for m1, m2, c in zip(self.match1, self.match2, parity_decode(arr))]
+        #print(f'{self.name[:20]:21s}', ''.join(str(n) for n in a))
+        return sum(a)
 
-    def fixup(self, b):
-        for n in range(32):
-            if self.match2[n] == 'e':
-                b[n] = ord(self.match1[n])
-            #elif self.match2[n] == ' ' and chr(b[n]) not in self.groups[' ']:
-            #    b[n] = ord(' ')
-        return b
+    def fixup(self, arr):
+        for n, m1, m2 in zip(itertools.count(), self.match1, self.match2):
+            if m2 == 'e':
+                arr[n] = parity_encode(m1)
 
-    def info(self, b):
-        tmp = {}
-        for n in range(32):
-            tmp[self.match2[n]] = s[n]
 
-Finders = [
+HeaderFinders = [
 Finder("CEEFAX 217 \x09Wed 25 Dec\x03 18:29/53",
        "eeeeeeeZTUee"+"DayeFfeMone"+"eHheLleSs",
        "BBC", (0,1996), ['BBC1', 'BBC2']),
