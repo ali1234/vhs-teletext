@@ -125,11 +125,14 @@ class Line(object):
         roll = int(roll) - self.extra_roll
         self.roll(roll)
 
+    def chop(self):
+        return np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
+
     def deconvolve(self, mags=range(9), rows=range(32)):
         self.bytes_array = np.zeros((42,), dtype=np.uint8)
 
         # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
-        self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+        self.bits_array = normalise(self.chop())
 
         # mrag - Find only the mrag for the line.
         self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
@@ -158,7 +161,7 @@ class Line(object):
         self.roll(2)
         for i in range(5):
             # get bits by threshold & differential
-            self.bits_array = normalise(np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1]/Line.config.bit_lengths)
+            self.bits_array = normalise(self.chop())
             diff = self.bits_array[1:] - self.bits_array[:-1]
             ones = diff > 48
             zeros = (diff > -48)
