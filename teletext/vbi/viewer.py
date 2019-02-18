@@ -9,7 +9,7 @@ from OpenGL.GL import *
 
 class VBIViewer(object):
 
-    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=256, tint=True, show_grid=True, show_slices=False):
+    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=32, tint=True, show_grid=True, show_slices=False):
         self.config = config
         self.show_grid = show_grid
         self.show_slices = show_slices
