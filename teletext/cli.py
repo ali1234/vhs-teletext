@@ -46,7 +46,6 @@ def carduser(extended=False):
         if extended:
             for d in [
                 click.option('--sample-rate', type=float, default=None, help='Override capture card sample rate (Hz).'),
-                click.option('--line-trim', type=int, default=None, help='Override capture card line trim.'),
                 click.option('--line-start-range', type=(int, int), default=(None, None), help='Override capture card line start offset.'),
             ][::-1]:
                 f = d(f)
@@ -54,10 +53,10 @@ def carduser(extended=False):
         @click.option('-c', '--card', type=click.Choice(list(Config.cards.keys())), default='bt8x8', help='Capture device type. Default: bt8x8.')
         @click.option('--line-length', type=int, default=None, help='Override capture card samples per line.')
         @wraps(f)
-        def wrapper(card, line_length=None, sample_rate=None, line_trim=None, line_start_range=None, *args, **kwargs):
+        def wrapper(card, line_length=None, sample_rate=None, line_start_range=None, *args, **kwargs):
             if line_start_range == (None, None):
                 line_start_range = None
-            config = Config(card=card, line_length=line_length, sample_rate=sample_rate, line_trim=line_trim, line_start_range=line_start_range)
+            config = Config(card=card, line_length=line_length, sample_rate=sample_rate, line_start_range=line_start_range)
             return f(config=config, *args,**kwargs)
         return wrapper
     return c

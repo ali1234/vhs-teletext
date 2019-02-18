@@ -79,7 +79,7 @@ class Line(object):
 
         # rolled arrays
         self.line = self.orig.copy()
-        self.gline = normalise(gauss(self.orig, Line.config.gauss), end=Line.config.line_trim)
+        self.gline = normalise(gauss(self.orig, Line.config.gauss), start=Line.config.start_slice.start, end=Line.config.line_trim)
 
         self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
         if not self.is_teletext:
