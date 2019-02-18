@@ -4,7 +4,7 @@ from .coding import *
 
 class Element(object):
 
-    def __init__(self, shape, array):
+    def __init__(self, shape, array=None):
         if array is None:
             self._array = np.zeros(shape, dtype=np.uint8)
         elif type(array) == bytes:
