@@ -61,6 +61,6 @@ class Config(object):
         )
 
         # first sample for each bit in the rolled arrays
-        self.bits = np.array([int(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
+        self.bits = np.array([round(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
         # number of samples in each bit
         self.bit_lengths = (self.bits[1:] - self.bits[:-1])
