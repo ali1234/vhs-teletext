@@ -85,11 +85,23 @@ class Line(object):
 
     @property
     def is_teletext(self):
+        """Determine whether the VBI data in this line contains a teletext signal."""
         if self._is_teletext is None:
-            # detect teletext by FFT frequency analysis
-            self.fft = np.abs(np.fft.fft(np.diff(self.orig))[:256]) / 8
-            self.fftchop = np.add.reduceat(self.fft, self.config.fftbins)
-            self._is_teletext = np.sum(self.fftchop[1:-1:2]) > 1000
+            # First try to detect by comparing pre-start noise floor to post-start levels.
+            noisefloor = np.max(gauss(self.orig[:self.config.start_slice.start], self.config.gauss))
+            if np.max(gauss(self.line[self.config.start_slice], self.config.gauss)) < (noisefloor + 16):
+                # There is no interesting signal in the start_slice.
+                self._is_teletext = False
+            else:
+                # There is some kind of signal in the line. Check if
+                # it is teletext by looking for harmonics of teletext
+                # symbol rate.
+                self.fft = np.abs(np.fft.fft(np.diff(self.line, n=1))[:256])
+                self.fft = normalise(gauss(self.fft, 4))
+                # This test only looks at the bins for the harmonics.
+                # It could be made smarter by looking at all bins.
+                self.fftchop = np.add.reduceat(self.fft, self.config.fftbins)
+                self._is_teletext = np.sum(self.fftchop[1:-1:2]) > 1000
         return self._is_teletext
 
     def roll(self, roll):
@@ -111,11 +123,11 @@ class Line(object):
 
     def find_start(self, extra_roll=0):
         # rolled arrays
-        self.gline = normalise(gauss(self.orig, Line.config.gauss), start=Line.config.start_slice.start, end=Line.config.line_trim)
+        self.gline = gauss(self.orig[Line.config.start_slice], Line.config.gauss)
 
         # Find the steepest part of the curve within line_start_range. This is where
         # the packet data starts.
-        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline[Line.config.start_slice])))
+        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline)))
 
         # Roll the arrays to align all packets.
         self.roll(self.start)
