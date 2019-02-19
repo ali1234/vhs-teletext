@@ -77,7 +77,7 @@ class Line(object):
 
         self.reset()
 
-        self.extra_roll = extra_roll
+        self.roll = extra_roll
 
         if self.is_teletext:
             pass
@@ -99,7 +99,7 @@ class Line(object):
 
     @property
     def rolled(self):
-        return np.roll(self._original, (self.start or 0) + self.extra_roll)
+        return np.roll(self._original, (self.start or 0) + self.roll)
 
     @property
     def noisefloor(self):

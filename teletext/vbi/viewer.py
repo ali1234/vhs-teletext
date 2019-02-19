@@ -88,7 +88,7 @@ class VBIViewer(object):
                 l.roll += 1
             elif button == 4:
                 l.roll -= 1
-            print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.extra_roll)
+            print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.roll)
             sys.stdout.flush()
 
     def set_title(self):
@@ -163,11 +163,10 @@ class VBIViewer(object):
 
         self.draw_lines()
 
+        if self.height / self.nlines > 3:
+            self.draw_h_grid(0, 0, 0, 0.25)
+
         if self.show_grid:
-
-            if self.height / self.nlines > 3:
-                self.draw_h_grid(0, 0, 0, 0.25)
-
             if self.line_attr == 'fft':
                 self.draw_freq_bins(256, 1, 1, 1, 0.5)
             elif self.line_attr == 'rolled' and self.width / 42 > 5:
@@ -175,9 +174,6 @@ class VBIViewer(object):
 
         if self.show_slices:
             self.draw_slice(self.config.start_slice, 1, 0, 0, 0.5)
-            self.draw_slice(self.config.pre_slice, 0, 1, 0, 0.5)
-            self.draw_slice(self.config.post_slice, 0, 0, 1, 0.5)
-            self.draw_slice(self.config.frcmrag_slice, 1, 1, 0, 0.5)
 
         glutSwapBuffers()
         glutPostRedisplay()

@@ -42,24 +42,6 @@ class Config(object):
         # last sample of original line where teletext may occur
         self.line_trim = self.start_slice.stop + math.ceil(self.bit_width * 46 * 8)
 
-        # region immediately before the CRI in the rolled arrays
-        self.pre_slice = slice(
-            max(0, int(self.start_slice.start - (self.bit_width * 9))),
-            max(1, int(self.start_slice.start - (self.bit_width * 2)))
-        )
-
-        # region immediately after the beginning of the CRI in the rolled arrays
-        self.post_slice = slice(
-            int(self.start_slice.start + (self.bit_width * 2)),
-            int(self.start_slice.start + (self.bit_width * 9))
-        )
-
-        # region approximately containing framing code in the rolled arrays
-        self.frcmrag_slice = slice(
-            int(self.start_slice.start + (self.bit_width * 16)),
-            int(self.start_slice.start + (self.bit_width * 24))
-        )
-
         # first sample for each bit in the rolled arrays
         self.bits = np.array([round(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
         # number of samples in each bit
