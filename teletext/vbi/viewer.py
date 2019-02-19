@@ -17,7 +17,7 @@ class VBIViewer(object):
         self.pause = False
         self.name = name
 
-        self.line_attr = 'line'
+        self.line_attr = 'orig'
 
         self.nlines = nlines
 
@@ -28,6 +28,7 @@ class VBIViewer(object):
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
         glutInitWindowSize(width,height)
         glutCreateWindow(name)
+        self.set_title()
 
         glutDisplayFunc(self.display)
         glutReshapeFunc(self.reshape)
@@ -67,15 +68,19 @@ class VBIViewer(object):
             self.show_slices ^= True
         elif key == b'p':
             self.pause ^= True
-            self.set_title()
         elif key == b'1':
-            self.line_attr = 'line'
-        elif key == b'2':
-            self.line_attr = 'gline'
-        elif key == b'3':
             self.line_attr = 'orig'
+        elif key == b'2':
+            self.line_attr = 'line'
+        elif key == b'3':
+            self.line_attr = 'gline'
+        elif key == b'4':
+            self.line_attr = 'fft'
+        elif key == b'5':
+            self.line_attr = 'fftchop'
         elif key == b'q':
             exit(0)
+        self.set_title()
 
     def mouse(self, button, state, x, y):
         if state == GLUT_DOWN:
@@ -84,11 +89,11 @@ class VBIViewer(object):
                 l.roll(1)
             elif button == 4:
                 l.roll(-1)
-            print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.extra_roll, 'r:', l.reasons)
+            print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.extra_roll)
             sys.stdout.flush()
 
     def set_title(self):
-        glutSetWindowTitle(f'{self.name}{" (paused)" if self.pause else ""}')
+        glutSetWindowTitle(f'{self.name} - {self.line_attr}{" (paused)" if self.pause else ""}')
 
     def draw_slice(self, slice, r, g, b, a=1.0):
         glColor4f(r, g, b, a)
@@ -115,12 +120,20 @@ class VBIViewer(object):
             glVertex2f(x, self.nlines)
         glEnd()
 
+    def draw_freq_bins(self, n, r, g, b, a=1.0):
+        glColor4f(r, g, b, a)
+        glBegin(GL_LINES)
+        for x in self.config.fftbins:
+            glVertex2f(self.config.line_length*x/256, 0)
+            glVertex2f(self.config.line_length*x/256, self.nlines)
+        glEnd()
+
     def draw_lines(self):
 
         glEnable(GL_TEXTURE_2D)
         for n,l in enumerate(self.lines[::-1]):
             array = getattr(l, self.line_attr)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self.config.line_length, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, array.astype(np.uint8).tostring())
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, array.size, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, np.clip(array, 0, 255).astype(np.uint8).tostring())
             if self.tint:
                 if l.is_teletext:
                     glColor4f(0.5, 1.0, 0.7, 1.0)
@@ -156,8 +169,10 @@ class VBIViewer(object):
             if self.height / self.nlines > 3:
                 self.draw_h_grid(0, 0, 0, 0.25)
 
-            if self.width / 42 > 5:
-                self.draw_bits(0, 0, 0, 0.25)
+            if self.line_attr == 'fft':
+                self.draw_freq_bins(256, 1, 1, 1, 0.5)
+            elif self.line_attr in ['line', 'gline'] and self.width / 42 > 5:
+                self.draw_bits(1, 1, 1, 0.5)
 
         if self.show_slices:
             self.draw_slice(self.config.start_slice, 1, 0, 0, 0.5)

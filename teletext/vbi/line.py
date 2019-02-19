@@ -74,39 +74,23 @@ class Line(object):
 
         self.total_roll = 0
         self._number = number
+        self._is_teletext = None
 
-        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.float32)
+        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.int32)
+        self.line = self.orig[:]
+        self.gline = self.orig[:]
 
-        # rolled arrays
-        self.line = self.orig.copy()
-        self.gline = normalise(gauss(self.orig, Line.config.gauss), start=Line.config.start_slice.start, end=Line.config.line_trim)
+        if self.is_teletext:
+            self.find_start(extra_roll)
 
-        self.is_teletext = np.any(self.orig[Line.config.start_slice.start:Line.config.line_trim] > 100)
-        if not self.is_teletext:
-            self.reasons = 'no signal'
-            return
-
-        # Find the steepest part of the curve within line_start_range. This is where
-        # the packet data starts.
-        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline[Line.config.start_slice])))
-
-        # Roll the arrays to align all packets.
-        self.roll(self.start)
-
-        self.extra_roll = extra_roll
-
-        # Detect teletext line based on known properties of the clock run in and frame code.
-        pre = self.gline[Line.config.pre_slice]
-        post = self.gline[Line.config.post_slice]
-        frcmrag = self.gline[Line.config.frcmrag_slice]
-
-        self.reasons = (
-            pre.mean() < 64,
-            np.max(pre) - np.min(pre) < 80,
-            post.mean() - pre.mean() > 20,
-            np.sum(frcmrag[0:4]-frcmrag[-5:-1]) > 100
-        )
-        self.is_teletext = all(self.reasons)
+    @property
+    def is_teletext(self):
+        if self._is_teletext is None:
+            # detect teletext by FFT frequency analysis
+            self.fft = np.abs(np.fft.fft(np.diff(self.orig))[:256]) / 8
+            self.fftchop = np.add.reduceat(self.fft, self.config.fftbins)
+            self._is_teletext = np.sum(self.fftchop[1:-1:2]) > 1000
+        return self._is_teletext
 
     def roll(self, roll):
         """Rolls the raw sample array, shifting the start position by roll."""
@@ -124,6 +108,19 @@ class Line(object):
     def extra_roll(self, roll):
         roll = int(roll) - self.extra_roll
         self.roll(roll)
+
+    def find_start(self, extra_roll=0):
+        # rolled arrays
+        self.gline = normalise(gauss(self.orig, Line.config.gauss), start=Line.config.start_slice.start, end=Line.config.line_trim)
+
+        # Find the steepest part of the curve within line_start_range. This is where
+        # the packet data starts.
+        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline[Line.config.start_slice])))
+
+        # Roll the arrays to align all packets.
+        self.roll(self.start)
+
+        self.extra_roll = extra_roll
 
     def chop(self):
         return np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
