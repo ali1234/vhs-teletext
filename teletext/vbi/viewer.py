@@ -18,7 +18,7 @@ class VBIViewer(object):
         self.single_step = False
         self.name = name
 
-        self.line_attr = 'orig'
+        self.line_attr = 'original'
 
         self.nlines = nlines
 
@@ -72,15 +72,11 @@ class VBIViewer(object):
         elif key == b'n':
             self.single_step = True
         elif key == b'1':
-            self.line_attr = 'orig'
+            self.line_attr = 'original'
         elif key == b'2':
-            self.line_attr = 'line'
+            self.line_attr = 'rolled'
         elif key == b'3':
-            self.line_attr = 'gline'
-        elif key == b'4':
             self.line_attr = 'fft'
-        elif key == b'5':
-            self.line_attr = 'fftchop'
         elif key == b'q':
             exit(0)
         self.set_title()
@@ -174,7 +170,7 @@ class VBIViewer(object):
 
             if self.line_attr == 'fft':
                 self.draw_freq_bins(256, 1, 1, 1, 0.5)
-            elif self.line_attr == 'line' and self.width / 42 > 5:
+            elif self.line_attr == 'rolled' and self.width / 42 > 5:
                 self.draw_bits(1, 1, 1, 0.5)
 
         if self.show_slices:

@@ -72,70 +72,77 @@ class Line(object):
         if Line.try_cuda:
             Line.try_init_cuda()
 
-        self.total_roll = 0
         self._number = number
-        self._is_teletext = None
+        self._original = np.fromstring(data, dtype=np.uint8).astype(np.int32)
 
-        self.orig = np.fromstring(data, dtype=np.uint8).astype(np.int32)
-        self.line = self.orig[:]
-        self.gline = self.orig[:]
+        self.reset()
+
+        self.extra_roll = extra_roll
 
         if self.is_teletext:
-            self.find_start(extra_roll)
+            pass
+
+    def reset(self):
+        """Reset line to original unknown state."""
+        self._line = self._original[:]
+        self.roll = 0
+
+        self._noisefloor = None
+        self._fft = None
+        self._gstart = None
+        self._is_teletext = None
+        self._start = None
+
+    @property
+    def original(self):
+        return self._original[:]
+
+    @property
+    def rolled(self):
+        return np.roll(self._original, (self.start or 0) + self.extra_roll)
+
+    @property
+    def noisefloor(self):
+        if self._noisefloor is None:
+            self._noisefloor = np.max(gauss(self._original[:self.config.start_slice.start], self.config.gauss))
+        return self._noisefloor
+
+    @property
+    def fft(self):
+        """The FFT of the original line."""
+        if self._fft is None:
+            # This test only looks at the bins for the harmonics.
+            # It could be made smarter by looking at all bins.
+            self._fft = normalise(gauss(np.abs(np.fft.fft(np.diff(self._original, n=1))[:256]), 4))
+        return self._fft
 
     @property
     def is_teletext(self):
         """Determine whether the VBI data in this line contains a teletext signal."""
         if self._is_teletext is None:
             # First try to detect by comparing pre-start noise floor to post-start levels.
-            noisefloor = np.max(gauss(self.orig[:self.config.start_slice.start], self.config.gauss))
-            if np.max(gauss(self.line[self.config.start_slice], self.config.gauss)) < (noisefloor + 16):
+            # Store self._gstart so that self.start can re-use it.
+            self._gstart = gauss(self._original[Line.config.start_slice], Line.config.gauss)
+            if np.max(self._gstart) < (self.noisefloor + 16):
                 # There is no interesting signal in the start_slice.
                 self._is_teletext = False
             else:
                 # There is some kind of signal in the line. Check if
                 # it is teletext by looking for harmonics of teletext
                 # symbol rate.
-                self.fft = np.abs(np.fft.fft(np.diff(self.line, n=1))[:256])
-                self.fft = normalise(gauss(self.fft, 4))
-                # This test only looks at the bins for the harmonics.
-                # It could be made smarter by looking at all bins.
-                self.fftchop = np.add.reduceat(self.fft, self.config.fftbins)
-                self._is_teletext = np.sum(self.fftchop[1:-1:2]) > 1000
+                fftchop = np.add.reduceat(self.fft, self.config.fftbins)
+                self._is_teletext = np.sum(fftchop[1:-1:2]) > 1000
         return self._is_teletext
 
-    def roll(self, roll):
-        """Rolls the raw sample array, shifting the start position by roll."""
-        roll = int(roll)
-        if roll != 0:
-            self.line = np.roll(self.line, roll)
-            self.gline = np.roll(self.gline, roll)
-            self.total_roll += roll
-
     @property
-    def extra_roll(self):
-        return self.total_roll - self.start
-
-    @extra_roll.setter
-    def extra_roll(self, roll):
-        roll = int(roll) - self.extra_roll
-        self.roll(roll)
-
-    def find_start(self, extra_roll=0):
-        # rolled arrays
-        self.gline = gauss(self.orig[Line.config.start_slice], Line.config.gauss)
-
-        # Find the steepest part of the curve within line_start_range. This is where
-        # the packet data starts.
-        self.start = -np.argmax(np.gradient(np.maximum.accumulate(self.gline)))
-
-        # Roll the arrays to align all packets.
-        self.roll(self.start)
-
-        self.extra_roll = extra_roll
+    def start(self):
+        """The steepest part of the line within start_slice."""
+        if self._start is None and self.is_teletext:
+            self._start = -np.argmax(np.gradient(np.maximum.accumulate(self._gstart)))
+        return self._start
 
     def chop(self):
-        return np.add.reduceat(self.line, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
+        return np.add.reduceat(self.rolled, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
 
     def deconvolve(self, mags=range(9), rows=range(32)):
         self.bytes_array = np.zeros((42,), dtype=np.uint8)
@@ -167,8 +174,8 @@ class Line(object):
 
         packets = []
 
-        self.roll(2)
-        for i in range(5):
+        for roll in range(-2, 3):
+            self.extra_roll = roll
             # get bits by threshold & differential
             self.bits_array = normalise(self.chop())
             diff = self.bits_array[1:] - self.bits_array[:-1]
@@ -177,15 +184,16 @@ class Line(object):
             result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
 
             self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
-            packets.append(Packet(self.bytes_array.copy(), self._number))
-            self.roll(-1)
-        self.roll(3)
+            packets.append((Packet(self.bytes_array.copy(), self._number), roll))
 
-        best = sorted([(np.sum(p.errors), n) for n, p in enumerate(packets)])[0][1]
+        best = sorted((np.sum(p[0].errors), n) for n, p in enumerate(packets))[0]
 
-        m = packets[best].mrag
+        self.extra_roll = packets[best[1]][1]
+
+        packet = packets[best[1]][0]
+        m = packet.mrag
         mag = m.magazine
         row = m.row
 
         if mag in mags and row in rows:
-            return packets[best]
+            return packet
