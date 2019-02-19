@@ -12,7 +12,6 @@ class VBIViewer(object):
     def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=32, tint=True, show_grid=True, show_slices=False):
         self.config = config
         self.show_grid = show_grid
-        self.show_slices = show_slices
         self.tint = tint
         self.pause = False
         self.single_step = False
@@ -65,8 +64,6 @@ class VBIViewer(object):
             self.show_grid ^= True
         elif key == b't':
             self.tint ^= True
-        elif key == b's':
-            self.show_slices ^= True
         elif key == b'p':
             self.pause ^= True
         elif key == b'n':
@@ -171,9 +168,8 @@ class VBIViewer(object):
                 self.draw_freq_bins(256, 1, 1, 1, 0.5)
             elif self.line_attr == 'rolled' and self.width / 42 > 5:
                 self.draw_bits(1, 1, 1, 0.5)
-
-        if self.show_slices:
-            self.draw_slice(self.config.start_slice, 1, 0, 0, 0.5)
+            elif self.line_attr == 'original':
+                self.draw_slice(self.config.start_slice, 0, 1, 0, 0.5)
 
         glutSwapBuffers()
         glutPostRedisplay()
