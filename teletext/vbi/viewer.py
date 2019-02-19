@@ -171,7 +171,7 @@ class VBIViewer(object):
 
             if self.line_attr == 'fft':
                 self.draw_freq_bins(256, 1, 1, 1, 0.5)
-            elif self.line_attr in ['line', 'gline'] and self.width / 42 > 5:
+            elif self.line_attr == 'line' and self.width / 42 > 5:
                 self.draw_bits(1, 1, 1, 0.5)
 
         if self.show_slices:
