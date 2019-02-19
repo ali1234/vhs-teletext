@@ -15,6 +15,7 @@ class VBIViewer(object):
         self.show_slices = show_slices
         self.tint = tint
         self.pause = False
+        self.single_step = False
         self.name = name
 
         self.line_attr = 'orig'
@@ -68,6 +69,8 @@ class VBIViewer(object):
             self.show_slices ^= True
         elif key == b'p':
             self.pause ^= True
+        elif key == b'n':
+            self.single_step = True
         elif key == b'1':
             self.line_attr = 'orig'
         elif key == b'2':
@@ -183,10 +186,11 @@ class VBIViewer(object):
         glutSwapBuffers()
         glutPostRedisplay()
 
-        if self.pause:
+        if self.pause and not self.single_step:
             time.sleep(0.1)
         else:
             next_lines = list(islice(self.lines_src, 0, self.nlines))
 
             if len(next_lines) > 0:
                 self.lines = next_lines
+            self.single_step = False
