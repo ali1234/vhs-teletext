@@ -8,17 +8,21 @@ from teletext.vbi.config import Config
 
 class LineTestCase(unittest.TestCase):
 
-    def noisegen(self):
-        for loc in range(0, 256):
-            for scale in range(0, 256):
-                for n in range(10):
-                    yield (np.clip(np.random.normal(loc, scale, size=(2048,)), 0, 255).astype(np.uint8).tobytes(), {'loc':loc, 'scale':scale, 'n':n})
+    def noisegen(self, max_loc, max_scale):
+        for n in range(100):
+            for loc in range(0, max_loc+1, max(1, max_loc//8)):
+                for scale in range(0, max_scale+1, max(1, max_scale//8)):
+                    yield (
+                        np.clip(np.random.normal(loc, scale, size=(2048,)), 0, 255).astype(np.uint8).tobytes(),
+                        {'loc':loc, 'scale':scale}
+                    )
 
     def setUp(self):
         Line.set_config(Config())
         Line.try_cuda = False
 
-    def test_noise_rejection(self):
-        for data, params in self.noisegen():
-            line = Line(data)
-            self.assertFalse(line.is_teletext, f'Noise interpreted as teletext: {params}.')
+    def test_empty_rejection(self):
+        lines = ((Line(data), params) for data, params in self.noisegen(256, 8))
+        lines = ((line, params) for line, params in lines if line.is_teletext)
+        for line, params in lines:
+            self.assertFalse(line.is_teletext, f'Noise interpreted as teletext: {params}')
