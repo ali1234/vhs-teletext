@@ -85,9 +85,9 @@ class VBIViewer(object):
         if state == GLUT_DOWN:
             l = self.lines[self.nlines * y//self.height]
             if button == 3:
-                l.roll(1)
+                l.roll += 1
             elif button == 4:
-                l.roll(-1)
+                l.roll -= 1
             print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.extra_roll)
             sys.stdout.flush()
 
