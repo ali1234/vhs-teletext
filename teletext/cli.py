@@ -294,7 +294,7 @@ def urls(packets, editor):
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
 @packetreader
-def html(packets, outdir, template, progress, mag_hist, row_hist):
+def html(packets, outdir, template):
 
     """Generate HTML files from the input stream."""
 
