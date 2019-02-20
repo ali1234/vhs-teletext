@@ -146,6 +146,7 @@ class Line(object):
         return np.add.reduceat(self.rolled, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
 
     def deconvolve(self, mags=range(9), rows=range(32)):
+        """Recover original teletext packet by pattern recognition."""
         bytes_array = np.zeros((42,), dtype=np.uint8)
 
         # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
@@ -172,17 +173,16 @@ class Line(object):
             return Packet(bytes_array.copy(), self._number)
 
     def slice(self, mags=range(9), rows=range(32)):
-
+        """Recover original teletext packet by threshold and differential."""
         packets = []
 
         for roll in range(self.roll-2, self.roll+3):
             self.roll = roll
-            # get bits by threshold & differential
             bits_array = normalise(self.chopped)
-            diff = bits_array[1:] - bits_array[:-1]
-            ones = diff > 48
+            diff = np.diff(bits_array[23:-8], n=1)
+            ones = (diff > 48)
             zeros = (diff > -48)
-            result = (((bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
+            result = ((bits_array[24:-8] > 127) | ones) & zeros
 
             bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
             packets.append((Packet(bytes_array.copy(), self._number), roll))
