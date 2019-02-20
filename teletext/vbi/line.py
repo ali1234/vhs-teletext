@@ -84,7 +84,6 @@ class Line(object):
 
     def reset(self):
         """Reset line to original unknown state."""
-        self._line = self._original[:]
         self.roll = 0
 
         self._noisefloor = None
@@ -96,10 +95,6 @@ class Line(object):
     @property
     def original(self):
         return self._original[:]
-
-    @property
-    def rolled(self):
-        return np.roll(self._original, (self.start or 0) + self.roll)
 
     @property
     def noisefloor(self):
@@ -140,6 +135,10 @@ class Line(object):
         if self._start is None and self.is_teletext:
             self._start = -np.argmax(np.gradient(np.maximum.accumulate(self._gstart)))
         return self._start
+
+    @property
+    def rolled(self):
+        return np.roll(self._original, (self.start or 0) + self.roll)
 
     @property
     def chopped(self):
