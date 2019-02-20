@@ -146,14 +146,14 @@ class Line(object):
         return np.add.reduceat(self.rolled, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
 
     def deconvolve(self, mags=range(9), rows=range(32)):
-        self.bytes_array = np.zeros((42,), dtype=np.uint8)
+        bytes_array = np.zeros((42,), dtype=np.uint8)
 
         # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
-        self.bits_array = normalise(self.chopped)
+        bits_array = normalise(self.chopped)
 
         # mrag - Find only the mrag for the line.
-        self.bytes_array[:2] = Line.h.match(self.bits_array[16:48])
-        m = Mrag(self.bytes_array[:2])
+        bytes_array[:2] = Line.h.match(bits_array[16:48])
+        m = Mrag(bytes_array[:2])
         mag = m.magazine
         row = m.row
 
@@ -168,8 +168,8 @@ class Line(object):
             # else:
 
             # it is faster to just use the same pattern array all the time
-            self.bytes_array[2:] = Line.p.match(self.bits_array[32:368])
-            return Packet(self.bytes_array.copy(), self._number)
+            bytes_array[2:] = Line.p.match(bits_array[32:368])
+            return Packet(bytes_array.copy(), self._number)
 
     def slice(self, mags=range(9), rows=range(32)):
 
@@ -178,14 +178,14 @@ class Line(object):
         for roll in range(self.roll-2, self.roll+3):
             self.roll = roll
             # get bits by threshold & differential
-            self.bits_array = normalise(self.chopped)
-            diff = self.bits_array[1:] - self.bits_array[:-1]
+            bits_array = normalise(self.chopped)
+            diff = bits_array[1:] - bits_array[:-1]
             ones = diff > 48
             zeros = (diff > -48)
-            result = (((self.bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
+            result = (((bits_array[24:-8] > 127) | ones[23:-8]) & zeros[23:-8])
 
-            self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
-            packets.append((Packet(self.bytes_array.copy(), self._number), roll))
+            bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
+            packets.append((Packet(bytes_array.copy(), self._number), roll))
 
         best = min(packets, key=lambda p: np.sum(p[0].errors))
 
