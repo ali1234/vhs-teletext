@@ -174,8 +174,8 @@ class Line(object):
 
         packets = []
 
-        for roll in range(-2, 3):
-            self.extra_roll = roll
+        for roll in range(self.roll-2, self.roll+3):
+            self.roll = roll
             # get bits by threshold & differential
             self.bits_array = normalise(self.chop())
             diff = self.bits_array[1:] - self.bits_array[:-1]
@@ -186,14 +186,12 @@ class Line(object):
             self.bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
             packets.append((Packet(self.bytes_array.copy(), self._number), roll))
 
-        best = sorted((np.sum(p[0].errors), n) for n, p in enumerate(packets))[0]
+        best = min(packets, key=lambda p: np.sum(p[0].errors))
 
-        self.extra_roll = packets[best[1]][1]
+        self.roll = best[1]
 
-        packet = packets[best[1]][0]
+        packet = best[0]
         m = packet.mrag
-        mag = m.magazine
-        row = m.row
 
-        if mag in mags and row in rows:
+        if m.magazine in mags and m.row in rows:
             return packet
