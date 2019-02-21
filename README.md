@@ -26,7 +26,7 @@ In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
 To install with optional dependencies run:
 
-    pip3 install .[CUDA,spellcheck]
+    pip3 install .[CUDA,spellcheck,viewer]
 
 If CUDA or pyenchant are not available for your platform simply omit them
 from the install command.
@@ -54,7 +54,7 @@ USAGE
 
 First capture VBI from VHS:
 
-    vbicat /dev/vbi0 > capture.vbi
+    teletext record -d /dev/vbi0 > capture.vbi
 
 Scan for headers in the capture:
 
