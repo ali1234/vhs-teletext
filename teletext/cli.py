@@ -356,8 +356,7 @@ def vbiview(chunker, config):
     else:
         from teletext.vbi.line import Line
 
-        Line.set_config(config)
-        Line.try_cuda = False
+        Line.configure(config, force_cpu=True)
 
         chunks = chunker(config.line_length)
         lines = (Line(chunk, number) for number, chunk in chunks)

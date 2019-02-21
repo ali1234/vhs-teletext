@@ -36,34 +36,31 @@ class Line(object):
 
     config: Config
 
-    @staticmethod
-    def set_config(config):
-        Line.config = config
-
-    h = Pattern(os.path.dirname(__file__)+'/data/hamming.dat')
-    p = Pattern(os.path.dirname(__file__)+'/data/parity.dat')
-
-    try_cuda = True
+    configured = False
     cuda_ready = False
 
-    @staticmethod
-    def try_init_cuda():
-        try:
-            from .patterncuda import PatternCUDA
-            Line.h = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
-            Line.p = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
-            Line.cuda_ready = True
-        except Exception as e:
-            sys.stderr.write(str(e) + '\n')
-            sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
-        Line.try_cuda = False
+    @classmethod
+    def configure(cls, config, force_cpu=False):
+        cls.config = config
+        print('hmm')
+        if not force_cpu:
+            try:
+                from .patterncuda import PatternCUDA
+                cls.h = PatternCUDA(os.path.dirname(__file__) + '/data/hamming.dat')
+                cls.p = PatternCUDA(os.path.dirname(__file__) + '/data/parity.dat')
+                cls.cuda_ready = True
+            except Exception as e:
+                sys.stderr.write(str(e) + '\n')
+                sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
+        if not cls.cuda_ready:
+            print('blah')
+            cls.h = Pattern(os.path.dirname(__file__) + '/data/hamming.dat')
+            cls.p = Pattern(os.path.dirname(__file__) + '/data/parity.dat')
+        cls.configured = True
 
     def __init__(self, data, number=None):
-        if Line.config is None:
-            Line.config = Config()
-
-        if Line.try_cuda:
-            Line.try_init_cuda()
+        if not Line.configured:
+            Line.configure(Config())
 
         self._number = number
         self._original = np.fromstring(data, dtype=np.uint8).astype(np.int32)
@@ -208,9 +205,6 @@ class Line(object):
             return 'filtered'
 
 def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
-    Line.set_config(config)
-    if force_cpu:
-        Line.try_cuda = False
-
+    Line.configure(config, force_cpu)
     for number, chunk in chunks:
         yield getattr(Line(chunk, number), mode)(mags, rows)
