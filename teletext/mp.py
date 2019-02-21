@@ -58,7 +58,7 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
             received_count = 0
 
             # Prime the queue with some items.
-            for item in itertools.islice(iterator, 10):
+            for item in itertools.islice(iterator, 100):
                 work_queue.put(item)
                 sent_count += 1
 
