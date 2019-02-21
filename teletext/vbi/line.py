@@ -40,7 +40,6 @@ class Line(object):
     def set_config(config):
         Line.config = config
 
-    #TODO: Handle this with setup.py
     h = Pattern(os.path.dirname(__file__)+'/data/hamming.dat')
     p = Pattern(os.path.dirname(__file__)+'/data/parity.dat')
 
@@ -51,7 +50,6 @@ class Line(object):
     def try_init_cuda():
         try:
             from .patterncuda import PatternCUDA
-            #TODO: Handle this with setup.py
             Line.h = PatternCUDA(os.path.dirname(__file__)+'/data/hamming.dat')
             Line.p = PatternCUDA(os.path.dirname(__file__)+'/data/parity.dat')
             Line.cuda_ready = True
@@ -71,7 +69,6 @@ class Line(object):
         self._original = np.fromstring(data, dtype=np.uint8).astype(np.int32)
 
         self.reset()
-
 
     def reset(self):
         """Reset line to original unknown state."""
