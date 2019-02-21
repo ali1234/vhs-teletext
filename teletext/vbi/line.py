@@ -48,11 +48,6 @@ class Line(object):
     cuda_ready = False
 
     @staticmethod
-    def disable_cuda():
-        sys.stderr.write('CUDA disabled by user request.\n')
-        Line.try_cuda = False
-
-    @staticmethod
     def try_init_cuda():
         try:
             from .patterncuda import PatternCUDA
