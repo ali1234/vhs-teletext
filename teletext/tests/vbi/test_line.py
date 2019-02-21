@@ -18,8 +18,7 @@ class LineTestCase(unittest.TestCase):
                     )
 
     def setUp(self):
-        Line.set_config(Config())
-        Line.try_cuda = False
+        Line.configure(Config(), force_cpu=True)
 
     def test_empty_rejection(self):
         lines = ((Line(data), params) for data, params in self.noisegen(256, 8))

@@ -42,7 +42,6 @@ class Line(object):
     @classmethod
     def configure(cls, config, force_cpu=False):
         cls.config = config
-        print('hmm')
         if not force_cpu:
             try:
                 from .patterncuda import PatternCUDA
@@ -53,7 +52,6 @@ class Line(object):
                 sys.stderr.write(str(e) + '\n')
                 sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
         if not cls.cuda_ready:
-            print('blah')
             cls.h = Pattern(os.path.dirname(__file__) + '/data/hamming.dat')
             cls.p = Pattern(os.path.dirname(__file__) + '/data/parity.dat')
         cls.configured = True
