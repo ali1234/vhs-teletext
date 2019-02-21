@@ -1,4 +1,5 @@
 import importlib
+import multiprocessing
 import os
 import stat
 import sys
@@ -8,6 +9,7 @@ import click
 from tqdm import tqdm
 
 from .file import FileChunker
+from .mp import itermap
 from .packet import Packet
 from .stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
 from .subpage import Subpage
@@ -239,9 +241,10 @@ def squash(packets, min_duplicates, pages, subpages):
 
 @teletext.command()
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
+@click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @packetwriter
 @packetreader
-def spellcheck(packets, language):
+def spellcheck(packets, language, threads):
 
     """Spell check a t42 stream."""
 
@@ -253,7 +256,7 @@ def spellcheck(packets, language):
         else:
             raise e
     else:
-        return spellcheck_packets(packets, language=language)
+        return itermap(spellcheck_packets, packets, threads, language=language)
 
 
 @teletext.command()
@@ -365,13 +368,14 @@ def vbiview(chunker, config):
 @teletext.command()
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
+@click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser(extended=True)
 @packetwriter
 @chunkreader
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, mode, force_cpu, progress, mag_hist, row_hist, err_hist, rejects):
+def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, mag_hist, row_hist, err_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -390,8 +394,7 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, progress, mag_hist,
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
-    lines = (Line(chunk, number) for number, chunk in chunks)
-    packets = process_lines(lines, mode, config, force_cpu, mags=mags, rows=rows)
+    packets = itermap(process_lines, chunks, threads, mode=mode, config=config, force_cpu=force_cpu, mags=mags, rows=rows)
 
     if progress and rejects:
         packets = Rejects(packets)

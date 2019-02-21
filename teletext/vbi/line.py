@@ -215,9 +215,10 @@ class Line(object):
         else:
             return 'filtered'
 
-def process_lines(lines, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
+def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
     Line.set_config(config)
     if force_cpu:
         Line.try_cuda = False
 
-    yield from (getattr(l, mode)(mags, rows) for l in lines)
+    for number, chunk in chunks:
+        yield getattr(Line(chunk, number), mode)(mags, rows)
