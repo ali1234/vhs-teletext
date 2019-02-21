@@ -354,7 +354,7 @@ def vbiview(chunker, config):
         from teletext.vbi.line import Line
 
         Line.set_config(config)
-        Line.disable_cuda()
+        Line.try_cuda = False
 
         chunks = chunker(config.line_length)
         lines = (Line(chunk, number) for number, chunk in chunks)
@@ -363,6 +363,7 @@ def vbiview(chunker, config):
 
 
 @teletext.command()
+@click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @carduser(extended=True)
 @packetwriter
@@ -370,16 +371,17 @@ def vbiview(chunker, config):
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, force_cpu, progress, mag_hist, row_hist, err_hist, rejects):
+def deconvolve(chunker, mags, rows, config, mode, force_cpu, progress, mag_hist, row_hist, err_hist, rejects):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
-    from teletext.vbi.line import Line
-
-    Line.set_config(config)
-
     if force_cpu:
-        Line.disable_cuda()
+        sys.stderr.write('CUDA disabled by user request.\n')
+
+    if mode == 'slice':
+        force_cpu = True
+
+    from teletext.vbi.line import Line, process_lines
 
     chunks = chunker(config.line_length)
 
@@ -389,56 +391,13 @@ def deconvolve(chunker, mags, rows, config, force_cpu, progress, mag_hist, row_h
             chunks.postfix = StatsList()
 
     lines = (Line(chunk, number) for number, chunk in chunks)
+    packets = process_lines(lines, mode, config, force_cpu, mags=mags, rows=rows)
+
     if progress and rejects:
-        lines = Rejects(lines)
-        chunks.postfix.append(lines)
-
-    packets = (l.deconvolve(mags, rows) for l in lines if l.is_teletext)
-    packets = (p for p in packets if p is not None)
-
-    if progress and mag_hist:
-        packets = MagHistogram(packets)
-        chunks.postfix.append(packets)
-    if progress and row_hist:
-        packets = RowHistogram(packets)
-        chunks.postfix.append(packets)
-    if progress and err_hist:
-        packets = ErrorHistogram(packets)
+        packets = Rejects(packets)
         chunks.postfix.append(packets)
 
-    return packets
-
-
-@teletext.command()
-@carduser(extended=True)
-@packetwriter
-@chunkreader
-@filterparams
-@progressparams(progress=True, mag_hist=True)
-@click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def slice(chunker, mags, rows, config, progress, mag_hist, row_hist, err_hist, rejects):
-
-    """Decode OTA-recorded VBI samples by slice/threshold."""
-
-    from teletext.vbi.line import Line
-
-    Line.set_config(config)
-    Line.disable_cuda()
-
-    chunks = chunker(config.line_length)
-
-    if progress:
-        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
-        if any((mag_hist, row_hist, rejects)):
-            chunks.postfix = StatsList()
-
-    lines = (Line(chunk, number) for number, chunk in chunks)
-    if progress and rejects:
-        lines = Rejects(lines)
-        chunks.postfix.append(lines)
-
-    packets = (l.slice(mags, rows) for l in lines if l.is_teletext)
-    packets = (p for p in packets if p is not None)
+    packets = (p for p in packets if isinstance(p, Packet))
 
     if progress and mag_hist:
         packets = MagHistogram(packets)

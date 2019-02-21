@@ -74,13 +74,13 @@ class Rejects(Histogram):
 
     def __iter__(self):
         for l in self._lines:
-            self.insert(l.is_teletext)
+            self.insert(l == 'rejected')
             yield l
 
     def __str__(self):
         h = self.histogram
         total = np.sum(h)
-        return f', {self.label}:{100*h[0]/total:.0f}%'
+        return f', {self.label}:{100*h[1]/total:.0f}%'
 
 
 class ErrorHistogram(Histogram):

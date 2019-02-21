@@ -77,8 +77,6 @@ class Line(object):
 
         self.reset()
 
-        if self.is_teletext:
-            pass
 
     def reset(self):
         """Reset line to original unknown state."""
@@ -165,6 +163,9 @@ class Line(object):
 
     def deconvolve(self, mags=range(9), rows=range(32)):
         """Recover original teletext packet by pattern recognition."""
+        if not self.is_teletext:
+            return 'rejected'
+
         bytes_array = np.zeros((42,), dtype=np.uint8)
 
         # Note: 368 (46*8) not 360 (45*8), because pattern matchers need an
@@ -189,9 +190,14 @@ class Line(object):
             # It is faster to just use the same pattern array all the time.
             bytes_array[2:] = Line.p.match(bits_array[32:368])
             return Packet(bytes_array.copy(), self._number)
+        else:
+            return 'filtered'
 
     def slice(self, mags=range(9), rows=range(32)):
         """Recover original teletext packet by threshold and differential."""
+        if not self.is_teletext:
+            return 'rejected'
+
         # Note: 23 (last bit of FC), not 24 (first bit of MRAG) because
         # taking the difference reduces array length by 1. We cut the
         # extra bit off when taking the threshold.
@@ -206,3 +212,12 @@ class Line(object):
         m = packet.mrag
         if m.magazine in mags and m.row in rows:
             return packet
+        else:
+            return 'filtered'
+
+def process_lines(lines, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
+    Line.set_config(config)
+    if force_cpu:
+        Line.try_cuda = False
+
+    yield from (getattr(l, mode)(mags, rows) for l in lines)
