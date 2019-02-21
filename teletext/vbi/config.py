@@ -12,6 +12,15 @@ class Config(object):
     line_length: int
     line_start_range: tuple
 
+    # Clock run-in and framing code. These bits are set at the start of every teletext packet.
+    crifc = np.array((
+        1, -1, 1, -1, 1, -1, 1, -1,
+        1, -1, 1, -1, 1, -1, 1, -1,
+        1, 1, 1, -1, -1, 1, -1, -1,
+    ))
+
+    # Card specific default parameters:
+
     cards = {
         'bt8x8': {
             'sample_rate': 35468950.0,

@@ -65,7 +65,7 @@ class Line(object):
             sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
         Line.try_cuda = False
 
-    def __init__(self, data, number=None, extra_roll=0):
+    def __init__(self, data, number=None):
         if Line.config is None:
             Line.config = Config()
 
@@ -77,8 +77,6 @@ class Line(object):
 
         self.reset()
 
-        self.roll = extra_roll
-
         if self.is_teletext:
             pass
 
@@ -87,6 +85,7 @@ class Line(object):
         self.roll = 0
 
         self._noisefloor = None
+        self._max = None
         self._fft = None
         self._gstart = None
         self._is_teletext = None
@@ -94,7 +93,24 @@ class Line(object):
 
     @property
     def original(self):
+        """The raw, untouched line."""
         return self._original[:]
+
+    @property
+    def rolled(self):
+        """The line rolled so that teletext data is in a known position."""
+        # This should use self.start not self._start so that self._start
+        # is calculated if it hasn't been already.
+        return np.roll(self._original, (self.start or 0) + self.roll)
+
+    def chop(self, start, stop):
+        """Chop and average the samples associated with each bit."""
+        return np.add.reduceat(self.rolled, Line.config.bits[start:stop+1], dtype=np.float32)[:-1] / Line.config.bit_lengths[start:stop]
+
+    @property
+    def chopped(self):
+        """The whole chopped teletext line, for vbi viewer."""
+        return self.chop(0, 360)
 
     @property
     def noisefloor(self):
@@ -131,35 +147,37 @@ class Line(object):
 
     @property
     def start(self):
-        """The steepest part of the line within start_slice."""
+        """Find the offset in samples where teletext data begins in the line."""
         if self._start is None and self.is_teletext:
+            # Find the steepest part of the line within start_slice.
+            # This gives a rough location of the start.
             self._start = -np.argmax(np.gradient(np.maximum.accumulate(self._gstart)))
+            # Now find the extra roll needed to lock in the clock run-in and framing code.
+            confidence = []
+            for roll in range(-10, 1):
+                self.roll = roll
+                # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
+                # This is the most distinctive part of the CRI/FC to look for.
+                confidence.append((np.sum(self.chop(15, 20) * self.config.crifc[15:20]), roll))
+            self._start += max(confidence)[1]
+            self.roll = 0
         return self._start
-
-    @property
-    def rolled(self):
-        return np.roll(self._original, (self.start or 0) + self.roll)
-
-    @property
-    def chopped(self):
-        # Don't cache this property because it depends on self.roll.
-        return np.add.reduceat(self.rolled, Line.config.bits, dtype=np.float32)[:-1] / Line.config.bit_lengths
 
     def deconvolve(self, mags=range(9), rows=range(32)):
         """Recover original teletext packet by pattern recognition."""
         bytes_array = np.zeros((42,), dtype=np.uint8)
 
-        # bits - Chops and averages the raw samples to produce an array where one byte = one bit of the original signal.
-        bits_array = normalise(self.chopped)
+        # Note: 368 (46*8) not 360 (45*8), because pattern matchers need an
+        # extra byte on either side of the input byte(s) we want to match for.
+        # The framing code serves this purpose at the beginning as we never
+        # need to match it. We need just an extra byte at the end.
+        bits_array = normalise(self.chop(0, 368))
 
-        # mrag - Find only the mrag for the line.
+        # First match just the mrag for the line.
         bytes_array[:2] = Line.h.match(bits_array[16:48])
         m = Mrag(bytes_array[:2])
-        mag = m.magazine
-        row = m.row
-
-        if mag in mags and row in rows:
-            # bytes - Finds the rest of the line.
+        if m.magazine in mags and m.row in rows:
+            # Finds the rest of the line.
             # if self.row == 0:
             #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
             #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
@@ -168,31 +186,23 @@ class Line(object):
             #    # skip the last two bytes as they are not really useful
             # else:
 
-            # it is faster to just use the same pattern array all the time
+            # It is faster to just use the same pattern array all the time.
             bytes_array[2:] = Line.p.match(bits_array[32:368])
             return Packet(bytes_array.copy(), self._number)
 
     def slice(self, mags=range(9), rows=range(32)):
         """Recover original teletext packet by threshold and differential."""
-        packets = []
+        # Note: 23 (last bit of FC), not 24 (first bit of MRAG) because
+        # taking the difference reduces array length by 1. We cut the
+        # extra bit off when taking the threshold.
+        bits_array = normalise(self.chop(23, 360))
+        diff = np.diff(bits_array, n=1)
+        ones = (diff > 48)
+        zeros = (diff > -48)
+        result = ((bits_array[1:] > 127) | ones) & zeros
 
-        for roll in range(self.roll-2, self.roll+3):
-            self.roll = roll
-            bits_array = normalise(self.chopped)
-            diff = np.diff(bits_array[23:-8], n=1)
-            ones = (diff > 48)
-            zeros = (diff > -48)
-            result = ((bits_array[24:-8] > 127) | ones) & zeros
+        packet = Packet(np.packbits(result.reshape(-1,8)[:,::-1]), self._number)
 
-            bytes_array = np.packbits(result.reshape(-1,8)[:,::-1])
-            packets.append((Packet(bytes_array.copy(), self._number), roll))
-
-        best = min(packets, key=lambda p: np.sum(p[0].errors))
-
-        self.roll = best[1]
-
-        packet = best[0]
         m = packet.mrag
-
         if m.magazine in mags and m.row in rows:
             return packet
