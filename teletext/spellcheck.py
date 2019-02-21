@@ -40,11 +40,15 @@ class SpellChecker(object):
             if b != ord(b' '):
                 displayable[n] = parity_encode(b)
 
-    def spellcheck_iter(self, packet_iter):
-        for p in packet_iter:
-            t = p.type
-            if t == 'display':
-                self.spellcheck(p.displayable)
-            elif t == 'header':
-                self.spellcheck(p.header.displayable)
-            yield p
+
+def spellcheck_packets(packets, language='en_GB'):
+
+    sc = SpellChecker(language)
+
+    for p in packets:
+        t = p.type
+        if t == 'display':
+            sc.spellcheck(p.displayable)
+        elif t == 'header':
+            sc.spellcheck(p.header.displayable)
+        yield p

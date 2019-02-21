@@ -246,14 +246,14 @@ def spellcheck(packets, language):
     """Spell check a t42 stream."""
 
     try:
-        from .spellcheck import SpellChecker
+        from .spellcheck import spellcheck_packets
     except ModuleNotFoundError as e:
         if e.name == 'enchant':
             raise click.UsageError(f'{e.msg}. PyEnchant is not installed. Spelling checker is not available.')
         else:
             raise e
     else:
-        return SpellChecker(language).spellcheck_iter(packets)
+        return spellcheck_packets(packets, language=language)
 
 
 @teletext.command()
