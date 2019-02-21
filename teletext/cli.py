@@ -1,4 +1,3 @@
-import importlib
 import multiprocessing
 import os
 import stat
@@ -378,13 +377,10 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
+    from teletext.vbi.line import process_lines
+
     if force_cpu:
         sys.stderr.write('CUDA disabled by user request.\n')
-
-    if mode == 'slice':
-        force_cpu = True
-
-    from teletext.vbi.line import Line, process_lines
 
     chunks = chunker(config.line_length)
 

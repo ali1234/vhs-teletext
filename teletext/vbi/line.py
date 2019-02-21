@@ -205,6 +205,8 @@ class Line(object):
             return 'filtered'
 
 def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
+    if mode == 'slice':
+        force_cpu = True
     Line.configure(config, force_cpu)
     for number, chunk in chunks:
         yield getattr(Line(chunk, number), mode)(mags, rows)
