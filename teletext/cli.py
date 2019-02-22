@@ -310,6 +310,7 @@ def html(packets, outdir, template):
 
 
 @teletext.command()
+@click.argument('output', type=click.File('wb'), default='-')
 @click.option('-d', '--device', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 @carduser()
 def record(output, device, config):
