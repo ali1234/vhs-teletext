@@ -103,9 +103,8 @@ def process_training(chunks, config):
         yield 'rejected'
 
 
-def split(data, outdir):
+def split(data, files):
     pattern = load_pattern()
-    files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
 
     chopped_indexer = np.arange(24)[None, :] + np.arange((8 * pattern_length) - 23)[:, None]
     pattern_indexer = chopped_indexer[::-1,:]

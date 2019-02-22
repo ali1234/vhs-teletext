@@ -447,7 +447,10 @@ def split(chunker, outdir, config, threads, progress, rejects):
         chunks.postfix.append(results)
 
     results = (r for r in results if isinstance(r, tuple))
-    split(results, outdir)
+
+    files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
+
+    split(results, files)
 
 
 @training.command()
