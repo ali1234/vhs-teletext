@@ -110,9 +110,13 @@ def split(data, files):
     pattern_indexer = chopped_indexer[::-1,:]
 
     for offset, chopped in data:
+        # Fetch the pattern block corresponding to this line.
         block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])
+        # Sliding window through the pattern block.
         patterns = np.packbits(block[pattern_indexer], axis=1)[:, ::-1]
+        # Sliding window through the chopped line.
         choppeds = chopped[chopped_indexer]
+        # Append chopped samples to pattern bytes.
         result = np.append(patterns, choppeds, axis=1)
         for p in result:
             files[p[0]].write(p.tobytes())
