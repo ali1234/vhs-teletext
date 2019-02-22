@@ -127,25 +127,27 @@ class TrainingLine(Line):
             return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
 
 
-def split(chunks, outdir, config):
-
+def process_training(chunks, config):
     TrainingLine.configure(config, force_cpu=True)
     lines = (TrainingLine(chunk, n) for n, chunk in chunks)
-
-    pattern = load_pattern()
-
-    files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
 
     for l in lines:
         if l.is_teletext:
             offset = l.offset
             if offset is not None:
-                for x, b in get_subpatterns(offset, pattern):
-                    files[b[0]].write(b.tobytes())
-                    files[b[0]].write(l.chopped[32 + x:32 + x + 24].astype(np.uint8).tobytes())
-                yield None
+                yield (offset, l.chop(32, 32+(8*pattern_length)).astype(np.uint8))
                 continue
         yield 'rejected'
+
+
+def split(data, outdir):
+    pattern = load_pattern()
+    files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
+
+    for offset, chopped in data:
+        for x, b in get_subpatterns(offset, pattern):
+            files[b[0]].write(b.tobytes())
+            files[b[0]].write(chopped[x:x + 24].tobytes())
 
 
 def squash(output, indir):
@@ -157,7 +159,7 @@ def squash(output, indir):
                 a = list(g)
                 b = np.fromstring(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
                 b = np.mean(b, axis=0).astype(np.uint8)
-                b.tofile(output)
+                output.write(b.tobytes())
 
 
 def build(squashed):

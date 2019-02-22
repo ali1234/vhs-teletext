@@ -427,26 +427,27 @@ def generate(output):
 
 @training.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser()
 @chunkreader
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def split(chunker, outdir, config, progress, rejects):
+def split(chunker, outdir, config, threads, progress, rejects):
     """Split training recording into intermediate bins."""
-    from teletext.vbi.training import split
+    from teletext.vbi.training import process_training, split
     chunks = chunker(config.line_length)
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
 
-    results = split(chunks, outdir, config)
+    results = itermap(process_training, chunks, threads, config=config)
 
     if progress and rejects:
         results = Rejects(results)
         chunks.postfix = StatsList()
         chunks.postfix.append(results)
 
-    for r in results:
-        pass
+    results = (r for r in results if isinstance(r, tuple))
+    split(results, outdir)
 
 
 @training.command()
