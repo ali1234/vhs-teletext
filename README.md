@@ -1,7 +1,7 @@
 This is a suite of tools for processing teletext signals recorded on VHS, as
 well as tools for processing teletext packet streams. The software has only
 been tested with bt8x8 capture hardware, but should work with any VBI capture
-hardware if you write a new configuration file (see config_bt8x8_pal.py).
+hardware with appropriate configuration.
 
 This is the second rewrite of the original software. The old versions are
 still available in the `v1` and `v2` branches of this repo, or from the
@@ -56,17 +56,17 @@ First capture VBI from VHS:
 
     teletext record -d /dev/vbi0 > capture.vbi
 
-Scan for headers in the capture:
+Deconvolve the recording:
 
-    teletext deconvolve -H -S 20 capture.vbi > headers.txt
+    teletext deconvolve capture.vbi > stream.t42
 
 Examine the headers to find services on the tape:
 
-    less -r headers.txt
+    teletext filter -r 0 stream.t42
 
-Deconvolve a section of the capture corresponding to one service:
+Split capture into services:
 
-    teletext deconvolve --start <N> --stop <N> capture.vbi > stream.t42
+    teletext filter --start <N> --stop <N> stream.t42 > stream-1.t42
 
 Display all copies of a page in a stream:
 
@@ -74,7 +74,7 @@ Display all copies of a page in a stream:
 
 Squash duplicate subpages, which reduces errors:
 
-    teletext filter stream.t42 --squash > output.t42
+    teletext squash stream.t42 > output.t42
 
 Generate HTML pages from a stream:
 
