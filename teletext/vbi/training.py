@@ -66,10 +66,9 @@ def checksum(array):
 
 
 def get_subpatterns(offset, pattern):
-    block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])[::-1]
-    for x in range(len(block) - 23):
-        bytes = np.packbits(block[x:x + 24][::-1])[::-1]
-        yield x, bytes
+    block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])
+    for x in range(len(block) - 24, -1, -1):
+        yield np.packbits(block[x:x + 24])[::-1]
 
 
 def generate_lines(file):
@@ -145,7 +144,7 @@ def split(data, outdir):
     files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
 
     for offset, chopped in data:
-        for x, b in get_subpatterns(offset, pattern):
+        for x, b in enumerate(get_subpatterns(offset, pattern)):
             files[b[0]].write(b.tobytes())
             files[b[0]].write(chopped[x:x + 24].tobytes())
 
