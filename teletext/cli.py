@@ -423,3 +423,54 @@ def generate(output):
     """Generate training samples for raspi-teletext."""
     from teletext.vbi.training import generate_lines
     generate_lines(output)
+
+
+@training.command()
+@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@carduser()
+@chunkreader
+@click.option('--progress/--no-progress', default=True, help='Display progress bar.')
+@click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
+def split(chunker, outdir, config, progress, rejects):
+    """Split training recording into intermediate bins."""
+    from teletext.vbi.training import split
+    chunks = chunker(config.line_length)
+    if progress:
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
+
+    results = split(chunks, outdir, config)
+
+    if progress and rejects:
+        results = Rejects(results)
+        chunks.postfix = StatsList()
+        chunks.postfix.append(results)
+
+    for r in results:
+        pass
+
+
+@training.command()
+@click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.argument('output', type=click.File('wb'), default='-')
+def squash(output, indir):
+    """Squash the intermediate bins into a single file."""
+    from teletext.vbi.training import squash
+    squash(output, indir)
+
+
+@training.command()
+@chunkreader
+def showbin(chunker):
+    """Visually display an intermediate training bin."""
+    import numpy as np
+
+    bars = ' ▁▂▃▄▅▆▇█'
+    bits = ' █'
+
+    chunks = chunker(27)
+
+    for n, chunk in chunks:
+        arr = np.fromstring(chunk, dtype=np.uint8)
+        bi = ''.join(bits[n] for n in np.unpackbits(arr[:3][::-1])[::-1])
+        by = ''.join(bars[n] for n in arr[3:]>>5)
+        print(f'[{bi}] [{by}]')

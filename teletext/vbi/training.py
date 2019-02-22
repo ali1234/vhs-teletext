@@ -10,9 +10,6 @@
 
 
 import os
-import sys
-
-import argparse
 import itertools
 
 import numpy as np
@@ -21,12 +18,12 @@ from tqdm import tqdm
 
 from teletext.file import FileChunker
 from teletext.coding import parity_encode, hamming8_enc as hamming_set
+from teletext.vbi.line import Line
 
 from .pattern import build_pattern
 
 
-parity_set = parity_encode(np.arange(0x80))
-
+# pattern_length is the number of bytes in the teletext data available for patterns.
 pattern_length = 27
 
 
@@ -110,95 +107,62 @@ def generate_lines(file):
         file.write(line.tobytes())
 
 
-def training():
-    parser = argparse.ArgumentParser(description='Training tool.')
+class TrainingLine(Line):
 
-    group = parser.add_mutually_exclusive_group()
+    def tchop(self, start, stop):
+        return self.chop(257+(start*24), 257+(stop*24))[::3]
 
-    group.add_argument('-t', '--train', type=str, metavar='FILE', help='Generate training tables.', default=False)
-    group.add_argument('--split', type=str, metavar='FILE', help='Split training tables by first byte.', default=False)
-    group.add_argument('--sort', type=str, metavar='FILE', help='Sort a training table.', default=False)
-    group.add_argument('--dump', type=str, metavar='FILE', help='Dump a training table.', default=False)
-    group.add_argument('--squash', type=str, metavar='FILE', help='Squash a training table.', default=False)
-    group.add_argument('--full', type=str, metavar='FILE', help='Squash a training table.', default=False)
-    group.add_argument('--parity', type=str, metavar='FILE', help='Squash a training table.', default=False)
-    group.add_argument('--hamming', type=str, metavar='FILE', help='Squash a training table.', default=False)
+    @property
+    def checksum(self):
+        bits = self.tchop(3, 4)
+        bits = np.clip(bits-127, 0, 1).astype(np.uint8)
+        return np.packbits(bits[::-1])[::-1][0]
 
-    args = parser.parse_args()
+    @property
+    def offset(self):
+        bits = self.tchop(0, 3)
+        bits = np.clip(bits-127, 0, 1).astype(np.uint8)
+        bytes = np.packbits(bits[::-1])[::-1]
+        if checksum(bytes) == self.checksum:
+            return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
 
-    if args.train:
-        from teletext.vbi.line import Line
-        from teletext.vbi.config import Config
-        config = Config()
-        Line.set_config(config)
-        Line.disable_cuda()
 
-        code_bit_nums = np.array(range(257, 257 + (32 * 3), 3))
+def split(chunks, outdir, config):
 
-        def doit(n, rl):
-            l = Line(rl)
-            l.bits()
+    TrainingLine.configure(config, force_cpu=True)
+    lines = (TrainingLine(chunk, n) for n, chunk in chunks)
 
-            code_bits = np.clip((l.bits_array[code_bit_nums] - 127), 0, 1).astype(np.uint8)
-            code = np.packbits(code_bits[::-1])[::-1]
-            if checksum(code) == code[3]:
-                l.pattern_offset = code[0] | (code[1] << 8) | (code[2] << 16)
-                l.uint8bits = np.clip(l.bits_array, 0, 255).astype(np.uint8)
-            else:
-                l.is_teletext = False
-            return l
+    pattern = load_pattern()
 
-        prev_offset = 0
+    files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
 
-        pattern = load_pattern()
+    for l in lines:
+        if l.is_teletext:
+            offset = l.offset
+            if offset is not None:
+                for x, b in get_subpatterns(offset, pattern):
+                    files[b[0]].write(b.tobytes())
+                    files[b[0]].write(l.chopped[32 + x:32 + x + 24].astype(np.uint8).tobytes())
+                yield None
+                continue
+        yield 'rejected'
 
-        with FileChunker(args.train, config.line_length) as it:
-            for l in tqdm(map(doit, it), unit=' Lines'):
-                if l.is_teletext and l.pattern_offset != prev_offset:
-                    for x, bytes in get_subpatterns(l.pattern_offset, pattern):
-                        bytes.tofile(sys.stdout)
-                        l.uint8bits[32 + x:32 + x + 24].tofile(sys.stdout)
 
-    elif args.split:
-        files = [open('training.%02x.dat' % n, 'wb') for n in range(256)]
+def squash(output, indir):
+    for n in tqdm(range(256), unit=' Files'):
+        with open(os.path.join(indir, f'training.{n:02x}.dat'), 'rb') as f:
+            chunks = FileChunker(f, 27)
+            chunks = sorted(chunk for n, chunk in chunks)
+            for k, g in itertools.groupby(tqdm(chunks, unit=' P'), lambda x: x[:3]):
+                a = list(g)
+                b = np.fromstring(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
+                b = np.mean(b, axis=0).astype(np.uint8)
+                b.tofile(output)
 
-        with FileChunker(args.split, 27) as it:
-            for n, line in tqdm(it, unit=' Lines'):
-                files[ord(line[0])].write(line)
 
-    elif args.sort:
-        lines = []
-        with FileChunker(args.sort, 27) as it:
-            for n, line in tqdm(it, unit=' Lines'):
-                lines.append(line)
+def build(squashed):
+    parity_set = parity_encode(np.arange(0x80))
+    build_pattern(squashed, 'full.dat', 3, 19)
+    build_pattern(squashed, 'parity.dat', 4, 18, parity_set)
+    build_pattern(squashed, 'hamming.dat', 1, 20, hamming_set)
 
-        lines.sort()
-        f = open(args.sort + '.sorted', 'wb')
-        for line in lines:
-            f.write(line)
-        f.close()
-
-    elif args.dump:
-        with FileChunker(args.dump, 27) as it:
-            for n, line in tqdm(it, unit=' Lines'):
-                print(' '.join(['%02x' % ord(c) for c in line]))
-
-    elif args.squash:
-        with FileChunker(args.squash, 27) as it:
-            with open(args.squash + '.squashed', 'wb') as f:
-                for k, g in itertools.groupby((item[1] for item in tqdm(it, unit=' Lines')), lambda x: x[:3]):
-                    a = list(g)
-                    b = np.fromstring(''.join(a), dtype=np.uint8).reshape((len(a), 27))
-                    b = np.mean(b, axis=0).astype(np.uint8)
-                    b.tofile(f)
-
-    elif args.full:
-        build_pattern(args.full, 'full.dat', 3, 19)
-
-    elif args.parity:
-        build_pattern(args.parity, 'parity.dat', 4, 18, parity_set)
-
-    elif args.hamming:
-        build_pattern(args.hamming, 'hamming.dat', 1, 20, hamming_set)
-
-    sys.stderr.write('\n')
