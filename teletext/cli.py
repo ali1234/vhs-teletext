@@ -293,7 +293,7 @@ def urls(packets, editor):
 
 
 @teletext.command()
-@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
 @packetreader
 def html(packets, outdir, template):
@@ -426,7 +426,7 @@ def generate(output):
 
 
 @training.command()
-@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True))
+@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser()
 @chunkreader
@@ -454,7 +454,7 @@ def split(chunker, outdir, config, threads, progress, rejects):
 
 
 @training.command()
-@click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True)
 @click.argument('output', type=click.File('wb'), default='-')
 def squash(output, indir):
     """Squash the intermediate bins into a single file."""
