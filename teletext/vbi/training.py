@@ -11,6 +11,7 @@
 
 import os
 import itertools
+import sys
 
 import numpy as np
 
@@ -65,12 +66,6 @@ def checksum(array):
     return array[0] ^ array[1] ^ array[2] ^ 0xf0
 
 
-def get_subpatterns(offset, pattern):
-    block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])
-    for x in range(len(block) - 24, -1, -1):
-        yield np.packbits(block[x:x + 24])[::-1]
-
-
 class TrainingLine(Line):
 
     def tchop(self, start, stop):
@@ -88,7 +83,11 @@ class TrainingLine(Line):
         bits = np.clip(bits-127, 0, 1).astype(np.uint8)
         bytes = np.packbits(bits[::-1])[::-1]
         if checksum(bytes) == self.checksum:
-            return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
+            offset = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
+            if offset < 0x1fffff:
+                return offset
+            else:
+                sys.stderr.write(f'Warning: bad offset at line {self._number}\n')
 
 
 def process_training(chunks, config):
@@ -108,10 +107,16 @@ def split(data, outdir):
     pattern = load_pattern()
     files = [open(os.path.join(outdir, f'training.{n:02x}.dat'), 'wb') for n in range(256)]
 
+    chopped_indexer = np.arange(24)[None, :] + np.arange((8 * pattern_length) - 23)[:, None]
+    pattern_indexer = chopped_indexer[::-1,:]
+
     for offset, chopped in data:
-        for x, b in enumerate(get_subpatterns(offset, pattern)):
-            files[b[0]].write(b.tobytes())
-            files[b[0]].write(chopped[x:x + 24].tobytes())
+        block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])
+        patterns = np.packbits(block[pattern_indexer], axis=1)[:, ::-1]
+        choppeds = chopped[chopped_indexer]
+        result = np.append(patterns, choppeds, axis=1)
+        for p in result:
+            files[p[0]].write(p.tobytes())
 
 
 def squash(output, indir):
