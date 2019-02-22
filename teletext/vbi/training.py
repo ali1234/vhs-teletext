@@ -50,16 +50,16 @@ def de_bruijn(k, n):
 
 
 def load_pattern():
-    data = open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb').read()
+    with open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb') as db:
+        data = db.read()
     pattern = np.fromstring(data + data[:pattern_length], dtype=np.uint8)
     return pattern
 
 
 def save_pattern(filename):
     pattern = np.packbits(np.array(de_bruijn(2, 24), dtype=np.uint8)[::-1])[::-1]
-    data = open(filename, 'wb')
-    pattern.tofile(data)
-    data.close()
+    with open(filename, 'wb') as data:
+        pattern.tofile(data)
 
 
 def checksum(array):
