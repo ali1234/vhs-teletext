@@ -409,3 +409,17 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
         chunks.postfix.append(packets)
 
     return packets
+
+
+@teletext.group()
+def training():
+    """Training and calibration tools."""
+    pass
+
+
+@training.command()
+@click.argument('output', type=click.File('wb'), default='-')
+def generate(output):
+    """Generate training samples for raspi-teletext."""
+    from teletext.vbi.training import generate_lines
+    generate_lines(output)

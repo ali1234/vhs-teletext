@@ -52,7 +52,7 @@ def de_bruijn(k, n):
 
 
 def load_pattern():
-    data = open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat')).read()
+    data = open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb').read()
     pattern = np.fromstring(data + data[:pattern_length], dtype=np.uint8)
     return pattern
 
@@ -75,7 +75,7 @@ def get_subpatterns(offset, pattern):
         yield x, bytes
 
 
-def generate_lines():
+def generate_lines(file):
     pattern = load_pattern()
 
     line = np.zeros((42,), dtype=np.uint8)
@@ -107,7 +107,7 @@ def generate_lines():
         offset &= 0x1fffff  # mod 2097152
 
         # write to stdout
-        line.tofile(sys.stdout)
+        file.write(line.tobytes())
 
 
 def training():
@@ -115,7 +115,6 @@ def training():
 
     group = parser.add_mutually_exclusive_group()
 
-    group.add_argument('-g', '--generate', help='Generate t42 packets for raspi-teletext.', action='store_true')
     group.add_argument('-t', '--train', type=str, metavar='FILE', help='Generate training tables.', default=False)
     group.add_argument('--split', type=str, metavar='FILE', help='Split training tables by first byte.', default=False)
     group.add_argument('--sort', type=str, metavar='FILE', help='Sort a training table.', default=False)
@@ -127,10 +126,7 @@ def training():
 
     args = parser.parse_args()
 
-    if args.generate:
-        generate_lines()
-
-    elif args.train:
+    if args.train:
         from teletext.vbi.line import Line
         from teletext.vbi.config import Config
         config = Config()
