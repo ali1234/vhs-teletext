@@ -79,7 +79,7 @@ class Rejects(Histogram):
 
     def __str__(self):
         h = self.histogram
-        total = np.sum(h)
+        total = max(1, np.sum(h))
         return f', {self.label}:{100*h[1]/total:.0f}%'
 
 
