@@ -71,41 +71,6 @@ def get_subpatterns(offset, pattern):
         yield np.packbits(block[x:x + 24])[::-1]
 
 
-def generate_lines(file):
-    pattern = load_pattern()
-
-    line = np.zeros((42,), dtype=np.uint8)
-
-    # constant bytes. can be used for horizontal alignment.
-    line[0] = 0x18
-    line[1 + pattern_length] = 0x18
-    line[41] = 0x18
-
-    offset = 0
-    while True:
-        # insert pattern slice into line
-        line[1:1 + pattern_length] = pattern[offset:offset + pattern_length]
-
-        # encode the offset for maximum readability
-        offset_list = [(offset >> n) & 0xff for n in range(0, 24, 8)]
-        # add a checksum
-        offset_list.append(checksum(offset_list))
-        # convert to a list of bits, LSB first
-        offset_arr = np.array(offset_list, dtype=np.uint8)
-        # repeat each bit 3 times, then convert back in to t42 bytes
-        offset_arr = np.packbits(np.repeat(np.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
-
-        # insert encoded offset into line
-        line[2 + pattern_length:14 + pattern_length] = offset_arr
-
-        # calculate next offset for maximum distance
-        offset += 65521  # greatest prime less than 2097152/32
-        offset &= 0x1fffff  # mod 2097152
-
-        # write to stdout
-        file.write(line.tobytes())
-
-
 class TrainingLine(Line):
 
     def tchop(self, start, stop):
@@ -167,3 +132,37 @@ def build(squashed):
     build_pattern(squashed, 'parity.dat', 4, 18, parity_set)
     build_pattern(squashed, 'hamming.dat', 1, 20, hamming_set)
 
+
+def generate_lines(file):
+    pattern = load_pattern()
+
+    line = np.zeros((42,), dtype=np.uint8)
+
+    # constant bytes. can be used for horizontal alignment.
+    line[0] = 0x18
+    line[1 + pattern_length] = 0x18
+    line[41] = 0x18
+
+    offset = 0
+    while True:
+        # insert pattern slice into line
+        line[1:1 + pattern_length] = pattern[offset:offset + pattern_length]
+
+        # encode the offset for maximum readability
+        offset_list = [(offset >> n) & 0xff for n in range(0, 24, 8)]
+        # add a checksum
+        offset_list.append(checksum(offset_list))
+        # convert to a list of bits, LSB first
+        offset_arr = np.array(offset_list, dtype=np.uint8)
+        # repeat each bit 3 times, then convert back in to t42 bytes
+        offset_arr = np.packbits(np.repeat(np.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
+
+        # insert encoded offset into line
+        line[2 + pattern_length:14 + pattern_length] = offset_arr
+
+        # calculate next offset for maximum distance
+        offset += 65521  # greatest prime less than 2097152/32
+        offset &= 0x1fffff  # mod 2097152
+
+        # write to stdout
+        file.write(line.tobytes())
