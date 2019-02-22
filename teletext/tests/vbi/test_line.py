@@ -9,7 +9,7 @@ from teletext.vbi.config import Config
 class LineTestCase(unittest.TestCase):
 
     def noisegen(self, max_loc, max_scale):
-        for n in range(100):
+        for n in range(10):
             for loc in range(0, max_loc+1, max(1, max_loc//8)):
                 for scale in range(0, max_scale+1, max(1, max_scale//8)):
                     yield (
