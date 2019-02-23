@@ -478,3 +478,26 @@ def showbin(chunker):
         bi = ''.join(bits[n] for n in np.unpackbits(arr[:3][::-1])[::-1])
         by = ''.join(bars[n] for n in arr[3:]>>5)
         print(f'[{bi}] [{by}]')
+
+
+@training.command()
+@click.argument('input', type=click.File('rb'), required=True)
+@click.argument('output', type=click.File('wb'), required=True)
+@click.option('-m', '--mode', type=click.Choice(['full', 'parity', 'hamming']), default='full')
+@click.option('-b', '--bits', type=(int, int), default=(3, 21))
+def build(input, output, mode, bits):
+    """Build pattern tables."""
+    from teletext.coding import parity_encode, hamming8_enc
+    from teletext.vbi.pattern import build_pattern
+
+    if mode == 'parity':
+        pattern_set = set(parity_encode(range(0x80)))
+    elif mode == 'hamming':
+        pattern_set = set(hamming8_enc)
+    else:
+        pattern_set = range(256)
+
+    chunks = FileChunker(input, 27)
+    chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
+
+    build_pattern(chunks, output, *bits, pattern_set)

@@ -50,18 +50,11 @@ class PatternBuilder(object):
         self.patterns = defaultdict(list)
         self.inwidth = inwidth
 
-    def read_array(self, filename):
-        data = open(filename, 'rb').read()
-        a = np.fromstring(data, dtype=np.uint8)
-        a = a.reshape((len(a)/self.inwidth,self.inwidth))
-        return np.mean(a, axis=0).astype(np.uint8)
-
-    def write_patterns(self, filename, start, end):
-        f = open(filename, 'wb')
+    def write_patterns(self, f, start, end):
         flat_patterns = []
-        for (k,v) in self.patterns.iteritems():
-            pattn = np.mean(np.fromstring(''.join(v), dtype=np.uint8).reshape((len(v), self.inwidth)), axis=0).astype(np.uint8)
-            flat_patterns.append((pattn,k[1]))
+        for k, v in tqdm(self.patterns.items(), unit='P', desc='Squashing'):
+            pattn = np.mean(np.fromstring(b''.join(v), dtype=np.uint8).reshape((len(v), self.inwidth)), axis=0).astype(np.uint8)
+            flat_patterns.append((pattn, k[1:2]))
 
         header = struct.pack('>IIIBB', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns), start, end)
         f.write(header)
@@ -73,22 +66,25 @@ class PatternBuilder(object):
 
         f.close()
 
-    def add_pattern(self, bytes, pattern):
-        self.patterns[bytes].append(pattern)
+    def add_pattern(self, key, pattern):
+        self.patterns[key].append(pattern)
 
 
-def build_pattern(infilename, outfilename, start, end, pattern_set=range(256)):
+def build_pattern(chunks, output, start, end, pattern_set=range(256)):
+
+    #build_pattern(squashed, 'full.dat', 3, 19)
+    #build_pattern(squashed, 'parity.dat', 4, 18, parity_set)
+    #build_pattern(squashed, 'hamming.dat', 1, 20, hamming_set)
 
     pb = PatternBuilder(24)
 
     def key(s):
-        pre = chr(ord(s[0])&(0xff<<start))
-        post = chr(ord(s[2])&(0xff>>(24-end)))
-        return pre + s[1] + post
+        pre = s[0]&(0xff<<start)
+        post = s[2]&(0xff>>(24-end))
+        return bytes((pre, line[1], post))
 
-    with FileChunker(infilename, 27) as it:
-        for n,line in tqdm(it, unit=' patterns'):
-            if ord(line[1]) in pattern_set:
-                pb.add_pattern(key(line), line[3:])
+    for n, line in chunks:
+        if line[1] in pattern_set:
+            pb.add_pattern(key(line), line[3:])
 
-    pb.write_patterns(outfilename, start, end)
+    pb.write_patterns(output, start, end)

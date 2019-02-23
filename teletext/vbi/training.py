@@ -134,12 +134,6 @@ def squash(output, indir):
                 output.write(b.tobytes())
 
 
-def build(squashed):
-    parity_set = parity_encode(np.arange(0x80))
-    build_pattern(squashed, 'full.dat', 3, 19)
-    build_pattern(squashed, 'parity.dat', 4, 18, parity_set)
-    build_pattern(squashed, 'hamming.dat', 1, 20, hamming_set)
-
 
 def generate_lines(file):
     pattern = load_pattern()
