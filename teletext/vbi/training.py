@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from teletext.file import FileChunker
 from teletext.coding import parity_encode, hamming8_enc as hamming_set
-from teletext.vbi.line import Line
+from teletext.vbi.line import Line, normalise
 
 from .pattern import build_pattern
 
@@ -98,7 +98,7 @@ def process_training(chunks, config):
         if l.is_teletext:
             offset = l.offset
             if offset is not None:
-                yield (offset, l.chop(32, 32+(8*pattern_length)).astype(np.uint8))
+                yield (offset, normalise(l.chop(32, 32+(8*pattern_length))).astype(np.uint8))
                 continue
         yield 'rejected'
 
