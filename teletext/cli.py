@@ -474,7 +474,7 @@ def showbin(chunker):
     chunks = chunker(27)
 
     for n, chunk in chunks:
-        arr = np.fromstring(chunk, dtype=np.uint8)
+        arr = np.frombuffer(chunk, dtype=np.uint8)
         bi = ''.join(bits[n] for n in np.unpackbits(arr[:3][::-1])[::-1])
         by = ''.join(bars[n] for n in arr[3:]>>5)
         print(f'[{bi}] [{by}]')

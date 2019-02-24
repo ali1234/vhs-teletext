@@ -63,7 +63,7 @@ class Line(object):
             Line.configure(Config())
 
         self._number = number
-        self._original = np.fromstring(data, dtype=np.uint8).astype(np.int32)
+        self._original = np.frombuffer(data, dtype=np.uint8).astype(np.int32)
 
         self.reset()
 

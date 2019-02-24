@@ -52,7 +52,7 @@ def de_bruijn(k, n):
 def load_pattern():
     with open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb') as db:
         data = db.read()
-    pattern = np.fromstring(data + data[:pattern_length], dtype=np.uint8)
+    pattern = np.frombuffer(data + data[:pattern_length], dtype=np.uint8)
     return pattern
 
 
@@ -129,7 +129,7 @@ def squash(output, indir):
             chunks = sorted(chunk for n, chunk in chunks)
             for k, g in itertools.groupby(tqdm(chunks, unit='P', desc='Grouping'), lambda x: x[:3]):
                 a = list(g)
-                b = np.fromstring(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
+                b = np.frombuffer(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
                 b = np.mean(b, axis=0).astype(np.uint8)
                 output.write(b.tobytes())
 

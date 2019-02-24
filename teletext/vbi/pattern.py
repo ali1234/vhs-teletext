@@ -53,7 +53,7 @@ class PatternBuilder(object):
     def write_patterns(self, f, start, end):
         flat_patterns = []
         for k, v in tqdm(self.patterns.items(), unit='P', desc='Squashing'):
-            pattn = np.mean(np.fromstring(b''.join(v), dtype=np.uint8).reshape((len(v), self.inwidth)), axis=0).astype(np.uint8)
+            pattn = np.mean(np.frombuffer(b''.join(v), dtype=np.uint8).reshape((len(v), self.inwidth)), axis=0).astype(np.uint8)
             flat_patterns.append((pattn, k[1:2]))
 
         header = struct.pack('>IIIBB', len(flat_patterns[0][0]), len(flat_patterns[0][1]), len(flat_patterns), start, end)

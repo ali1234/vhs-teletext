@@ -28,7 +28,7 @@ class TrainingTestCase(unittest.TestCase):
             )
 
         for f in files[:1]:
-            arr = np.fromstring(f.getvalue(), dtype=np.uint8).reshape(-1, 27)
+            arr = np.frombuffer(f.getvalue(), dtype=np.uint8).reshape(-1, 27)
             for l in arr:
                 # Assert that pattern matches samples.
                 self.assertTrue(all(l[:3] == np.packbits(l[3:][::-1])[::-1]))

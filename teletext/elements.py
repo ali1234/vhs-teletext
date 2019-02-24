@@ -10,7 +10,7 @@ class Element(object):
         if array is None:
             self._array = np.zeros(shape, dtype=np.uint8)
         elif type(array) == bytes:
-            self._array = np.fromstring(array, dtype=np.uint8)
+            self._array = np.frombuffer(array, dtype=np.uint8)
         else:
             self._array = array
 
@@ -87,7 +87,9 @@ class Mrag(ElementHamming):
 class Displayable(ElementParity):
 
     def place_string(self, string, x=0, y=None):
-        a = np.fromstring(string, dtype=np.uint8)
+        if isinstance(string, str):
+            string = string.encode('ascii')
+        a = np.frombuffer(string, dtype=np.uint8)
         if y is None:
             self._array[x:x+a.shape[0]] = parity_encode(a)
         else:
