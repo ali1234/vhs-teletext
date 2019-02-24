@@ -62,7 +62,7 @@ class PatternCUDA(Pattern):
         x = l & -l # highest power of two which divides l, up to 8
         y = min(1024//x, self.n)
         cuda.memcpy_htod(self.input_gpu, inp.astype(np.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, np.int32(self.start+2), np.int32(self.end-1), block=(x, y, 1), grid=(l//x, self.n//y))
+        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, np.int32(self.start), np.int32(self.end), block=(x, y, 1), grid=(l//x, self.n//y))
         result = argmin(self.result_gpu, axis=1).get()
         return self.bytes[result[:l],0]
 
