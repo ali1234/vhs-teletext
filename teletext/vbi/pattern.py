@@ -17,8 +17,8 @@ from tqdm import tqdm
 
 from teletext.file import FileChunker
 
-
 class Pattern(object):
+
     def __init__(self, filename):
         with open(filename, 'rb') as f:
             self.inlen,self.outlen,self.n,self.start,self.end = struct.unpack('>IIIBB', f.read(14))
@@ -27,15 +27,15 @@ class Pattern(object):
             self.patterns = self.patterns.astype(np.float32)
             self.bytes = np.fromfile(f, dtype=np.uint8, count=self.outlen*self.n)
             self.bytes = self.bytes.reshape((self.n, self.outlen))
+        self.pslice = self.patterns[:, self.start:self.end]
 
     def match(self, inp):
         l = (len(inp)//8)-2
         idx = np.zeros((l,), dtype=np.uint32)
-        pslice = self.patterns[:, self.start:self.end]
         for i in range(l):
             start = (i*8) + self.start
             end = (i*8) + self.end
-            diffs = pslice - inp[start:end]
+            diffs = self.pslice - inp[start:end]
             diffs = diffs * diffs
             idx[i] = np.argmin(np.sum(diffs, axis=1))
         return self.bytes[idx][:,0]
