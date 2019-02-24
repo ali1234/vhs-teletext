@@ -31,7 +31,7 @@ class Pattern(object):
 
     def match(self, inp):
         l = (len(inp)//8)-2
-        idx = np.zeros((l,), dtype=np.uint32)
+        idx = np.empty((l,), dtype=np.uint32)
         for i in range(l):
             start = (i*8) + self.start
             end = (i*8) + self.end
