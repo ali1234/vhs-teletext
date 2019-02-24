@@ -199,6 +199,20 @@ def filter(packets, pages, subpages, paginate):
 
 
 @teletext.command()
+@click.argument('a', type=click.File('rb'))
+@click.argument('b', type=click.File('rb'))
+@filterparams
+def diff(a, b, mags, rows):
+    """Show side by side difference of two t42 streams."""
+    for chunka, chunkb in zip(FileChunker(a, 42), FileChunker(b, 42)):
+        pa = Packet(chunka[1], chunka[0])
+        pb = Packet(chunkb[1], chunkb[0])
+        if (pa.mrag.row in rows and pa.mrag.magazine in mags) or (pb.mrag.row in rows and pa.mrag.magazine in mags):
+            if any(pa[:] != pb[:]):
+                print(pa.to_ansi(), pb.to_ansi())
+
+
+@teletext.command()
 @packetwriter
 @packetreader
 def finders(packets):
