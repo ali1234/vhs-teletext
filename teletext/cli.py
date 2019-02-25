@@ -354,9 +354,10 @@ def record(output, device, config):
 
 
 @teletext.command()
+@click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
 @carduser(extended=True)
 @chunkreader
-def vbiview(chunker, config):
+def vbiview(chunker, config, pause):
 
     """Display raw VBI samples with OpenGL."""
 
@@ -375,7 +376,7 @@ def vbiview(chunker, config):
         chunks = chunker(config.line_length)
         lines = (Line(chunk, number) for number, chunk in chunks)
 
-        VBIViewer(lines, config)
+        VBIViewer(lines, config, pause=pause)
 
 
 @teletext.command()

@@ -9,11 +9,11 @@ from OpenGL.GL import *
 
 class VBIViewer(object):
 
-    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=32, tint=True, show_grid=True, show_slices=False):
+    def __init__(self, lines, config, name = "VBI Viewer", width=800, height=256, nlines=32, tint=True, show_grid=True, show_slices=False, pause=False):
         self.config = config
         self.show_grid = show_grid
         self.tint = tint
-        self.pause = False
+        self.pause = pause
         self.single_step = False
         self.name = name
 
