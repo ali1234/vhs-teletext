@@ -24,22 +24,22 @@ from .pattern import Pattern
 class PatternCUDA(Pattern):
 
     mod = SourceModule("""
-  __global__ void correlate(float *input, float *patterns, float *result, int range_low, int range_high)
-  {
-    int x = (threadIdx.x + (blockDim.x*blockIdx.x));
-    int y = (threadIdx.y + (blockDim.y*blockIdx.y));
-    int iidx = x * 8;
-    int ridx = (x * blockDim.y * gridDim.y) + y;
-    int pidx = y * 24;
-
-    float d;
-    result[ridx] = 0;
-
-    for (int i=range_low;i<range_high;i++) {
-        d = input[iidx+i] - patterns[pidx+i];
-        result[ridx] += (d*d);
-    }
-  }
+        __global__ void correlate(float *input, float *patterns, float *result, int range_low, int range_high)
+        {
+            int x = (threadIdx.x + (blockDim.x*blockIdx.x));
+            int y = (threadIdx.y + (blockDim.y*blockIdx.y));
+            int iidx = x * 8;
+            int ridx = (x * blockDim.y * gridDim.y) + y;
+            int pidx = y * 24;
+        
+            float d;
+            result[ridx] = 0;
+        
+            for (int i=range_low;i<range_high;i++) {
+                d = input[iidx+i] - patterns[pidx+i];
+                result[ridx] += (d*d);
+            }
+        }
     """)
 
     correlate = mod.get_function("correlate")
