@@ -63,7 +63,7 @@ class Line(object):
             Line.configure(Config())
 
         self._number = number
-        self._original = np.frombuffer(data, dtype=np.uint8).astype(np.int32)
+        self._original = np.frombuffer(data, dtype=np.uint8).astype(np.float32)
 
         self.reset()
 
@@ -92,7 +92,7 @@ class Line(object):
 
     def chop(self, start, stop):
         """Chop and average the samples associated with each bit."""
-        return np.add.reduceat(self.rolled, Line.config.bits[start:stop+1], dtype=np.float32)[:-1] / Line.config.bit_lengths[start:stop]
+        return np.add.reduceat(self.rolled, Line.config.bits[start:stop+1])[:-1] / Line.config.bit_lengths[start:stop]
 
     @property
     def chopped(self):
