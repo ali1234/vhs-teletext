@@ -64,6 +64,7 @@ class Line(object):
 
         self._number = number
         self._original = np.frombuffer(data, dtype=np.uint8).astype(np.float32)
+        self._original_bytes = data
 
         self.reset()
 

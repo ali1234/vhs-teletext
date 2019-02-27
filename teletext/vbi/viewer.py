@@ -62,12 +62,20 @@ class VBIViewer(object):
     def keyboard(self, key, x, y):
         if key == b'g':
             self.show_grid ^= True
-        elif key == b't':
+        elif key == b'c':
             self.tint ^= True
         elif key == b'p':
             self.pause ^= True
         elif key == b'n':
             self.single_step = True
+        elif key == b'r':
+            self.dumpline(x, y, teletext=False)
+        elif key == b't':
+            self.dumpline(x, y, teletext=True)
+        elif key == b'R':
+            self.dumpall(teletext=False)
+        elif key == b'T':
+            self.dumpall(teletext=True)
         elif key == b'1':
             self.line_attr = 'original'
         elif key == b'2':
@@ -89,6 +97,28 @@ class VBIViewer(object):
                 l.roll -= 1
             print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.roll)
             sys.stdout.flush()
+
+    def dumpline(self, x, y, teletext):
+        if teletext:
+            print('Writing to teletext.vbi')
+            fn = 'teletext.vbi'
+        else:
+            print('Writing to reject.vbi')
+            fn = 'reject.vbi'
+        l = self.lines[self.nlines * y // self.height]
+        with open(fn, 'ab') as f:
+            f.write(l._original_bytes)
+
+    def dumpall(self, teletext):
+        if teletext:
+            print('Writing all to teletext.vbi')
+            fn = 'teletext.vbi'
+        else:
+            print('Writing all to reject.vbi')
+            fn = 'reject.vbi'
+        with open(fn, 'ab') as f:
+            for l in self.lines:
+                f.write(l._original_bytes)
 
     def set_title(self):
         glutSetWindowTitle(f'{self.name} - {self.line_attr}{" (paused)" if self.pause else ""}')

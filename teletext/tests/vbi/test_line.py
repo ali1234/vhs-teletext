@@ -1,7 +1,9 @@
+import os
 import unittest
 
 import numpy as np
 
+from teletext.file import FileChunker
 from teletext.vbi.line import Line
 from teletext.vbi.config import Config
 
@@ -25,3 +27,24 @@ class LineTestCase(unittest.TestCase):
         lines = ((line, params) for line, params in lines if line.is_teletext)
         for line, params in lines:
             self.assertFalse(line.is_teletext, f'Noise interpreted as teletext: {params}')
+
+    @unittest.expectedFailure
+    def test_known_teletext(self):
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'data', 'teletext.vbi'), 'rb') as f:
+                lines = (Line(data, number) for number, data in FileChunker(f, 2048))
+                for line in lines:
+                    self.assertTrue(line.is_teletext, f'Line {line._number} false negative.')
+        except FileNotFoundError:
+            self.skipTest('Known teletext data not available.')
+
+    @unittest.expectedFailure
+    def test_known_reject(self):
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'data', 'reject.vbi'), 'rb') as f:
+                lines = (Line(data, number) for number, data in FileChunker(f, 2048))
+                for line in lines:
+                    self.assertFalse(line.is_teletext, f'Line {line._number} false positive.')
+        except FileNotFoundError:
+            self.skipTest('Known reject data not available.')
+
