@@ -12,7 +12,6 @@ from .mp import itermap
 from .packet import Packet
 from .stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
 from .subpage import Subpage
-from .terminal import termify
 
 from . import pipeline
 
@@ -61,20 +60,6 @@ def carduser(extended=False):
             return f(config=config, *args,**kwargs)
         return wrapper
     return c
-
-
-def termparams(f):
-    @wraps(f)
-    def t(windowed, less, **kwargs):
-        termify(windowed, less)
-        f(**kwargs)
-
-    for d in [
-        click.option('-W', '--windowed', is_flag=True, help='Connect stdout to a new terminal window.'),
-        click.option('-L', '--less', is_flag=True, help='Page the output through less.'),
-    ][::-1]:
-        t = d(t)
-    return t
 
 
 def chunkreader(f):
