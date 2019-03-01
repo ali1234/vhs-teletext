@@ -94,7 +94,7 @@ def packetreader(f):
 
         if wst:
             chunks = chunker(43)
-            chunks = ((c[0],c[1][:42]) for c in chunks)
+            chunks = ((c[0],c[1][:42]) for c in chunks if c[1][0] != 0)
         else:
             chunks = chunker(42)
 
