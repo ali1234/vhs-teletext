@@ -96,7 +96,7 @@ class VBIViewer(object):
             elif button == 4:
                 l.roll -= 1
             if l.is_teletext:
-                print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.roll)
+                print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.roll, l._reason)
             else:
                 print(l._reason)
             sys.stdout.flush()

@@ -126,11 +126,14 @@ class Line(object):
             smax = np.max(self._gstart)
             if smax < 64:
                 self._is_teletext = False
-                self._reason = 'No signal'
+                self._reason = f'Signal max is {smax}'
+            elif self.noisefloor > 80:
+                self._is_teletext = False
+                self._reason = f'Noise is {self.noisefloor}'
             elif smax < (self.noisefloor + 16):
                 # There is no interesting signal in the start_slice.
                 self._is_teletext = False
-                self._reason = 'Noise is higher than signal'
+                self._reason = f'Noise is higher than signal {smax} {self.noisefloor}'
             else:
                 # There is some kind of signal in the line. Check if
                 # it is teletext by looking for harmonics of teletext
