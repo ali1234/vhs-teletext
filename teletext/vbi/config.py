@@ -25,7 +25,7 @@ class Config(object):
         'bt8x8': {
             'sample_rate': 35468950.0,
             'line_length': 2048,
-            'line_start_range': (60, 120),
+            'line_start_range': (60, 130),
         },
         'saa7131': {
             'sample_rate': 27000000.0,
