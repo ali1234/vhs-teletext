@@ -78,6 +78,7 @@ class Line(object):
         self._gstart = None
         self._is_teletext = None
         self._start = None
+        self._reason = None
 
     @property
     def original(self):
@@ -122,9 +123,14 @@ class Line(object):
             # First try to detect by comparing pre-start noise floor to post-start levels.
             # Store self._gstart so that self.start can re-use it.
             self._gstart = gauss(self._original[Line.config.start_slice], Line.config.gauss)
-            if np.max(self._gstart) < (self.noisefloor + 16):
+            smax = np.max(self._gstart)
+            if smax < 64:
+                self._is_teletext = False
+                self._reason = 'No signal'
+            elif smax < (self.noisefloor + 16):
                 # There is no interesting signal in the start_slice.
                 self._is_teletext = False
+                self._reason = 'Noise is higher than signal'
             else:
                 # There is some kind of signal in the line. Check if
                 # it is teletext by looking for harmonics of teletext
