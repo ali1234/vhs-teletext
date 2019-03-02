@@ -20,8 +20,8 @@ from .vbi.config import Config
 
 def filterparams(f):
     for d in [
-        click.option('-m', '--mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines.'),
-        click.option('-r', '--rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows.'),
+        click.option('-m', '--mag', 'mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines. Can be specified multiple times.'),
+        click.option('-r', '--row', 'rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows. Can be specified multiple times.'),
     ][::-1]:
         f = d(f)
     return f
@@ -155,8 +155,8 @@ def teletext():
 
 
 @teletext.command()
-@click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
-@click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
+@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific page. Can be specified multiple times.')
+@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpage. Can be specified multiple times.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
 @packetwriter
 @packetreader
@@ -212,8 +212,8 @@ def finders(packets):
 
 @teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
-@click.option('-p', '--pages', type=str, multiple=True, help='Limit output to specific pages.')
-@click.option('-s', '--subpages', type=str, multiple=True, help='Limit output to specific subpages.')
+@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific pages. Can be specified multiple times.')
+@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpages. Can be specified multiple times.')
 @packetwriter
 @packetreader
 def squash(packets, min_duplicates, pages, subpages):
