@@ -453,10 +453,10 @@ def split(chunker, outdir, config, threads, progress, rejects):
     split(results, files)
 
 
-@training.command()
+@training.command(name='squash')
 @click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True)
 @click.argument('output', type=click.File('wb'), default='-')
-def squash(output, indir):
+def training_squash(output, indir):
     """Squash the intermediate bins into a single file."""
     from teletext.vbi.training import squash
     squash(output, indir)
