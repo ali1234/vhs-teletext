@@ -24,6 +24,6 @@ try:
             self.assertTrue(all(a==b), 'CPU and CUDA pattern matching produced different results.')
 
 except ModuleNotFoundError as e:
-    if e.args[1] != 'pycuda':
+    if e.name != 'pycuda':
         raise
 
