@@ -144,7 +144,10 @@ def main(input):
     locale.setlocale(locale.LC_ALL, '')
 
     input_dup = os.fdopen(os.dup(input.fileno()), 'rb')
-    f = open("/dev/tty", 'r')
+    if os.name == 'nt':
+        f = open("CON:", 'r')
+    else:
+        f = open("/dev/tty", 'r')
     os.dup2(f.fileno(), 0)
 
     chunks = FileChunker(input_dup, 42)
