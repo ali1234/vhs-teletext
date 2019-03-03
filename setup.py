@@ -16,7 +16,7 @@ setup(
             't42html = teletext.printer:html',
         ]
     },
-    install_requires=['numpy', 'scipy', 'click', 'tqdm'],
+    install_requires=['numpy', 'scipy', 'click', 'tqdm', 'windows-curses;platform_system=="Windows"'],
     extras_require={
         'spellcheck': ['pyenchant'],
         'CUDA': ['pycuda', 'scikit-cuda'],
