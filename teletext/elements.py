@@ -10,7 +10,7 @@ class Element(object):
         if array is None:
             self._array = np.zeros(shape, dtype=np.uint8)
         elif type(array) == bytes:
-            self._array = np.frombuffer(array, dtype=np.uint8)
+            self._array = np.frombuffer(array, dtype=np.uint8).copy()
         else:
             self._array = array
 
