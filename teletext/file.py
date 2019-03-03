@@ -1,6 +1,7 @@
 import io
 import itertools
 import os
+import stat
 
 
 def PossiblyInfiniteRange(start=0, stop=None, step=1, limit=None):
@@ -44,6 +45,9 @@ def chunks(f, size, step, seek=True):
 def FileChunker(f, size, start=0, stop=None, step=1, limit=None):
     seekable = False
     try:
+        if hasattr(f, 'fileno') and stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
+            raise io.UnsupportedOperation
+
         f.seek(0, os.SEEK_END)
         f_len = f.tell()//size
 

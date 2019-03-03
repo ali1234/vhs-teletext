@@ -83,7 +83,7 @@ def chunkreader(f):
             raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
         if 'progress' in kwargs and kwargs['progress'] is None:
-            if stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
+            if hasattr(input, 'fileno') and stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
                 kwargs['progress'] = False
 
         chunker = lambda size: FileChunker(input, size, start, stop, step, limit)
