@@ -104,7 +104,10 @@ class Line(object):
     @property
     def noisefloor(self):
         if self._noisefloor is None:
-            self._noisefloor = np.max(gauss(self._original[:self.config.start_slice.start], self.config.gauss))
+            if self.config.start_slice.start == 0:
+                self._noisefloor = np.max(gauss(self._original[self.config.line_trim:-4], self.config.gauss))
+            else:
+                self._noisefloor = np.max(gauss(self._original[:self.config.start_slice.start], self.config.gauss))
         return self._noisefloor
 
     @property

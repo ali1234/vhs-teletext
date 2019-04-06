@@ -49,7 +49,7 @@ class Config(object):
         self.start_slice = slice(*self.line_start_range)
 
         # last sample of original line where teletext may occur
-        self.line_trim = self.start_slice.stop + math.ceil(self.bit_width * 46 * 8)
+        self.line_trim = self.start_slice.stop + math.ceil(self.bit_width * 45 * 8)
 
         # first sample for each bit in the rolled arrays
         self.bits = np.array([round(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
