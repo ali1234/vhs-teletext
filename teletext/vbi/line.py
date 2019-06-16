@@ -154,7 +154,7 @@ class Line(object):
             self._start = -np.argmax(np.gradient(np.maximum.accumulate(self._gstart)))
             # Now find the extra roll needed to lock in the clock run-in and framing code.
             confidence = []
-            for roll in range(-10, 1):
+            for roll in range(-10, 20):
                 self.roll = roll
                 # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
                 # This is the most distinctive part of the CRI/FC to look for.

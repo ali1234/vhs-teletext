@@ -11,9 +11,6 @@ setup(
     entry_points={
         'console_scripts': [
             'teletext = teletext.cli:teletext',
-            'training = teletext.vbi.training:training',
-            't42service = teletext.service:service',
-            't42html = teletext.printer:html',
         ]
     },
     install_requires=['numpy', 'scipy', 'click', 'tqdm', 'windows-curses;platform_system=="Windows"'],
