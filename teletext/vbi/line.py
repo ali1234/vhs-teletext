@@ -191,7 +191,7 @@ class Line(object):
 
             # It is faster to just use the same pattern array all the time.
             bytes_array[2:] = Line.p.match(bits_array[32:368])
-            return Packet(bytes_array.copy(), self._number)
+            return Packet(bytes_array.copy(), number=self._number, original=self._original_bytes)
         else:
             return 'filtered'
 
@@ -209,7 +209,7 @@ class Line(object):
         zeros = (diff > -48)
         result = ((bits_array[1:] > 127) | ones) & zeros
 
-        packet = Packet(np.packbits(result.reshape(-1,8)[:,::-1]), self._number)
+        packet = Packet(np.packbits(result.reshape(-1,8)[:,::-1]), number=self._number, original=self._original_bytes)
 
         m = packet.mrag
         if m.magazine in mags and m.row in rows:

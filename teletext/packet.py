@@ -3,9 +3,10 @@ from .elements import *
 
 class Packet(Element):
 
-    def __init__(self, array=None, number=None):
+    def __init__(self, array=None, number=None, original=None):
         super().__init__((42, ), array)
         self._number = number
+        self._original = original
 
     def __getitem__(self, item):
         return self._array[item]
@@ -91,6 +92,12 @@ class Packet(Element):
             return f'None     {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)} errors: {np.sum(self.errors)}\n'.encode('utf8')
         else:
             return f'{self.number:8d} {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)} errors: {np.sum(self.errors)}\n'.encode('utf8')
+
+    @property
+    def vbi(self):
+        if self._original is None:
+            raise Exception('Original VBI data is not available. Probably we are not deconvolving.')
+        return self._original
 
     @property
     def errors(self):
