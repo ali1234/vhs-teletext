@@ -11,6 +11,9 @@ class Config(object):
     sample_rate: float
     line_length: int
     line_start_range: tuple
+    dtype: type
+    field_lines: int
+    field_range: range
 
     # Clock run-in and framing code. These bits are set at the start of every teletext packet.
     crifc = np.array((
@@ -26,12 +29,26 @@ class Config(object):
             'sample_rate': 35468950.0,
             'line_length': 2048,
             'line_start_range': (60, 130),
+            'dtype': np.uint8,
+            'field_lines': 16,
+            'field_range': range(0, 16),
         },
         'saa7131': {
             'sample_rate': 27000000.0,
             'line_length': 1440,
             'line_start_range': (0, 20),
-        }
+            'dtype': np.uint8,
+            'field_lines': 16,
+            'field_range': range(0, 16),
+        },
+        'ddd': { # domesday duplicator
+            'sample_rate': 17712500.0,
+            'line_length': 1135,
+            'line_start_range': (160, 190),
+            'dtype': np.uint16,
+            'field_lines': 313,
+            'field_range': range(6, 22),
+        },
     }
 
     def __init__(self, card='bt8x8', **kwargs):

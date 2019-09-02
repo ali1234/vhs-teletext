@@ -8,9 +8,9 @@ from functools import wraps
 import click
 from tqdm import tqdm
 
-from .file import FileChunker
+from .file import FileChunker, fieldslice
 from .mp import itermap
-from .packet import Packet
+from .packet import Packet, np
 from .stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
 from .subpage import Subpage
 
@@ -366,7 +366,8 @@ def vbiview(chunker, config, pause):
 
         Line.configure(config, force_cpu=True)
 
-        chunks = chunker(config.line_length)
+        chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
+
         lines = (Line(chunk, number) for number, chunk in chunks)
 
         VBIViewer(lines, config, pause=pause)
@@ -391,7 +392,7 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
     if force_cpu:
         sys.stderr.write('CUDA disabled by user request.\n')
 
-    chunks = chunker(config.line_length)
+    chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
 
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
@@ -443,7 +444,9 @@ def generate(output):
 def split(chunker, outdir, config, threads, progress, rejects):
     """Split training recording into intermediate bins."""
     from teletext.vbi.training import process_training, split
-    chunks = chunker(config.line_length)
+
+    chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
+
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
 

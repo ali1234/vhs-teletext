@@ -42,6 +42,12 @@ def chunks(f, size, step, seek=True):
                 f.read(size * (step - 1))
 
 
+def fieldslice(lines, flines=313, frange=range(16, 32)):
+    for n, l in enumerate(lines):
+        if n%flines in frange:
+            yield l
+
+
 def FileChunker(f, size, start=0, stop=None, step=1, limit=None):
     seekable = False
     try:
