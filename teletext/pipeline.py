@@ -37,8 +37,9 @@ def subpage_squash(packet_lists, min_duplicates=3):
 
     spdict = defaultdict(list)
     for pl in packet_lists:
-        subpage = Subpage.from_packets(pl)
-        spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
+        if len(pl) > 1:
+            subpage = Subpage.from_packets(pl)
+            spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
 
     for splist in tqdm(spdict.values(), unit=' Subpages'):
         if len(splist) >= min_duplicates:
