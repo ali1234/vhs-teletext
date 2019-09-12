@@ -7,6 +7,7 @@
 # * that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
+import atexit
 
 import numpy as np
 
@@ -14,6 +15,12 @@ import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
+from pycuda.driver import ctx_flags
+
+cuda.init()
+cudadevice = cuda.Device(0)
+cudacontext = cudadevice.make_context(flags=ctx_flags.SCHED_YIELD)
+atexit.register(cudacontext.pop)
 
 import skcuda
 from skcuda.misc import argmin
