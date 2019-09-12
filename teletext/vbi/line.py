@@ -86,16 +86,12 @@ class Line(object):
         """The raw, untouched line."""
         return self._original[:]
 
-    @property
-    def rolled(self):
-        """The line rolled so that teletext data is in a known position."""
-        # This should use self.start not self._start so that self._start
-        # is calculated if it hasn't been already.
-        return np.roll(self._original, (self.start or 0) + self.roll)
-
     def chop(self, start, stop):
         """Chop and average the samples associated with each bit."""
-        return np.add.reduceat(self.rolled, Line.config.bits[start:stop+1])[:-1] / Line.config.bit_lengths[start:stop]
+        # This should use self.start not self._start so that self._start
+        # is calculated if it hasn't been already.
+        r = self.start + self.roll
+        return np.add.reduceat(self._original, Line.config.bits[start:stop+1] - r)[:-1] / Line.config.bit_lengths[start:stop]
 
     @property
     def chopped(self):
