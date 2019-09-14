@@ -22,10 +22,11 @@ cudacontext = cudadevice.make_context(flags=ctx_flags.SCHED_YIELD)
 atexit.register(cudacontext.pop)
 
 import skcuda
-from skcuda.misc import argmin
+from skcuda.misc import _get_minmax_kernel
 skcuda.misc._global_cublas_allocator = cuda.mem_alloc
 
 from .pattern import Pattern
+
 
 class PatternCUDA(Pattern):
 
@@ -45,10 +46,11 @@ class PatternCUDA(Pattern):
                 d = input[iidx+i] - patterns[pidx+i];
                 result[ridx] += (d*d);
             }
-        }
+        }            
     """)
 
     correlate = mod.get_function("correlate")
+    argmin = _get_minmax_kernel(np.float32, "min")[1]
 
     def __init__(self, filename):
         Pattern.__init__(self, filename)
@@ -59,16 +61,30 @@ class PatternCUDA(Pattern):
         self.patterns_gpu = cuda.mem_alloc(self.patterns.nbytes)
         cuda.memcpy_htod(self.patterns_gpu, self.patterns)
 
-        self.input_gpu = cuda.mem_alloc(4*((40*8)+16))
-        self.result_gpu = gpuarray.empty((40,self.n), dtype=np.float32, allocator=cuda.mem_alloc)
+        self.input_match = cuda.mem_alloc(4*((40*8)+16))
+        self.result_match = gpuarray.empty((40,self.n), dtype=np.float32, allocator=cuda.mem_alloc)
 
+        self.result_min = gpuarray.empty((40,), dtype=np.float32, allocator=cuda.mem_alloc)
+        self.result_argmin = gpuarray.empty((40,), dtype=np.uint32, allocator=cuda.mem_alloc)
 
     def match(self, inp):
         l = (len(inp)//8)-2
         x = l & -l # highest power of two which divides l, up to 8
         y = min(1024//x, self.n)
-        cuda.memcpy_htod(self.input_gpu, inp.astype(np.float32))
-        PatternCUDA.correlate(self.input_gpu, self.patterns_gpu, self.result_gpu, np.int32(self.start), np.int32(self.end), block=(x, y, 1), grid=(l//x, self.n//y))
-        result = argmin(self.result_gpu, axis=1).get()
+        cuda.memcpy_htod(self.input_match, inp.astype(np.float32))
+
+        PatternCUDA.correlate(
+            self.input_match, self.patterns_gpu, self.result_match,
+            np.int32(self.start), np.int32(self.end),
+            block=(x, y, 1), grid=(l//x, self.n//y)
+        )
+
+        PatternCUDA.argmin(
+            self.result_match, self.result_min, self.result_argmin,
+            np.uint32(self.n), np.uint32(l),
+            block=(32, 1, 1), grid=(l, 1, 1), stream=None
+        )
+
+        result = self.result_argmin.get()
         return self.bytes[result[:l],0]
 
