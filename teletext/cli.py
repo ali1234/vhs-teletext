@@ -8,7 +8,7 @@ from functools import wraps
 import click
 from tqdm import tqdm
 
-from .file import FileChunker, fieldslice
+from .file import FileChunker
 from .mp import itermap
 from .packet import Packet, np
 from .stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
@@ -86,7 +86,7 @@ def chunkreader(f):
             if hasattr(input, 'fileno') and stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
                 kwargs['progress'] = False
 
-        chunker = lambda size: FileChunker(input, size, start, stop, step, limit)
+        chunker = lambda size, flines=16, frange=range(0, 16): FileChunker(input, size, start, stop, step, limit, flines, frange)
 
         return f(chunker=chunker, *args, **kwargs)
     return wrapper
@@ -366,7 +366,7 @@ def vbiview(chunker, config, pause):
 
         Line.configure(config, force_cpu=True)
 
-        chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
+        chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
         lines = (Line(chunk, number) for number, chunk in chunks)
 
@@ -392,7 +392,7 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
     if force_cpu:
         sys.stderr.write('CUDA disabled by user request.\n')
 
-    chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
@@ -445,7 +445,7 @@ def split(chunker, outdir, config, threads, progress, rejects):
     """Split training recording into intermediate bins."""
     from teletext.vbi.training import process_training, split
 
-    chunks = fieldslice(chunker(config.line_length * np.dtype(config.dtype).itemsize), config.field_lines, config.field_range)
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)

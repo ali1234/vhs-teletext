@@ -29,26 +29,29 @@ class LenWrapper(object):
         return self.l
 
 
-def chunks(f, size, step, seek=True):
+def chunks(f, size, step, flines=16, frange=(0, 16), seek=True):
     while True:
-        b = f.read(size)
-        if len(b) < size:
-            return
-        yield b
-        if step > 1:
-            if seek:
-                f.seek(size * (step - 1), os.SEEK_CUR)
-            else:
-                f.read(size * (step - 1))
+        if seek:
+            f.seek(size * frange.start, os.SEEK_CUR)
+        else:
+            f.read(size * frange.start)
+        for _ in frange:
+            b = f.read(size)
+            if len(b) < size:
+                return
+            yield b
+            if step > 1:
+                if seek:
+                    f.seek(size * (step - 1), os.SEEK_CUR)
+                else:
+                    f.read(size * (step - 1))
+        if seek:
+            f.seek(size * (flines - frange.stop), os.SEEK_CUR)
+        else:
+            f.read(size * (flines - frange.stop))
 
 
-def fieldslice(lines, flines=313, frange=range(16, 32)):
-    for n, l in enumerate(lines):
-        if n%flines in frange:
-            yield l
-
-
-def FileChunker(f, size, start=0, stop=None, step=1, limit=None):
+def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=(0, 16)):
     seekable = False
     try:
         if hasattr(f, 'fileno') and stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
@@ -69,7 +72,7 @@ def FileChunker(f, size, start=0, stop=None, step=1, limit=None):
         f.read(size * start)
 
     r = PossiblyInfiniteRange(start, stop, step, limit)
-    i = zip(r, chunks(f, size, step, seek=seekable))
+    i = zip(r, chunks(f, size, step, flines, frange, seek=seekable))
     if hasattr(r, '__len__'):
         return LenWrapper(i, len(r))
     else:
