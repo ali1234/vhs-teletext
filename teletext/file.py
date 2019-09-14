@@ -29,7 +29,7 @@ class LenWrapper(object):
         return self.l
 
 
-def chunks(f, size, step, flines=16, frange=(0, 16), seek=True):
+def _chunks(f, size, flines, frange, seek):
     while True:
         if seek:
             f.seek(size * frange.start, os.SEEK_CUR)
@@ -40,15 +40,20 @@ def chunks(f, size, step, flines=16, frange=(0, 16), seek=True):
             if len(b) < size:
                 return
             yield b
-            if step > 1:
-                if seek:
-                    f.seek(size * (step - 1), os.SEEK_CUR)
-                else:
-                    f.read(size * (step - 1))
         if seek:
             f.seek(size * (flines - frange.stop), os.SEEK_CUR)
         else:
             f.read(size * (flines - frange.stop))
+
+
+def chunks(f, size, start, step, flines=16, frange=(0, 16), seek=True):
+    c = _chunks(f, size, flines, frange, seek)
+    for _ in range(start):
+        next(c)
+    for x in itertools.repeat([True] + ([False] * (step-1))):
+        b = next(c)
+        if x:
+            yield b
 
 
 def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=(0, 16)):
@@ -58,21 +63,24 @@ def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, fran
             raise io.UnsupportedOperation
 
         f.seek(0, os.SEEK_END)
-        f_len = f.tell()//size
+        total_lines = f.tell() // size
+        total_fields = total_lines // flines
+        remainder = max(min((total_lines % flines) - frange.start, len(frange)), 0)
+        useful_lines = (total_fields * len(frange)) + remainder
 
         if stop is None:
-            stop = f_len
+            stop = useful_lines
         else:
-            stop = min(stop, f_len)
+            stop = min(stop, useful_lines)
 
-        f.seek(size * start, os.SEEK_SET)
         seekable = True
+        f.seek(0, os.SEEK_SET)
 
     except io.UnsupportedOperation:
         f.read(size * start)
 
     r = PossiblyInfiniteRange(start, stop, step, limit)
-    i = zip(r, chunks(f, size, step, flines, frange, seek=seekable))
+    i = zip(r, chunks(f, size, start, step, flines, frange, seek=seekable))
     if hasattr(r, '__len__'):
         return LenWrapper(i, len(r))
     else:
