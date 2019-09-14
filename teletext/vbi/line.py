@@ -188,7 +188,7 @@ class Line(object):
 
             # It is faster to just use the same pattern array all the time.
             bytes_array[2:] = Line.p.match(bits_array[32:368])
-            return Packet(bytes_array.copy(), number=self._number, original=self._original_bytes)
+            return Packet(bytes_array, number=self._number, original=self._original_bytes)
         else:
             return 'filtered'
 
