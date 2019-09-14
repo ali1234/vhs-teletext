@@ -15,7 +15,6 @@ import numpy as np
 
 from tqdm import tqdm
 
-from teletext.file import FileChunker
 
 class Pattern(object):
 

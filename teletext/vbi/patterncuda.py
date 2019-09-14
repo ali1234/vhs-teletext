@@ -13,7 +13,6 @@ import numpy as np
 
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
-import pycuda.autoinit
 from pycuda.compiler import SourceModule
 from pycuda.driver import ctx_flags
 
