@@ -5,6 +5,8 @@ import time
 
 import multiprocessing as mp
 
+from .sigint import SigIntDefer
+
 def denumerate(quit_event, work_queue, tmp_queue):
     """
     Strips sequence numbers from work_queue items and yields the work.
@@ -68,47 +70,42 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
             target=slave, args=(function, quit_event, work_queue, done_queue, args, kwargs), daemon=True
         ) for id in range(processes)]
 
-        try:
-            for p in pool:
-                p.start()
-
-            sent_count = 0
-            received_count = 0
-
-            # Prime the queue with some items.
-            for item in itertools.islice(iterator, 100):
-                work_queue.put(item)
-                sent_count += 1
-
-            # Dict to use for sorting received items back into
-            # their original order.
-            received = {}
-
-            while received_count < sent_count:
-                n, item = done_queue.get()
-                received[n] = item
-                while received_count in received:
-                    yield received[received_count]
-                    del received[received_count]
-                    received_count += 1
-                try:
-                    work_queue.put(next(iterator))
-                    sent_count += 1
-                except StopIteration:
-                    quit_event.set()
-
-        except KeyboardInterrupt:
-            print("kb interrupt")
-            quit_event.set()
+        with SigIntDefer() as sigint:
             try:
-                while True:
-                    done_queue.get(timeout=0.1)
-            except queue.Empty:
-                pass
+                for p in pool:
+                    p.start()
 
-        finally:
-            for p in pool:
-                p.join()
+                sent_count = 0
+                received_count = 0
+
+                # Prime the queue with some items.
+                for item in itertools.islice(iterator, 100):
+                    work_queue.put(item)
+                    sent_count += 1
+
+                # Dict to use for sorting received items back into
+                # their original order.
+                received = {}
+
+                while received_count < sent_count:
+                    n, item = done_queue.get()
+                    received[n] = item
+                    while received_count in received:
+                        yield received[received_count]
+                        del received[received_count]
+                        received_count += 1
+                    if sigint.fired:
+                        quit_event.set()
+                    else:
+                        try:
+                            work_queue.put(next(iterator))
+                            sent_count += 1
+                        except StopIteration:
+                            quit_event.set()
+
+            finally:
+                for p in pool:
+                    p.join()
 
 
 if __name__ in ['__main__', '__mp_main__']:
