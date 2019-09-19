@@ -65,7 +65,7 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
         quit_event = ctx.Event()
 
         pool = [ctx.Process(
-            target=slave, args=(function, quit_event, work_queue, done_queue, args, kwargs)
+            target=slave, args=(function, quit_event, work_queue, done_queue, args, kwargs), daemon=True
         ) for id in range(processes)]
 
         try:
