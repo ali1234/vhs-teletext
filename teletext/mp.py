@@ -1,5 +1,6 @@
 import itertools
 import queue
+import signal
 import time
 
 import multiprocessing as mp
@@ -31,11 +32,10 @@ def renumerate(iterator, done_queue, tmp_queue):
 
 def slave(function, quit_event, work_queue, done_queue, args, kwargs):
     """The main function for subprocesses. """
+
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     tmp_queue = mp.Queue() # holds work item numbers to be recombined with the result
-    try:
-        renumerate(function(denumerate(quit_event, work_queue, tmp_queue), *args, **kwargs), done_queue, tmp_queue)
-    except KeyboardInterrupt:
-        pass
+    renumerate(function(denumerate(quit_event, work_queue, tmp_queue), *args, **kwargs), done_queue, tmp_queue)
 
 
 def itermap(function, iterator, processes=1, *args, **kwargs):
@@ -97,6 +97,15 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
                 except StopIteration:
                     quit_event.set()
 
+        except KeyboardInterrupt:
+            print("kb interrupt")
+            quit_event.set()
+            try:
+                while True:
+                    done_queue.get(timeout=0.1)
+            except queue.Empty:
+                pass
+
         finally:
             for p in pool:
                 p.join()
@@ -109,20 +118,23 @@ if __name__ in ['__main__', '__mp_main__']:
         # exactly once per process.
         print('This line MUST be printed exactly once by each process.', args, kwargs)
         for item in iterator:
-            time.sleep(0.001)
+            #time.sleep(1)
             yield item
 
 
 if __name__ == '__main__':
 
     import click
+    from tqdm import tqdm
 
     @click.command()
-    @click.option('-j', '--jobs', type=int, default=1)
-    @click.option('-t', '--threads', type=int, default=1)
-    def main(jobs, threads):
-        for result in itermap(f, iter(range(jobs)), processes=threads, a=2, b=3):
-            print(result, end=' ')
+    @click.option('-j', '--jobs', type=int, default=1000000)
+    @click.option('-t', '--threads', type=int, default=2)
+    @click.option('-v', '--verbose', is_flag=True)
+    def main(jobs, threads, verbose):
+        for result in itermap(f, iter(tqdm(range(jobs))), processes=threads, a=2, b=3):
+            if(verbose):
+                print(result, end=' ')
         print('')
 
     main()
