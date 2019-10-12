@@ -14,7 +14,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter1d as gauss
 
 from teletext.packet import Packet
-from teletext.elements import Mrag
+from teletext.elements import Mrag, DesignationCode
 
 from .config import Config
 from .pattern import Pattern
@@ -43,12 +43,14 @@ class Line(object):
     def configure(cls, config, force_cpu=False):
         h = os.path.dirname(__file__) + '/data/hamming.dat'
         p = os.path.dirname(__file__) + '/data/parity.dat'
+        f = os.path.dirname(__file__) + '/data/full.dat'
         cls.config = config
         if not force_cpu:
             try:
                 from .patterncuda import PatternCUDA
                 cls.h = PatternCUDA(h)
                 cls.p = PatternCUDA(p)
+                cls.f = PatternCUDA(f)
                 cls.cuda_ready = True
             except Exception as e:
                 sys.stderr.write(str(e) + '\n')
@@ -56,6 +58,7 @@ class Line(object):
         if not cls.cuda_ready:
             cls.h = Pattern(h)
             cls.p = Pattern(p)
+            cls.f = Pattern(f)
         cls.configured = True
 
     def __init__(self, data, number=None):
@@ -173,21 +176,30 @@ class Line(object):
         # need to match it. We need just an extra byte at the end.
         bits_array = normalise(self.chop(0, 368))
 
-        # First match just the mrag for the line.
-        bytes_array[:2] = Line.h.match(bits_array[16:48])
+        # First match just the mrag and dc for the line.
+        bytes_array[:3] = Line.h.match(bits_array[16:56])
         m = Mrag(bytes_array[:2])
+        d = DesignationCode(bytes_array[2:3])
         if m.magazine in mags and m.row in rows:
-            # Finds the rest of the line.
-            # if self.row == 0:
-            #    self.bytes_array[2:10] = Line.h.match(self.bits_array[32:112])
-            #    self.bytes_array[10:] = Line.p.match(self.bits_array[96:368])
-            # elif self.row == 27:
-            #    self.bytes_array[2:40] = Line.h.match(self.bits_array[32:352])
-            #    # skip the last two bytes as they are not really useful
-            # else:
-
-            # It is faster to just use the same pattern array all the time.
-            bytes_array[2:] = Line.p.match(bits_array[32:368])
+            if m.row == 0:
+                bytes_array[2:10] = Line.h.match(bits_array[32:112])
+                bytes_array[10:] = Line.p.match(bits_array[96:368])
+            elif m.row < 26:
+                bytes_array[2:] = Line.p.match(bits_array[32:368])
+            elif m.row == 27:
+                if d.dc < 4:
+                    bytes_array[2:40] = Line.h.match(bits_array[32:352])
+                    bytes_array[40:] = Line.f.match(bits_array[336:368])
+                else:
+                    bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
+            elif m.row < 30:
+                bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
+            elif m.row == 30 and m.magazine == 0: # BDSP
+                bytes_array[3:9] = Line.h.match(bits_array[40:104]) # initial page
+                bytes_array[9:22] = Line.f.match(bits_array[88:208]) # 8-bit data
+                bytes_array[22:] = Line.p.match(bits_array[192:368]) # status display
+            else:
+                bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
             return Packet(bytes_array, number=self._number, original=self._original_bytes)
         else:
             return 'filtered'
