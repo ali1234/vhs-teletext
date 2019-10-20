@@ -56,7 +56,7 @@ def chunks(f, size, start, step, flines=16, frange=(0, 16), seek=True):
             yield b
 
 
-def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=(0, 16)):
+def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=range(0, 16)):
     seekable = False
     try:
         if hasattr(f, 'fileno') and stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
