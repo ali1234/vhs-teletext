@@ -323,7 +323,7 @@ class BroadcastData(DesignationCode):
 
     def to_ansi(self, colour=True):
         if self.dc in [0, 1]:
-            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.datetime}'
+            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.datetime.to_ansi(colour)}'
         elif self.dc in [2, 3]:
             return f'{self.displayable.to_ansi(colour)} IP={self.initial_page}'
         else:
