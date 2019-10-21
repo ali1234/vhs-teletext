@@ -1,5 +1,3 @@
-import datetime
-
 from .printer import PrinterANSI
 from .coding import *
 
@@ -337,5 +335,3 @@ class BroadcastData(DesignationCode):
         e[1:7] = self.initial_page.errors
         e[20:] = self.displayable.errors
         return e
-
-
