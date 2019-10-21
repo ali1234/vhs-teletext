@@ -27,7 +27,7 @@ class Packet(Element):
             return 'display'
         elif row == 27:
             return 'fastext'
-        elif row == 30:
+        elif row == 30 and self.mrag.magazine == 8:
             return 'broadcast'
         else:
             return 'unknown'

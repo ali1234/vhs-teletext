@@ -1,3 +1,5 @@
+import datetime
+
 from .printer import PrinterANSI
 from .coding import *
 
@@ -265,6 +267,44 @@ class Fastext(DesignationCode):
         return e
 
 
+class DateTime(Element):
+
+    def __init__(self, array):
+        super().__init__((6,), array)
+
+    @property
+    def hour(self):
+        return bcd8_decode(self._array[3])
+
+    @hour.setter
+    def hour(self, value):
+        self._array[3] = bcd8_encode(value)
+
+    @property
+    def minute(self):
+        return bcd8_decode(self._array[4])
+
+    @minute.setter
+    def minute(self, value):
+        self._array[4] = bcd8_encode(value)
+
+    @property
+    def second(self):
+        return bcd8_decode(self._array[5])
+
+    @second.setter
+    def second(self, value):
+        self._array[5] = bcd8_encode(value)
+
+    def to_ansi(self, colour=True):
+        return f'{self.hour}:{self.minute}:{self.second}'
+
+    @property
+    def errors(self):
+        #TODO: detect invalid dates and times
+        return 0
+
+
 class BroadcastData(DesignationCode):
 
     def __init__(self, array, mrag):
@@ -279,8 +319,17 @@ class BroadcastData(DesignationCode):
     def initial_page(self):
         return PageLink(self._array[1:7], self._mrag)
 
+    @property
+    def datetime(self):
+        return DateTime(self._array[14:19])
+
     def to_ansi(self, colour=True):
-        return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} '
+        if self.dc == 1:
+            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.datetime}'
+        elif self.dc == 2:
+            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page}'
+        else:
+            return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page}'
 
     @property
     def errors(self):
@@ -288,3 +337,5 @@ class BroadcastData(DesignationCode):
         e[1:7] = self.initial_page.errors
         e[20:] = self.displayable.errors
         return e
+
+
