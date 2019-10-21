@@ -319,7 +319,7 @@ class BroadcastData(DesignationCode):
 
     @property
     def datetime(self):
-        return DateTime(self._array[14:19])
+        return DateTime(self._array[14:20])
 
     def to_ansi(self, colour=True):
         if self.dc in [0, 1]:
