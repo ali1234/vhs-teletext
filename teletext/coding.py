@@ -120,3 +120,11 @@ def parity_decode(a):
 
 def parity_errors(a):
     return parity_tab[a&0x7f] != a&0x80
+
+
+def bcd8_decode(a):
+    return ((a>>4)*10) + (a&0xf) - 11
+
+
+def bcd8_encode(a):
+    return ((a/10)<<4) + (a%10) + 11
