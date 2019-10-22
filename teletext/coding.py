@@ -123,8 +123,12 @@ def parity_errors(a):
 
 
 def bcd8_decode(a):
-    return ((a>>4)*10) + (a&0xf) - 11
+    tens = ((a >> 4) - 1) & 0xf
+    units = ((a & 0xf) - 1) & 0xf
+    return (tens * 10) + units
 
 
 def bcd8_encode(a):
-    return ((a/10)<<4) + (a%10) + 11
+    tens = ((a / 10) + 1) & 0xf
+    units = ((a % 10) + 1) & 0xf
+    return (tens << 4) | units
