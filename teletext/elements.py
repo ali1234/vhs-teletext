@@ -1,3 +1,5 @@
+import datetime
+
 from .printer import PrinterANSI
 from .coding import *
 
@@ -267,35 +269,52 @@ class Fastext(DesignationCode):
 
 class DateTime(Element):
 
+    epoch = datetime.date(1858, 11, 17)
+
     def __init__(self, array):
-        super().__init__((6,), array)
+        super().__init__((7,), array)
+
+    @property
+    def offset(self):
+        hours = 0.5 * ((self._array[0] >> 1) & 0x1f)
+        if ((self._array[0] >> 6) & 0x01):
+            hours *= -1
+        return hours
+
+    @property
+    def mjd(self):
+        return (bcd8_decode((self._array[1]&0xf)|0x10) * 10000) + (bcd8_decode(self._array[2]) * 100) + bcd8_decode(self._array[3])
+
+    @property
+    def to_date(self):
+        return self.epoch + datetime.timedelta(days=int(self.mjd))
 
     @property
     def hour(self):
-        return bcd8_decode(self._array[3])
+        return bcd8_decode(self._array[4])
 
     @hour.setter
     def hour(self, value):
-        self._array[3] = bcd8_encode(value)
-
-    @property
-    def minute(self):
-        return bcd8_decode(self._array[4])
-
-    @minute.setter
-    def minute(self, value):
         self._array[4] = bcd8_encode(value)
 
     @property
-    def second(self):
+    def minute(self):
         return bcd8_decode(self._array[5])
+
+    @minute.setter
+    def minute(self, value):
+        self._array[5] = bcd8_encode(value)
+
+    @property
+    def second(self):
+        return bcd8_decode(self._array[6])
 
     @second.setter
     def second(self, value):
-        self._array[5] = bcd8_encode(value)
+        self._array[6] = bcd8_encode(value)
 
     def to_ansi(self, colour=True):
-        return f'{self.hour}:{self.minute}:{self.second}'
+        return f'{self.to_date} {self.hour:02d}:{self.minute:02d}:{self.second:02d} {self.offset}'
 
     @property
     def errors(self):
@@ -319,7 +338,7 @@ class BroadcastData(DesignationCode):
 
     @property
     def datetime(self):
-        return DateTime(self._array[10:16])
+        return DateTime(self._array[9:16])
 
     def to_ansi(self, colour=True):
         if self.dc in [0, 1]:
