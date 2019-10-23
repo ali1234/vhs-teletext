@@ -191,6 +191,31 @@ def filter(packets, pages, subpages, paginate):
         yield from packets
 
 
+@teletext.command(name='list')
+@click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
+@packetreader
+@progressparams(progress=True, mag_hist=True)
+def _list(packets, subpages):
+
+    """List pages present in a t42 stream."""
+
+    import textwrap
+
+    seen = set()
+    try:
+        for pl in pipeline.paginate(packets):
+            s = Subpage.from_packets(pl)
+            identifier = f'{s.mrag.magazine}{s.header.page:02x}'
+            if subpages:
+                identifier += f':{s.header.subpage:04x}'
+            seen.add(identifier)
+    except KeyboardInterrupt:
+        print('\n')
+        pass
+    finally:
+        print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
+
+
 @teletext.command()
 @click.argument('a', type=click.File('rb'))
 @click.argument('b', type=click.File('rb'))
