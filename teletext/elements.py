@@ -267,59 +267,96 @@ class Fastext(DesignationCode):
         return e
 
 
-class DateTime(Element):
+class Format1(Element):
 
     epoch = datetime.date(1858, 11, 17)
 
     def __init__(self, array):
-        super().__init__((7,), array)
+        super().__init__((9,), array)
+
+    @property
+    def network(self):
+        return (self._array[0] << 8) | self._array[1]
 
     @property
     def offset(self):
-        hours = 0.5 * ((self._array[0] >> 1) & 0x1f)
-        if ((self._array[0] >> 6) & 0x01):
+        hours = 0.5 * ((self._array[2] >> 1) & 0x1f)
+        if ((self._array[2] >> 6) & 0x01):
             hours *= -1
         return hours
 
     @property
     def mjd(self):
-        return (bcd8_decode((self._array[1]&0xf)|0x10) * 10000) + (bcd8_decode(self._array[2]) * 100) + bcd8_decode(self._array[3])
+        return (bcd8_decode((self._array[3]&0xf)|0x10) * 10000) + (bcd8_decode(self._array[4]) * 100) + bcd8_decode(self._array[5])
 
     @property
-    def to_date(self):
+    def date(self):
         return self.epoch + datetime.timedelta(days=int(self.mjd))
 
     @property
     def hour(self):
-        return bcd8_decode(self._array[4])
+        return bcd8_decode(self._array[6])
 
     @hour.setter
     def hour(self, value):
-        self._array[4] = bcd8_encode(value)
+        self._array[6] = bcd8_encode(value)
 
     @property
     def minute(self):
-        return bcd8_decode(self._array[5])
+        return bcd8_decode(self._array[7])
 
     @minute.setter
     def minute(self, value):
-        self._array[5] = bcd8_encode(value)
+        self._array[7] = bcd8_encode(value)
 
     @property
     def second(self):
-        return bcd8_decode(self._array[6])
+        return bcd8_decode(self._array[8])
 
     @second.setter
     def second(self, value):
-        self._array[6] = bcd8_encode(value)
+        self._array[8] = bcd8_encode(value)
 
     def to_ansi(self, colour=True):
-        return f'{self.to_date} {self.hour:02d}:{self.minute:02d}:{self.second:02d} {self.offset}'
+        return f'NI={self.network} {self.date} {self.hour:02d}:{self.minute:02d}:{self.second:02d} {self.offset}'
 
     @property
     def errors(self):
         #TODO: detect invalid dates and times
         return 0
+
+
+class Format2(Element):
+
+    def __init__(self, array):
+        super().__init__((13,), array)
+
+    @property
+    def day(self):
+        return (hamming16_decode(self._array[3:5]) >> 2) & 0x1f
+
+    @property
+    def month(self):
+        return (hamming16_decode(self._array[4:6]) >> 3) & 0x0f
+
+    @property
+    def hour(self):
+        return (hamming16_decode(self._array[5:7]) >> 3) & 0x1f
+
+    @property
+    def minute(self):
+        return hamming16_decode(self._array[7:9]) & 0x3f
+
+    @property
+    def country(self):
+        return (hamming8_decode(self._array[2]) << 4) | ((hamming16_decode(self._array[8:10]) << 2) & 0x0f)
+
+    @property
+    def network(self):
+        return ((hamming8_decode(self._array[2]) & 0x03) << 6) | (hamming16_decode(self._array[9:11]) >> 2)
+
+    def to_ansi(self, colour=True):
+        return f'NI={self.network:02x} C={self.country:02x} {self.day}/{self.month} {self.hour}:{self.minute}'
 
 
 class BroadcastData(DesignationCode):
@@ -337,16 +374,20 @@ class BroadcastData(DesignationCode):
         return PageLink(self._array[1:7], self._mrag)
 
     @property
-    def datetime(self):
-        return DateTime(self._array[9:16])
+    def format1(self):
+        return Format1(self._array[7:16])
+
+    @property
+    def format2(self):
+        return Format2(self._array[7:20])
 
     def to_ansi(self, colour=True):
         if self.dc in [0, 1]:
-            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.datetime.to_ansi(colour)}'
+            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.format1.to_ansi(colour)}'
         elif self.dc in [2, 3]:
-            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page}'
+            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.format2.to_ansi(colour)}'
         else:
-            return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page}'
+            return f'DC={self.dc}'
 
     @property
     def errors(self):
