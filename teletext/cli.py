@@ -212,7 +212,6 @@ def _list(packets, subpages):
             seen.add(identifier)
     except KeyboardInterrupt:
         print('\n')
-        pass
     finally:
         print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
 
