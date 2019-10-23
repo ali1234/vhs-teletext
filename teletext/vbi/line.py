@@ -196,7 +196,10 @@ class Line(object):
                 bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
             elif m.row == 30 and m.magazine == 8: # BDSP
                 bytes_array[3:9] = Line.h.match(bits_array[40:104]) # initial page
-                bytes_array[9:22] = Line.f.match(bits_array[88:208]) # 8-bit data
+                if d.dc in [2, 3]:
+                    bytes_array[9:22] = Line.h.match(bits_array[88:208]) # 8-bit data
+                else:
+                    bytes_array[9:22] = Line.f.match(bits_array[88:208])  # 8-bit data
                 bytes_array[22:] = Line.p.match(bits_array[192:368]) # status display
             else:
                 bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
