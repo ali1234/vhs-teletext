@@ -229,7 +229,8 @@ def split(packets, pattern, pages, subpages):
         s = Subpage.from_packets(pl)
         f = pathlib.Path(pattern.format(m=s.mrag.magazine, p=f'{s.header.page:02x}', s=f'{s.header.subpage:04x}'))
         f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_bytes(b''.join(p.bytes for p in pl))
+        with f.open('ab') as ff:
+            ff.write(b''.join(p.bytes for p in pl))
 
 
 @teletext.command()
