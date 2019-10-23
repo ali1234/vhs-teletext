@@ -318,7 +318,7 @@ class Format1(Element):
         self._array[8] = bcd8_encode(value)
 
     def to_ansi(self, colour=True):
-        return f'NI={self.network} {self.date} {self.hour:02d}:{self.minute:02d}:{self.second:02d} {self.offset}'
+        return f'NI={self.network:04x} {self.date} {self.hour:02d}:{self.minute:02d}:{self.second:02d} {self.offset}'
 
     @property
     def errors(self):
@@ -356,7 +356,7 @@ class Format2(Element):
         return ((hamming8_decode(self._array[2]) & 0x03) << 6) | (hamming16_decode(self._array[9:11]) >> 2)
 
     def to_ansi(self, colour=True):
-        return f'NI={self.network:02x} C={self.country:02x} {self.day}/{self.month} {self.hour}:{self.minute}'
+        return f'NI={self.network:02x} C={self.country:02x} {self.day}/{self.month} {self.hour:02d}:{self.minute:02d}'
 
 
 class BroadcastData(DesignationCode):
