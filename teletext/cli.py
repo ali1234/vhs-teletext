@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import pathlib
 import platform
 import stat
 import sys
@@ -214,6 +215,22 @@ def _list(packets, subpages):
         pass
     finally:
         print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
+
+
+@teletext.command()
+@click.argument('pattern')
+@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific pages. Can be specified multiple times.')
+@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpages. Can be specified multiple times.')
+@packetreader
+def split(packets, pattern, pages, subpages):
+
+    """Split a t42 stream in to multiple files according to a format specifier."""
+
+    for pl in pipeline.paginate(packets):
+        s = Subpage.from_packets(pl)
+        f = pathlib.Path(pattern.format(m=s.mrag.magazine, p=f'{s.header.page:02x}', s=f'{s.header.subpage:04x}'))
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(b''.join(p.bytes for p in pl))
 
 
 @teletext.command()
