@@ -48,13 +48,15 @@ def _chunks(f, size, flines, frange, seek):
 
 def chunks(f, size, start, step, flines=16, frange=(0, 16), seek=True):
     c = _chunks(f, size, flines, frange, seek)
-    for _ in range(start):
-        next(c)
-    while True:
-        yield next(c)
-        for i in range(step-1):
+    try:
+        for _ in range(start):
             next(c)
-
+        while True:
+            yield next(c)
+            for i in range(step-1):
+                next(c)
+    except StopIteration:
+        return
 
 def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=range(0, 16)):
     seekable = False
