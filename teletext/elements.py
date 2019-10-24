@@ -333,19 +333,19 @@ class Format2(Element):
 
     @property
     def day(self):
-        return (hamming16_decode(self._array[3:5]) >> 2) & 0x1f
+        return byte_reverse(((hamming16_decode(self._array[3:5]) >> 2) & 0x1f)) >> 3
 
     @property
     def month(self):
-        return (hamming16_decode(self._array[4:6]) >> 3) & 0x0f
+        return byte_reverse((hamming16_decode(self._array[4:6]) >> 3) & 0x0f) >> 4
 
     @property
     def hour(self):
-        return (hamming16_decode(self._array[5:7]) >> 3) & 0x1f
+        return byte_reverse((hamming16_decode(self._array[5:7]) >> 3) & 0x1f) >> 3
 
     @property
     def minute(self):
-        return hamming16_decode(self._array[7:9]) & 0x3f
+        return byte_reverse(hamming16_decode(self._array[7:9]) & 0x3f) >> 2
 
     @property
     def country(self):
