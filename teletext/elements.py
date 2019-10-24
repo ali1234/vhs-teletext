@@ -276,7 +276,7 @@ class Format1(Element):
 
     @property
     def network(self):
-        return (self._array[0] << 8) | self._array[1]
+        return (byte_reverse(self._array[0]) << 8) | byte_reverse(self._array[1])
 
     @property
     def offset(self):
