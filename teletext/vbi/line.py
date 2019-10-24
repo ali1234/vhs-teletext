@@ -179,7 +179,7 @@ class Line(object):
         # First match just the mrag and dc for the line.
         bytes_array[:3] = Line.h.match(bits_array[16:56])
         m = Mrag(bytes_array[:2])
-        d = DesignationCode(bytes_array[2:3])
+        d = DesignationCode((1, ), bytes_array[2:3])
         if m.magazine in mags and m.row in rows:
             if m.row == 0:
                 bytes_array[2:10] = Line.h.match(bits_array[32:112])
@@ -194,7 +194,7 @@ class Line(object):
                     bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
             elif m.row < 30:
                 bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
-            elif m.row == 30 and m.magazine == 0: # BDSP
+            elif m.row == 30 and m.magazine == 8: # BDSP
                 bytes_array[3:9] = Line.h.match(bits_array[40:104]) # initial page
                 bytes_array[9:22] = Line.f.match(bits_array[88:208]) # 8-bit data
                 bytes_array[22:] = Line.p.match(bits_array[192:368]) # status display
