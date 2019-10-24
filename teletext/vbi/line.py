@@ -182,13 +182,13 @@ class Line(object):
         d = DesignationCode((1, ), bytes_array[2:3])
         if m.magazine in mags and m.row in rows:
             if m.row == 0:
-                bytes_array[2:10] = Line.h.match(bits_array[32:112])
+                bytes_array[3:10] = Line.h.match(bits_array[40:112])
                 bytes_array[10:] = Line.p.match(bits_array[96:368])
             elif m.row < 26:
                 bytes_array[2:] = Line.p.match(bits_array[32:368])
             elif m.row == 27:
                 if d.dc < 4:
-                    bytes_array[2:40] = Line.h.match(bits_array[32:352])
+                    bytes_array[3:40] = Line.h.match(bits_array[40:352])
                     bytes_array[40:] = Line.f.match(bits_array[336:368])
                 else:
                     bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
