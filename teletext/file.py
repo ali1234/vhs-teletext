@@ -50,10 +50,10 @@ def chunks(f, size, start, step, flines=16, frange=(0, 16), seek=True):
     c = _chunks(f, size, flines, frange, seek)
     for _ in range(start):
         next(c)
-    for x in itertools.repeat([True] + ([False] * (step-1))):
-        b = next(c)
-        if x:
-            yield b
+    while True:
+        yield next(c)
+        for i in range(step-1):
+            next(c)
 
 
 def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=range(0, 16)):
