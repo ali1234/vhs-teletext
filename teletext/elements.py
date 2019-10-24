@@ -349,11 +349,11 @@ class Format2(Element):
 
     @property
     def country(self):
-        return (hamming8_decode(self._array[2]) << 4) | ((hamming16_decode(self._array[8:10]) << 2) & 0x0f)
+        return byte_reverse((hamming8_decode(self._array[2]) << 4) | (hamming8_decode(self._array[8]) >> 2) | ((hamming8_decode(self._array[9]) & 0x3) << 2))
 
     @property
     def network(self):
-        return ((hamming8_decode(self._array[2]) & 0x03) << 6) | (hamming16_decode(self._array[9:11]) >> 2)
+        return byte_reverse((hamming8_decode(self._array[3]) & 0x3) | (hamming8_decode(self._array[9]) & 0xC) | (hamming8_decode(self._array[10]) << 4))
 
     def to_ansi(self, colour=True):
         return f'NI={self.network:02x} C={self.country:02x} {self.day}/{self.month} {self.hour:02d}:{self.minute:02d}'
