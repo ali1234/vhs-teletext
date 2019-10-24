@@ -17,6 +17,9 @@ PrinterANSI.setstyle = setstyle
 class Quit(Exception):
     pass
 
+class TerminalTooSmall(Exception):
+    pass
+
 class Interactive(object):
     colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
                4: curses.COLOR_BLUE, 5: curses.COLOR_MAGENTA, 6: curses.COLOR_CYAN, 7: curses.COLOR_WHITE}
@@ -34,6 +37,10 @@ class Interactive(object):
         self.inputstate = 0
         self.hold = False
         self.reveal = False
+
+        y, x = self.scr.getmaxyx()
+        if x < 41 or y < 25:
+            raise TerminalTooSmall(x, y)
 
         for n in range(64):
             curses.init_pair(n + 1, Interactive.colours[n & 0x7], Interactive.colours[n >> 3])
@@ -156,4 +163,8 @@ def main(input):
     def main(scr):
         Interactive(packets, scr).main()
 
-    curses.wrapper(main)
+    try:
+        curses.wrapper(main)
+    except TerminalTooSmall as e:
+        print(f'Your terminal is too small.\nPlease make it at least 41x25.\nCurrent size: {e.args[0]}x{e.args[1]}.')
+        exit(-1)
