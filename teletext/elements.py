@@ -256,8 +256,12 @@ class Fastext(DesignationCode):
     def links(self):
         return tuple(PageLink(self._array[n:n+6], self._mrag) for n in range(1, 37, 6))
 
+    @property
+    def checksum(self):
+        return self._array[38]<<8 | self._array[39]
+
     def to_ansi(self, colour=True):
-        return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links))
+        return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links)) + f' Checksum={self.checksum:04x}'
 
     @property
     def errors(self):
