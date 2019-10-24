@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from teletext.coding import parity_encode, parity_decode, parity_errors, hamming8_encode, hamming8_decode, \
-    hamming8_correctable_errors, hamming8_uncorrectable_errors
+    hamming8_correctable_errors, hamming8_uncorrectable_errors, byte_reverse
 
 
 class ParityEncodeTestCase(unittest.TestCase):
@@ -125,4 +125,12 @@ class Hamming8TestCase(unittest.TestCase):
                     self.assertTrue(all(hamming8_uncorrectable_errors(twoerr)))
 
 
+class Reverse8TestCase(unittest.TestCase):
 
+    def test_all(self):
+
+        for i in range(256):
+            reversed = 0
+            for n in range(8):
+                reversed |= ((i>>n)&1) << (7-n)
+            self.assertEqual(byte_reverse(i), reversed)
