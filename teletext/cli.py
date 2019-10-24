@@ -329,7 +329,8 @@ def interactive(input):
 
 
 @teletext.command()
-@click.option('-e', '--editor', required=True, help='Teletext editor URL.')
+@click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
+              show_default=True, help='Teletext editor URL.')
 @packetreader
 def urls(packets, editor):
 
