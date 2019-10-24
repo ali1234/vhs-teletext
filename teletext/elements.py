@@ -349,7 +349,7 @@ class Format2(Element):
 
     @property
     def country(self):
-        return byte_reverse((hamming8_decode(self._array[2]) << 4) | (hamming8_decode(self._array[8]) >> 2) | ((hamming8_decode(self._array[9]) & 0x3) << 2))
+        return byte_reverse(hamming8_decode(self._array[2]) | ((hamming8_decode(self._array[8]) & 0xC) << 2) | ((hamming8_decode(self._array[9]) & 0x3) << 6))
 
     @property
     def network(self):
