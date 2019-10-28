@@ -133,6 +133,49 @@ def packetreader(f):
     return wrapper
 
 
+def paginated(always=False, filtered=True):
+    def _paginated(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            paginate = always or kwargs['paginate']
+
+            if filtered:
+                pages = kwargs['pages']
+                if pages is None or len(pages) == 0:
+                    pages = range(0x900)
+                else:
+                    pages = {int(x, 16) for x in pages}
+                    paginate = True
+                kwargs['pages'] = pages
+
+                subpages = kwargs['subpages']
+                if subpages is None or len(subpages) == 0:
+                    subpages = range(0x3f7f)
+                else:
+                    subpages = {int(x, 16) for x in subpages}
+                    paginate = True
+                kwargs['subpages'] = subpages
+
+            if paginate and 0 not in kwargs['rows']:
+                raise click.BadArgumentUsage("Can't paginate when row 0 is filtered.")
+
+            if not always:
+                kwargs['paginate'] = paginate
+
+            return f(*args, **kwargs)
+
+        if filtered:
+            wrapper = click.option('-s', '--subpage', 'subpages', type=str, multiple=True,
+                      help='Limit output to specific subpage. Can be specified multiple times.')(wrapper)
+            wrapper = click.option('-p', '--page', 'pages', type=str, multiple=True,
+                      help='Limit output to specific page. Can be specified multiple times.')(wrapper)
+        if not always:
+            wrapper = click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')(wrapper)
+
+        return wrapper
+    return _paginated
+
+
 def packetwriter(f):
     @click.option(
         '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes', 'vbi']), click.File('wb')),
@@ -168,22 +211,11 @@ def teletext():
 @click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpage. Can be specified multiple times.')
 @click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
 @packetwriter
+@paginated()
 @packetreader
 def filter(packets, pages, subpages, paginate):
 
     """Demultiplex and display t42 packet streams."""
-
-    if pages is None or len(pages) == 0:
-        pages = range(0x900)
-    else:
-        pages = {int(x, 16) for x in pages}
-        paginate = True
-
-    if subpages is None or len(subpages) == 0:
-        subpages = range(0x3f7f)
-    else:
-        subpages = {int(x, 16) for x in subpages}
-        paginate = True
 
     if paginate:
         for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
@@ -194,6 +226,7 @@ def filter(packets, pages, subpages, paginate):
 
 @teletext.command(name='list')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
+@paginated(always=True, filtered=False)
 @packetreader
 @progressparams(progress=True, mag_hist=True)
 def _list(packets, subpages):
@@ -218,14 +251,13 @@ def _list(packets, subpages):
 
 @teletext.command()
 @click.argument('pattern')
-@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific pages. Can be specified multiple times.')
-@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpages. Can be specified multiple times.')
+@paginated(always=True)
 @packetreader
 def split(packets, pattern, pages, subpages):
 
     """Split a t42 stream in to multiple files."""
 
-    for pl in pipeline.paginate(packets):
+    for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
         s = Subpage.from_packets(pl)
         f = pathlib.Path(pattern.format(m=s.mrag.magazine, p=f'{s.header.page:02x}', s=f'{s.header.subpage:04x}'))
         f.parent.mkdir(parents=True, exist_ok=True)
@@ -262,23 +294,12 @@ def finders(packets):
 
 @teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
-@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific pages. Can be specified multiple times.')
-@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpages. Can be specified multiple times.')
 @packetwriter
+@paginated(always=True)
 @packetreader
 def squash(packets, min_duplicates, pages, subpages):
 
     """Reduce errors in t42 stream by using frequency analysis."""
-
-    if pages is None or len(pages) == 0:
-        pages = range(0x900)
-    else:
-        pages = {int(x, 16) for x in pages}
-
-    if subpages is None or len(subpages) == 0:
-        subpages = range(0x3f7f)
-    else:
-        subpages = {int(x, 16) for x in subpages}
 
     for sp in pipeline.subpage_squash(
             pipeline.paginate(packets, pages=pages, subpages=subpages),
@@ -309,6 +330,7 @@ def spellcheck(packets, language, threads):
 
 @teletext.command()
 @packetwriter
+@paginated(always=True, filtered=False)
 @packetreader
 def service(packets):
 
@@ -331,12 +353,13 @@ def interactive(input):
 @teletext.command()
 @click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
               show_default=True, help='Teletext editor URL.')
+@paginated(always=True)
 @packetreader
-def urls(packets, editor):
+def urls(packets, editor, pages, subpages):
 
     """Paginate a t42 stream and print edit.tf URLs."""
 
-    subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets))
+    subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets, pages=pages, subpages=subpages))
 
     for s in subpages:
         print(f'{editor}{s.url}')
@@ -345,6 +368,7 @@ def urls(packets, editor):
 @teletext.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
+@paginated(always=True, filtered=False)
 @packetreader
 def html(packets, outdir, template):
 
