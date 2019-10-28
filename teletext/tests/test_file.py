@@ -18,7 +18,6 @@ class TestChunker(unittest.TestCase):
 
     def test_step(self):
         result = list(FileChunker(self.file, 1, step=2))
-        print(result)
         self.assertEqual(len(result), len(self.data[::2]))
         for n in range(128):
             self.assertEqual(result[n], (n*2, bytes([n*2])))
