@@ -223,7 +223,7 @@ def _list(packets, subpages):
 @packetreader
 def split(packets, pattern, pages, subpages):
 
-    """Split a t42 stream in to multiple files according to a format specifier."""
+    """Split a t42 stream in to multiple files."""
 
     for pl in pipeline.paginate(packets):
         s = Subpage.from_packets(pl)
