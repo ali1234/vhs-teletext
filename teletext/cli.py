@@ -31,9 +31,6 @@ def teletext():
 
 
 @teletext.command()
-@click.option('-p', '--page', 'pages', type=str, multiple=True, help='Limit output to specific page. Can be specified multiple times.')
-@click.option('-s', '--subpage', 'subpages', type=str, multiple=True, help='Limit output to specific subpage. Can be specified multiple times.')
-@click.option('-P', '--paginate', is_flag=True, help='Sort rows into contiguous pages.')
 @packetwriter
 @paginated()
 @packetreader
