@@ -135,7 +135,7 @@ def paginated(always=False, filtered=True):
 
                 subpages = kwargs['subpages']
                 if subpages is None or len(subpages) == 0:
-                    subpages = range(0x3f7f)
+                    subpages = range(0x3f80)
                 else:
                     subpages = {int(x, 16) for x in subpages}
                     paginate = True
