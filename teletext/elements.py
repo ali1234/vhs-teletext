@@ -261,7 +261,7 @@ class Fastext(DesignationCode):
         return self._array[38]<<8 | self._array[39]
 
     def to_ansi(self, colour=True):
-        return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links)) + f' Checksum={self.checksum:04x}'
+        return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links)) + f' CRC={self.checksum:04x}'
 
     @property
     def errors(self):
