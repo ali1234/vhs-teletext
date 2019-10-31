@@ -10,9 +10,9 @@ from .printer import PrinterHTML
 class Subpage(Element):
 
     def __init__(self, array=None, numbers=None, prefill=False):
-        super().__init__((32, 42), array)
+        super().__init__((26 + (3*16), 42), array)
         if numbers is None:
-            self._numbers = np.full((32,), fill_value=-100, dtype=np.int64)
+            self._numbers = np.full((26 + (3*16),), fill_value=-100, dtype=np.int64)
         else:
             self._numbers = numbers
 
@@ -50,8 +50,15 @@ class Subpage(Element):
         s = Subpage()
 
         for p in packets:
-            s._array[p.mrag.row, :] = p[:]
-            s._numbers[p.mrag.row] = -1 if p.number is None else p.number
+            i = None
+            r = p.mrag.row
+            if r < 26:
+                i = r
+            elif r < 29:
+                i = ((r - 26)*16) + p.dc + 26
+            if i is not None:
+                s._array[i, :] = p[:]
+                s._numbers[i] = -1 if p.number is None else p.number
         return s
 
     @property
