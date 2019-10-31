@@ -18,7 +18,7 @@ class Subpage(Element):
 
         if prefill:
             for i in range(25):
-                self.row(i).mrag.row = i
+                self.packet(i).mrag.row = i
                 self._numbers[i] = -1
             self.displayable[:] = 0x20
 
@@ -26,8 +26,11 @@ class Subpage(Element):
     def numbers(self):
         return self._numbers[:]
 
-    def row(self, row):
-        return Packet(self._array[row, :])
+    def packet(self, row, dc=0):
+        if row < 26:
+            return Packet(self._array[row, :])
+        else:
+            return Packet(self._array[((row-26)*16)+26+dc, :])
 
     @property
     def mrag(self):
