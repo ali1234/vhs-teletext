@@ -37,6 +37,10 @@ class Packet(Element):
         return Mrag(self._array[:2])
 
     @property
+    def dc(self):
+        return DesignationCode((1,), self._array[2:3])
+
+    @property
     def header(self):
         return Header(self._array[2:])
 
