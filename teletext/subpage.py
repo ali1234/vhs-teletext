@@ -26,6 +26,12 @@ class Subpage(Element):
     def numbers(self):
         return self._numbers[:]
 
+    def number(self, row, dc=0):
+        if row < 26:
+            return self._numbers[row]
+        else:
+            return self._numbers[((row-26)*16)+26+dc]
+
     def packet(self, row, dc=0):
         if row < 26:
             return Packet(self._array[row, :])
