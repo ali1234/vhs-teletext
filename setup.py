@@ -18,7 +18,11 @@ setup(
     entry_points={
         'console_scripts': [
             'teletext = teletext.cli:teletext',
-        ]
+        ],
+        'gui_scripts': [
+            'vbiviewer = teletext.gui.main:main',
+            'ttviewer = teletext.gui.decoder:main',
+        ],
     },
     install_requires=[
         'numpy', 'scipy', 'click', 'tqdm',  'pyzmq',
@@ -29,5 +33,6 @@ setup(
         'CUDA': ['pycuda', 'scikit-cuda'],
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
+        'qt': ['PyQt5'],
     }
 )
