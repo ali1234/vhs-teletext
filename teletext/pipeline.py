@@ -43,9 +43,24 @@ def subpage_squash(packet_lists, min_duplicates=3):
 
     for splist in tqdm(spdict.values(), unit=' Subpages'):
         if len(splist) >= min_duplicates:
-            arr = mode(np.stack([sp[:] for sp in splist]), axis=0)[0][0].astype(np.uint8)
             numbers = mode(np.stack([np.clip(sp.numbers, -100, -1) for sp in splist]), axis=0)[0][0].astype(np.int64)
-            yield Subpage(arr, numbers)
+            s = Subpage(numbers=numbers)
+            for row in range(29):
+                if row in [26, 27, 28]:
+                    for dc in range(16):
+                        if s.number(row, dc) > -100:
+                            packets = np.stack([sp.packet(row, dc)[:] for sp in splist if sp.number(row, dc) > -100])
+                            if row == 27: # TODO: triplet mode
+                                s.packet(row, dc)[:] = mode(packets, axis=0)[0][0].astype(np.uint8)
+                            else:
+                                s.packet(row, dc)[:] = mode(packets, axis=0)[0][0].astype(np.uint8)
+                else:
+                    if s.number(row) > -100:
+                        packets = np.stack([sp.packet(row)[:] for sp in splist if sp.number(row) > -100])
+                        r = mode(packets, axis=0)[0][0].astype(np.uint8)
+                        s.packet(row)[:] = r
+
+            yield s
 
 
 def to_file(packets, f, format):

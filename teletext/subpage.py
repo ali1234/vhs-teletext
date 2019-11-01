@@ -64,7 +64,7 @@ class Subpage(Element):
             if r < 26:
                 i = r
             elif r < 29:
-                i = ((r - 26)*16) + p.dc + 26
+                i = ((r - 26)*16) + p.dc.dc + 26
             if i is not None:
                 s._array[i, :] = p[:]
                 s._numbers[i] = -1 if p.number is None else p.number
