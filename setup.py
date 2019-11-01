@@ -18,7 +18,10 @@ setup(
     entry_points={
         'console_scripts': [
             'teletext = teletext.cli:teletext',
-        ]
+        ],
+        'gui_scripts': [
+            'vbiviewer = teletext.vbi.gui.main:main',
+        ],
     },
     install_requires=[
         'numpy', 'scipy', 'click', 'tqdm',  'pyzmq',
