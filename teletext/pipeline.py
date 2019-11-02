@@ -31,14 +31,14 @@ def paginate(packets, pages=range(0x900), subpages=range(0x3f7f), drop_empty=Fal
         yield from check_buffer(mb, pages, subpages, 1 if drop_empty else 0)
 
 
-def subpage_squash(packet_lists, min_duplicates=3):
+def subpage_squash(packet_lists, min_duplicates=3, ignore_empty=False):
 
     """Yields squashed subpages."""
 
     spdict = defaultdict(list)
     for pl in packet_lists:
         if len(pl) > 1:
-            subpage = Subpage.from_packets(pl)
+            subpage = Subpage.from_packets(pl, ignore_empty=ignore_empty)
             spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
 
     for splist in tqdm(spdict.values(), unit=' Subpages'):

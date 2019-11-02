@@ -55,7 +55,7 @@ class Subpage(Element):
         return Displayable((24, 40), self._array[1:25,2:])
 
     @staticmethod
-    def from_packets(packets):
+    def from_packets(packets, ignore_empty=False):
         s = Subpage()
 
         for p in packets:
@@ -66,7 +66,7 @@ class Subpage(Element):
             elif r < 29:
                 i = ((r - 26)*16) + p.dc.dc + 26
             if i is not None:
-                if s._numbers[i] > -100:
+                if ignore_empty and s._numbers[i] > -100:
                     # we've already seen this packet
                     # if the new one is closer to all spaces than the old one, skip it
                     if np.sum(s._array[i, :] == 0x80) < np.sum(p[:] == 0x80):

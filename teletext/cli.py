@@ -115,16 +115,17 @@ def finders(packets):
 
 @teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
+@click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter
 @paginated(always=True)
 @packetreader
-def squash(packets, min_duplicates, pages, subpages):
+def squash(packets, min_duplicates, pages, subpages, ignore_empty):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
     for sp in pipeline.subpage_squash(
             pipeline.paginate(packets, pages=pages, subpages=subpages),
-            min_duplicates=min_duplicates
+            min_duplicates=min_duplicates, ignore_empty=ignore_empty
     ):
         yield from sp.packets
 
