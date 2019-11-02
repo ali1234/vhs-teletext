@@ -1,7 +1,9 @@
 import base64
+import itertools
 
 import numpy as np
 
+from .coding import crc
 from .packet import Packet
 from .elements import Element, Displayable
 from .printer import PrinterHTML
@@ -17,7 +19,7 @@ class Subpage(Element):
             self._numbers = numbers
 
         if prefill:
-            for i in range(25):
+            for i in range(1, 25):
                 self.packet(i).mrag.row = i
                 self._numbers[i] = -1
             self.displayable[:] = 0x20
@@ -53,6 +55,27 @@ class Subpage(Element):
     @property
     def displayable(self):
         return Displayable((24, 40), self._array[1:25,2:])
+
+    @property
+    def checksum(self):
+        '''Calculates the actual checksum of the subpage.'''
+        c = 0
+        if self.number(0) > -100:
+            for b in self.header.displayable:
+                c = crc(b, c)
+        else:
+            for b in [0x20] * 24:
+                c = crc(b, c)
+
+        for r in range(1, 26):
+            if self.number(r) > -100:
+                for b in self.packet(r)[2:]:
+                    c = crc(b, c)
+            else:
+                for b in [0x20] * 40:
+                    c = crc(b, c)
+
+        return c
 
     @staticmethod
     def from_packets(packets, ignore_empty=False):

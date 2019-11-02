@@ -140,3 +140,10 @@ def bcd8_encode(a):
 
 def byte_reverse(a):
     return reverse8_tab[a]
+
+
+def crc(n, c):
+    for b in range(7, -1, -1):
+        r = ((n >> b) & 1) ^ ((c >> 6) & 1) ^ ((c >> 8) & 1) ^ ((c >> 11) & 1) ^ ((c >> 15) & 1)
+        c = r | ((c & 0x7FFF) << 1)
+    return c
