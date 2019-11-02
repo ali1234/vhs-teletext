@@ -66,6 +66,11 @@ class Subpage(Element):
             elif r < 29:
                 i = ((r - 26)*16) + p.dc.dc + 26
             if i is not None:
+                if s._numbers[i] > -100:
+                    # we've already seen this packet
+                    # if the new one is closer to all spaces than the old one, skip it
+                    if np.sum(s._array[i, :] == 0x80) < np.sum(p[:] == 0x80):
+                        continue
                 s._array[i, :] = p[:]
                 s._numbers[i] = -1 if p.number is None else p.number
         return s
