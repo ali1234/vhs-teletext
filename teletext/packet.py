@@ -73,6 +73,8 @@ class Packet(Element):
             return self.fastext.to_ansi(colour)
         elif t == 'broadcast':
             return self.broadcast.to_ansi(colour)
+        elif t.endswith('enhancement'):
+            return f'{t} DC={self.dc.dc}'
         else:
             return f'{t}'
 
