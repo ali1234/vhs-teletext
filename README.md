@@ -78,12 +78,11 @@ Squash duplicate subpages, which reduces errors:
 
 Generate HTML pages from a stream:
 
-    mkdir output
-    t42html stream.t42 output
+    teletext html output/ stream.t42 
 
 Interactively view the pages in a t42 stream:
 
-    cat stream.t42 | teletext interactive
+    teletext service stream.t42 | teletext interactive
 
 In the interactive viewer you can type page numbers, or '.' for hold.
 

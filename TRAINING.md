@@ -1,8 +1,3 @@
-WIP - this might not be correct.
-
-Theory
-------
-
 The idea behind training is to record a known teletext signal on to
 tape and then play it back into the computer in the same way as you
 would when recovering a tape. Then the original and observed signal
