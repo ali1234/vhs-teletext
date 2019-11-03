@@ -50,10 +50,15 @@ def subpage_squash(packet_lists, min_duplicates=3, ignore_empty=False):
                     for dc in range(16):
                         if s.number(row, dc) > -100:
                             packets = np.stack([sp.packet(row, dc)[:] for sp in splist if sp.number(row, dc) > -100])
-                            if row == 27: # TODO: triplet mode
+                            if row == 27:
                                 s.packet(row, dc)[:] = mode(packets, axis=0)[0][0].astype(np.uint8)
                             else:
-                                s.packet(row, dc)[:] = mode(packets, axis=0)[0][0].astype(np.uint8)
+                                t = packets.astype(np.uint32)
+                                t = t[:, 0::3] | (t[:, 1::3] << 8) | (t[:, 2::3] << 16)
+                                result = mode(t, axis=0)[0][0].astype(np.uint32)
+                                s.packet(row, dc)[0::3] = result & 0xff
+                                s.packet(row, dc)[1::3] = (result >> 8) & 0xff
+                                s.packet(row, dc)[2::3] = (result >> 16) & 0xff
                 else:
                     if s.number(row) > -100:
                         packets = np.stack([sp.packet(row)[:] for sp in splist if sp.number(row) > -100])
