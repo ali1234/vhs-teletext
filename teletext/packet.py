@@ -23,12 +23,18 @@ class Packet(Element):
         row = self.mrag.row
         if row == 0:
             return 'header'
-        elif row < 25:
+        elif row < 26:
             return 'display'
         elif row == 27:
             return 'fastext'
         elif row == 30 and self.mrag.magazine == 8:
             return 'broadcast'
+        elif row in [26, 28]:
+            return 'page enhancement'
+        elif row == 29:
+            return 'magazine enhancement'
+        elif row == 31:
+            return 'independant data'
         else:
             return 'unknown'
 
@@ -68,7 +74,7 @@ class Packet(Element):
         elif t == 'broadcast':
             return self.broadcast.to_ansi(colour)
         else:
-            return f'Unknown packet {self.mrag}'
+            return f'{t}'
 
     def to_binary(self):
         b = np.unpackbits(self._array[::-1])[::-1]
