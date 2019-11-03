@@ -53,6 +53,9 @@ def subpage_squash(packet_lists, min_duplicates=3, ignore_empty=False):
                             if row == 27:
                                 s.packet(row, dc)[:] = mode(packets, axis=0)[0][0].astype(np.uint8)
                             else:
+                                # Note: The first "triplet" is actually the mrag and dc. These are
+                                # guaranteed to be the same on every packet, so it is fine to squash
+                                # them this way.
                                 t = packets.astype(np.uint32)
                                 t = t[:, 0::3] | (t[:, 1::3] << 8) | (t[:, 2::3] << 16)
                                 result = mode(t, axis=0)[0][0].astype(np.uint32)
