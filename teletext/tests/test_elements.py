@@ -78,6 +78,7 @@ class TestMrag(TestElementHamming):
             self.assertEqual(self.element.row, i)
             self.assertTrue(any(self._array))
 
+
 class TestDisplayable(TestElementParity):
 
     element: Displayable
@@ -89,3 +90,23 @@ class TestDisplayable(TestElementParity):
         self.assertFalse(any(self.element.errors))
 
 
+class TestElementDesignationCode(TestElement):
+
+    element: DesignationCode
+    cls: DesignationCode
+
+    def test_set_dc(self):
+        for i in range(16):
+            self.element.dc = i
+            self.assertEqual(self.element.dc, i)
+
+
+class TestElementFastext(TestElement):
+
+    element: Fastext
+    cls: Fastext
+
+    def test_set_checksum(self):
+        for i in range(0, 0x10000, 199):
+            self.element.checksum = i
+            self.assertEqual(self.element.checksum, i)
