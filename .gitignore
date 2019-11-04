@@ -7,3 +7,5 @@
 /MANIFEST
 /*.egg-info
 /vbi
+/teletext/vbi/data/*-*
+
