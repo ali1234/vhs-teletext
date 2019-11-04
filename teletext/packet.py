@@ -34,7 +34,7 @@ class Packet(Element):
         elif row == 29:
             return 'magazine enhancement'
         elif row == 31:
-            return 'independant data'
+            return 'independent data'
         else:
             return 'unknown'
 
