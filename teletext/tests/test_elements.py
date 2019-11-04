@@ -81,7 +81,6 @@ class TestMrag(TestElementHamming):
 
 class TestDisplayable(TestElementParity):
 
-    element: Displayable
     cls = Displayable
     shape = (11, )
 
@@ -92,8 +91,8 @@ class TestDisplayable(TestElementParity):
 
 class TestElementDesignationCode(TestElement):
 
-    element: DesignationCode
     cls: DesignationCode
+    shape = (2, )
 
     def test_set_dc(self):
         for i in range(16):
@@ -103,8 +102,8 @@ class TestElementDesignationCode(TestElement):
 
 class TestElementFastext(TestElement):
 
-    element: Fastext
     cls: Fastext
+    shape = (40, )
 
     def test_set_checksum(self):
         for i in range(0, 0x10000, 199):
