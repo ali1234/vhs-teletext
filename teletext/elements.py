@@ -260,6 +260,11 @@ class Fastext(DesignationCode):
     def checksum(self):
         return self._array[38]<<8 | self._array[39]
 
+    @checksum.setter
+    def checksum(self, value):
+        self._array[38] = value>>8
+        self._array[39] = value&0xff
+
     def to_ansi(self, colour=True):
         return f'DC={self.dc:x} ' + ' '.join((str(link) for link in self.links)) + f' CRC={self.checksum:04x}'
 
