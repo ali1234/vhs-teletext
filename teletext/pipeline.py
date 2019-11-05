@@ -11,12 +11,12 @@ from .subpage import Subpage
 def check_buffer(mb, pages, subpages, min_rows=0):
     if (len(mb) > min_rows) and mb[0].type == 'header':
         page = mb[0].header.page | (mb[0].mrag.magazine * 0x100)
-        if page in pages or (page & 0x7fff) in pages:
+        if page in pages or (page & 0x7ff) in pages:
             if mb[0].header.subpage in subpages:
                 yield sorted(mb, key=lambda p: p.mrag.row)
 
 
-def paginate(packets, pages=range(0x900), subpages=range(0x3f7f), drop_empty=False):
+def paginate(packets, pages=range(0x900), subpages=range(0x3f80), drop_empty=False):
 
     """Yields packet lists containing contiguous rows."""
 
