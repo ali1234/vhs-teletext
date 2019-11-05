@@ -28,5 +28,6 @@ setup(
         'spellcheck': ['pyenchant'],
         'CUDA': ['pycuda', 'scikit-cuda'],
         'viewer': ['PyOpenGL'],
+        'profiler': ['plop'],
     }
 )

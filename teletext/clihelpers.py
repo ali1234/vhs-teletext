@@ -1,3 +1,4 @@
+import cProfile
 import os
 import stat
 from functools import wraps
@@ -10,6 +11,11 @@ from .packet import Packet
 from .stats import StatsList, MagHistogram, RowHistogram, ErrorHistogram
 from .file import FileChunker
 from .vbi.config import Config
+
+try:
+    import plop.collector as plop
+except ImportError:
+    plop = None
 
 
 def filterparams(f):
@@ -183,3 +189,37 @@ def packetwriter(f):
             pass
 
     return wrapper
+
+
+def profileopts(f):
+    if plop is not None:
+        @click.option('--profile', type=str, default=None)
+        @click.pass_context
+        @wraps(f)
+        def group(ctx, profile, *args, **kwargs):
+            ctx.ensure_object(dict)
+            ctx.obj['PROFILE'] = profile
+            return f(*args, **kwargs)
+        return group
+    else:
+        return f
+
+
+def command(group, *args, **kwargs):
+    def deco(f):
+        @group.command(*args, **kwargs)
+        @click.pass_context
+        @wraps(f)
+        def cmd(ctx, *_args, **_kwargs):
+            if plop is not None and ctx.obj['PROFILE'] is not None:
+                p = plop.Collector()
+                p.start()
+                try:
+                    return f(*_args, **_kwargs)
+                finally:
+                    p.stop()
+                    plop.FlamegraphFormatter().store(p, ctx.obj['PROFILE'])
+            else:
+                return f(*_args, **_kwargs)
+        return cmd
+    return deco

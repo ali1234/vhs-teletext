@@ -8,7 +8,8 @@ import sys
 import click
 from tqdm import tqdm
 
-from .clihelpers import packetreader, packetwriter, paginated, progressparams, filterparams, carduser, chunkreader
+from .clihelpers import packetreader, packetwriter, paginated, progressparams, filterparams, carduser, chunkreader, \
+    command, profileopts
 from .file import FileChunker
 from .mp import itermap
 from .packet import Packet, np
@@ -25,12 +26,12 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
 
 
 @click.group()
+@profileopts
 def teletext():
     """Teletext stream processing toolkit."""
-    pass
 
 
-@teletext.command()
+@command(teletext)
 @packetwriter
 @paginated()
 @packetreader
@@ -45,7 +46,7 @@ def filter(packets, pages, subpages, paginate):
         yield from packets
 
 
-@teletext.command(name='list')
+@command(teletext, name='list')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
 @paginated(always=True, filtered=False)
 @packetreader
@@ -70,7 +71,7 @@ def _list(packets, subpages):
         print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
 
 
-@teletext.command()
+@command(teletext)
 @click.argument('pattern')
 @paginated(always=True)
 @packetreader
@@ -86,7 +87,7 @@ def split(packets, pattern, pages, subpages):
             ff.write(b''.join(p.bytes for p in pl))
 
 
-@teletext.command()
+@command(teletext)
 @click.argument('a', type=click.File('rb'))
 @click.argument('b', type=click.File('rb'))
 @filterparams
@@ -100,7 +101,7 @@ def diff(a, b, mags, rows):
                 print(pa.to_ansi(), pb.to_ansi())
 
 
-@teletext.command()
+@command(teletext)
 @packetwriter
 @packetreader
 def finders(packets):
@@ -113,7 +114,7 @@ def finders(packets):
         yield p
 
 
-@teletext.command()
+@command(teletext)
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter
@@ -130,7 +131,7 @@ def squash(packets, min_duplicates, pages, subpages, ignore_empty):
         yield from sp.packets
 
 
-@teletext.command()
+@command(teletext)
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @packetwriter
@@ -150,7 +151,7 @@ def spellcheck(packets, language, threads):
         return itermap(spellcheck_packets, packets, threads, language=language)
 
 
-@teletext.command()
+@command(teletext)
 @packetwriter
 @paginated(always=True, filtered=False)
 @packetreader
@@ -162,7 +163,7 @@ def service(packets):
     return Service.from_packets(packets)
 
 
-@teletext.command()
+@command(teletext)
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
 
@@ -172,7 +173,7 @@ def interactive(input):
     interactive.main(input)
 
 
-@teletext.command()
+@command(teletext)
 @click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
               show_default=True, help='Teletext editor URL.')
 @paginated(always=True)
@@ -187,7 +188,7 @@ def urls(packets, editor, pages, subpages):
         print(f'{editor}{s.url}')
 
 
-@teletext.command()
+@command(teletext)
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
 @paginated(always=True, filtered=False)
@@ -205,7 +206,7 @@ def html(packets, outdir, template):
     svc.to_html(outdir, template)
 
 
-@teletext.command()
+@command(teletext)
 @click.argument('output', type=click.File('wb'), default='-')
 @click.option('-d', '--device', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 @carduser()
@@ -235,7 +236,7 @@ def record(output, device, config):
         pass
 
 
-@teletext.command()
+@command(teletext)
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
 @carduser(extended=True)
 @chunkreader
@@ -262,7 +263,7 @@ def vbiview(chunker, config, pause):
         VBIViewer(lines, config, pause=pause)
 
 
-@teletext.command()
+@command(teletext)
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
@@ -315,7 +316,7 @@ def training():
     pass
 
 
-@training.command()
+@command(training)
 @click.argument('output', type=click.File('wb'), default='-')
 def generate(output):
     """Generate training samples for raspi-teletext."""
@@ -323,7 +324,7 @@ def generate(output):
     generate_lines(output)
 
 
-@training.command()
+@command(training)
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser()
@@ -353,7 +354,7 @@ def split(chunker, outdir, config, threads, progress, rejects):
     split(results, files)
 
 
-@training.command(name='squash')
+@command(training, name='squash')
 @click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True)
 @click.argument('output', type=click.File('wb'), default='-')
 def training_squash(output, indir):
@@ -362,7 +363,7 @@ def training_squash(output, indir):
     squash(output, indir)
 
 
-@training.command()
+@command(training)
 @chunkreader
 def showbin(chunker):
     """Visually display an intermediate training bin."""
@@ -380,7 +381,7 @@ def showbin(chunker):
         print(f'[{bi}] [{by}]')
 
 
-@training.command()
+@command(training)
 @click.argument('input', type=click.File('rb'), required=True)
 @click.argument('output', type=click.File('wb'), required=True)
 @click.option('-m', '--mode', type=click.Choice(['full', 'parity', 'hamming']), default='full')
