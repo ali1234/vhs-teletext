@@ -52,7 +52,7 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
 
     itermap() preserves the ordering of items in the input iterator.
     """
-    if processes == 1:
+    if processes <= 1:
         yield from function(iterator, *args, **kwargs)
     else:
         iterator = enumerate(iterator)
