@@ -1,5 +1,6 @@
 import re
 
+from . import charset
 
 class PrinterANSI(object):
 
@@ -24,21 +25,11 @@ class PrinterANSI(object):
 
 
     def ttchar(self, c):
-        if self.mosaic and (c < ord('@') or c > ord('_')):
+        if self.mosaic and c not in range(0x41, 0x5B):
+            #TODO: return charset.g1[c]
             return chr(c+0xee00) if self.solid else chr(c+0xede0)
         else:
-            if c == ord('#'):
-                return chr(0xa3) # pound sign
-            elif c == ord('_'):
-                return chr(ord('#'))
-            elif c == ord('`'):
-                return chr(0x2014) # em dash
-            elif c == ord('~'):
-                return chr(0xf7) # division symbol
-            elif c == 0x7f:
-                return chr(0xe65f) # rectangle
-            else:
-                return chr(c)
+            return charset.g0[c]
 
 
     def setstyle(self, fg=None, bg=None):
