@@ -27,8 +27,12 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
 
 @click.group()
 @profileopts
-def teletext():
+@click.option('-u', '--unicode', is_flag=True, help='Use experimental Unicode 13.0 Terminal graphics.')
+def teletext(unicode):
     """Teletext stream processing toolkit."""
+    if unicode:
+        from . import printer
+        printer._unicode13 = True
 
 
 @command(teletext)

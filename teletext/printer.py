@@ -2,6 +2,9 @@ import re
 
 from . import charset
 
+_unicode13 = False
+
+
 class PrinterANSI(object):
 
     def __init__(self, tt, colour=True, codepage=0):
@@ -26,8 +29,10 @@ class PrinterANSI(object):
 
     def ttchar(self, c):
         if self.mosaic and c not in range(0x41, 0x5B):
-            #TODO: return charset.g1[c]
-            return chr(c+0xee00) if self.solid else chr(c+0xede0)
+            if _unicode13:
+                return charset.g1[c]
+            else:
+                return chr(c+0xee00) if self.solid else chr(c+0xede0)
         else:
             return charset.g0[c]
 
