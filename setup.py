@@ -32,5 +32,6 @@ setup(
         'CUDA': ['pycuda', 'scikit-cuda'],
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
+        'qtviewer': ['PyQt5'],
     }
 )

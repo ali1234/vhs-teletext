@@ -1,10 +1,13 @@
 import sys
 import webbrowser
 
-from PyQt5 import QtWidgets
+try:
+    from PyQt5 import QtWidgets
+except ImportError:
+    print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
 from .qthelpers import build_menu
-
+from .lines import LinesGrid
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -35,6 +38,11 @@ class MainWindow(QtWidgets.QMainWindow):
         ])
 
         self.statusBar().showMessage('Ready')
+
+        w = QtWidgets.QWidget(self)
+        self.setCentralWidget(w)
+        self._linesgrid = LinesGrid(w)
+        w.setLayout(self._linesgrid)
 
         self.show()
 
