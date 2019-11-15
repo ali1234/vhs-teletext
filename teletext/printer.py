@@ -21,9 +21,6 @@ class PrinterANSI(object):
         # ignored for now
         self.codepage = codepage
 
-        # anchor for header links so we can bookmark a subpage
-        self.anchor = ""
-
         self.colour = colour
 
 
@@ -112,6 +109,9 @@ class PrinterHTML(PrinterANSI):
         PrinterANSI.__init__(self, tt, colour=False, codepage=codepage)
         self.fastext = False
         self.pages_set = pages_set
+
+        # anchor for header links so we can bookmark a subpage
+        self.anchor = ""
 
     def ttchar(self, c):
         if self.mosaic:
