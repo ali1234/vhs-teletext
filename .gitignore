@@ -1,4 +1,5 @@
 /.idea
+/.coverage
 /venv
 /*.vbi
 *.pyc
