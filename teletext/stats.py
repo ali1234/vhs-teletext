@@ -50,14 +50,10 @@ class MagHistogram(Histogram):
             yield p
 
 
-class RowHistogram(Histogram):
+class RowHistogram(MagHistogram):
 
     label = 'R'
     bins = range(33)
-
-    def __init__(self, packets, size=1000):
-        super().__init__((size, ))
-        self._packets = packets
 
     def __iter__(self):
         for p in self._packets:
