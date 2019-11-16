@@ -14,11 +14,10 @@ def setstyle(self, fg=None, bg=None):
 
 PrinterANSI.setstyle = setstyle
 
-class Quit(Exception):
-    pass
 
 class TerminalTooSmall(Exception):
     pass
+
 
 class Interactive(object):
     colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
