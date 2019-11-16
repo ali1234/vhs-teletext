@@ -35,7 +35,7 @@ class LineWidget(object):
         self._mrag.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed))
         self._widgets.append(self._mrag)
 
-        self._teletext = QtWidgets.QLabel(text="Teletext  123456789012345678901234567")
+        self._teletext = QtWidgets.QLabel(text='<span style="color:red;">Teletext</span>  123456789012345678901234567')
         font = QtGui.QFont("teletext2")
         font.setStyleStrategy(QtGui.QFont.NoAntialias | QtGui.QFont.NoSubpixelAntialias | QtGui.QFont.ForceIntegerMetrics)
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
