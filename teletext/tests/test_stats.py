@@ -1,7 +1,7 @@
 import unittest
 
-
 from teletext.stats import *
+
 
 class TestStatsList(unittest.TestCase):
 
