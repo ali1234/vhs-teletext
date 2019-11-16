@@ -4,12 +4,11 @@ import numpy as np
 class Histogram(object):
 
     bars = ' ▁▂▃▄▅▆▇█'
-
     label = 'H'
+    bins = range(2)
 
-    def __init__(self, bins, size=1000):
-        self._bins = bins
-        self._data = np.full((size,), fill_value=255, dtype=np.uint8)
+    def __init__(self, shape=(1000, ), fill=255, dtype=np.uint8):
+        self._data = np.full(shape, fill_value=fill, dtype=dtype)
         self._pos = 0
 
     def insert(self, value):
@@ -19,7 +18,7 @@ class Histogram(object):
 
     @property
     def histogram(self):
-        h,_ = np.histogram(self._data, bins=self._bins)
+        h,_ = np.histogram(self._data, bins=self.bins)
         return h
 
     @property
@@ -27,7 +26,7 @@ class Histogram(object):
         h = self.histogram
         m = max(1, np.max(h)) # no div by zero
         if m == 0:
-            return (' ' * len(self._bins))
+            return (' ' * len(self.bins))
         else:
             h2 = np.ceil(h * ((len(self.bars) - 1) / m)).astype(np.uint8)
             return ''.join(self.bars[n] for n in h2)
@@ -39,9 +38,10 @@ class Histogram(object):
 class MagHistogram(Histogram):
 
     label = 'M'
+    bins = range(1, 9)
 
     def __init__(self, packets, size=1000):
-        super().__init__(range(1,10), size)
+        super().__init__(range(1,10), (size, ))
         self._packets = packets
 
     def __iter__(self):
@@ -53,9 +53,10 @@ class MagHistogram(Histogram):
 class RowHistogram(Histogram):
 
     label = 'R'
+    bins = range(33)
 
     def __init__(self, packets, size=1000):
-        super().__init__(range(33), size)
+        super().__init__((size, ))
         self._packets = packets
 
     def __iter__(self):
@@ -67,9 +68,10 @@ class RowHistogram(Histogram):
 class Rejects(Histogram):
 
     label = 'R'
+    bins = range(3)
 
-    def __init__(self, lines):
-        super().__init__(range(3), size=1000)
+    def __init__(self, lines, size=1000):
+        super().__init__((size, ))
         self._lines = lines
 
     def __iter__(self):
@@ -88,9 +90,7 @@ class ErrorHistogram(Histogram):
     label = 'E'
 
     def __init__(self, packets, size=100):
-        self._size = size
-        self._data = np.zeros((size, 6), dtype=np.uint32)
-        self._pos = 0
+        super().__init__((size, 6), fill=0, dtype=np.uint32)
         self._packets = packets
 
     def __iter__(self):
@@ -100,8 +100,7 @@ class ErrorHistogram(Histogram):
 
     def __str__(self):
         bins = np.sum(self._data, axis=0)
-        #m = max(1, np.max(bins)) # no div by zero
-        bins = np.ceil(bins * ((len(self.bars) - 1) * 2 / self._size)).astype(np.uint8)
+        bins = np.ceil(bins * ((len(self.bars) - 1) * 2 / self._data.shape[0])).astype(np.uint8)
         bins = np.clip(bins, 0, len(self.bars)-1)
         return f', {self.label}: |{"".join(self.bars[n] for n in bins)}|'
 
