@@ -41,7 +41,7 @@ class MagHistogram(Histogram):
     bins = range(1, 9)
 
     def __init__(self, packets, size=1000):
-        super().__init__(range(1,10), (size, ))
+        super().__init__((size, ))
         self._packets = packets
 
     def __iter__(self):
