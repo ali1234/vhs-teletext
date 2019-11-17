@@ -11,6 +11,7 @@ class TestSigInt(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             with self.assertRaises(ValueError):
                 with SigIntDefer() as s:
+                    self.assertFalse((s.fired))
                     os.kill(os.getpid(), signal.SIGINT)
                     self.assertTrue((s.fired))
                     raise ValueError
