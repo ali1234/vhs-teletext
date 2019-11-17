@@ -1,3 +1,4 @@
+import itertools
 import multiprocessing
 import os
 import pathlib
@@ -137,10 +138,11 @@ def squash(packets, min_duplicates, pages, subpages, ignore_empty):
 
 @command(teletext)
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
+@click.option('-b', '--both', is_flag=True, help='Show packet before and after corrections.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @packetwriter
 @packetreader
-def spellcheck(packets, language, threads):
+def spellcheck(packets, language, both, threads):
 
     """Spell check a t42 stream."""
 
@@ -152,7 +154,17 @@ def spellcheck(packets, language, threads):
         else:
             raise e
     else:
-        return itermap(spellcheck_packets, packets, threads, language=language)
+        if both:
+            packets, orig_packets = itertools.tee(packets, 2)
+            packets = itermap(spellcheck_packets, packets, threads, language=language)
+            try:
+                while True:
+                    yield next(orig_packets)
+                    yield next(packets)
+            except StopIteration:
+                pass
+        else:
+            yield from itermap(spellcheck_packets, packets, threads, language=language)
 
 
 @command(teletext)
