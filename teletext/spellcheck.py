@@ -29,7 +29,7 @@ class SpellChecker(object):
         return ''.join(c.lower() if d.islower() else c.upper() for c, d in zip(word, src))
 
     def suggest(self, word):
-        if len(word) > 2:
+        if len(word) > 1:
             lcword = word.lower()
             if not self.dictionary.check(lcword):
                 for suggestion in self.dictionary.suggest(lcword):
