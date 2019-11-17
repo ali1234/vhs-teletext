@@ -7,8 +7,8 @@ from .coding import parity_encode
 
 class SpellChecker(object):
 
-    common_errors = set(itertools.chain(
-        *(itertools.permutations(s, 2) for s in ('eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh'))
+    common_errors = set(itertools.chain.from_iterable(
+        itertools.permutations(s, 2) for s in ('eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh')
     ))
 
     def __init__(self, language='en_GB'):
