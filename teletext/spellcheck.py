@@ -8,8 +8,6 @@ class SpellChecker(object):
         self.dictionary = enchant.Dict(language)
 
     def check_pair(self, x, y):
-        x = x.lower()
-        y = y.lower()
         if x == y:
             return 0
         for s in ['eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh']:
@@ -24,10 +22,12 @@ class SpellChecker(object):
         return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
 
     def suggest(self, word):
-        if len(word) > 2 and not self.dictionary.check(word.lower()):
-            for suggestion in self.dictionary.suggest(word.lower()):
-                if len(suggestion) == len(word) and self.weighted_hamming(suggestion, word) == 0:
-                    return self.case_match(suggestion, word)
+        if len(word) > 2:
+            lcword = word.lower()
+            if not self.dictionary.check(lcword):
+                for suggestion in self.dictionary.suggest(lcword):
+                    if len(suggestion) == len(lcword) and self.weighted_hamming(suggestion.lower(), lcword) == 0:
+                        return self.case_match(suggestion, word)
         return word
 
     def spellcheck(self, displayable):
