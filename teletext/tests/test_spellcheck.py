@@ -19,3 +19,8 @@ class TestSpellCheck(unittest.TestCase):
         self.assertEqual(self.sc.suggest('hello'), 'hello')
         # incorrectly spelled word with known substitutions should be fixed
         self.assertEqual(self.sc.suggest('dello'), 'hello')
+
+    def test_spellcheck(self):
+        d = Displayable((17,), 'dello dello dello'.encode('ascii'))
+        self.sc.spellcheck(d)
+        self.assertEqual(d.to_ansi(colour=False), 'hello hello hello')
