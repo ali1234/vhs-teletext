@@ -16,10 +16,10 @@ class SpellChecker(object):
         return 1
 
     def weighted_hamming(self, a, b):
-        return sum([self.check_pair(x, y) for x,y in zip(a, b)])
+        return sum(self.check_pair(x, y) for x,y in zip(a, b))
 
     def case_match(self, word, src):
-        return ''.join([c.lower() if d.islower() else c.upper() for c, d in zip(word, src)])
+        return ''.join(c.lower() if d.islower() else c.upper() for c, d in zip(word, src))
 
     def suggest(self, word):
         if len(word) > 2:
