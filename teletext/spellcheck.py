@@ -10,7 +10,7 @@ class SpellChecker(object):
     def check_pair(self, x, y):
         if x == y:
             return 0
-        for s in ['eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh']:
+        for s in ('eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh'):
             if x in s and y in s:
                 return 0
         return 1
