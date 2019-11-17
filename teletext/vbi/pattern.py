@@ -8,6 +8,7 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
+import itertools
 import struct
 from collections import defaultdict
 
@@ -39,6 +40,45 @@ class Pattern(object):
             idx[i] = np.argmin(np.sum(diffs, axis=1))
         return self.bytes[idx][:,0]
 
+    def similarities(self):
+
+        def norm(arr):
+            mn = np.nanmin(arr)
+            mx = np.nanmax(arr)
+            print(mn, mx)
+            r = (mx - mn)
+            if r == 0:
+                r = 1
+            return np.clip((arr - mn) * (255.0 / r), 0, 255)
+
+        s = defaultdict(list)
+        for x in tqdm(range(0, self.n)):
+            for y in range(x+1, self.n):
+                d = np.sum(np.square(self.pslice[x] - self.pslice[y]))
+                s[(self.bytes[x][0]&0x7f, self.bytes[y][0]&0x7f)].append(d)
+
+        result = np.full((256, 256, 3), dtype=np.float32, fill_value=float('nan'))
+
+        for k, v in s.items():
+            if v:
+                x, y = sorted(k)
+                result[x, y, 0] = min(v)
+                result[x, y, 1] = sum(v)/len(v)
+                result[x, y, 2] = max(v)
+
+        result = norm(result)
+
+        def get(x, y):
+            x, y = sorted((x, y))
+            return (x, y), result[ord(x), ord(y)].astype(np.uint8), len(s[ord(x), ord(y)])
+
+        errors = []
+        for c, d in itertools.combinations('abcdefghijklmnopqrstuvwxyz', 2):
+            r = get(c, d)
+            if r[1][0] < 5:
+                errors.append(c+d)
+
+        return errors
 
 # Classes used to build pattern files from training data.
 # Not used during normal decoding.

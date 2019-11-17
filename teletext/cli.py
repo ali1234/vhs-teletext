@@ -406,3 +406,12 @@ def build(input, output, mode, bits):
     chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
 
     build_pattern(chunks, output, *bits, pattern_set)
+
+
+@command(training)
+def similarities():
+    from teletext.vbi.pattern import Pattern
+
+    pattern = Pattern(os.path.dirname(__file__) + '/vbi/data/parity.dat')
+
+    print(pattern.similarities())
