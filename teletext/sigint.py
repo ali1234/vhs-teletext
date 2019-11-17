@@ -6,6 +6,23 @@ class SigIntDefer(object):
     SigIntDefer is a context manager which catches SIGINT (aka KeyboardInterrupt)
     and allows the code to check if it has happened or not, and then exit at an
     appropriate time, instead of in the middle of doing something important.
+
+    Example: the goal here is to make sure that if we print "hello", we always
+    print "goodbye", even if a KeyboardInterrupt happens. If a KeyboardInterrupt
+    did happen, SigIntDefer will re-fire it upon exiting the context.
+
+    import time
+
+    def loop():
+        with SigIntDefer() as sigint:
+            while True:
+                if sigint.fired:
+                    return
+                print("hello")
+                time.sleep(0.5)
+                print("goodbye")
+
+    loop()
     """
 
     def __init__(self, times=1):
@@ -31,24 +48,3 @@ class SigIntDefer(object):
         signal.signal(signal.SIGINT, self._old_handler)
         if self._fired:
             self._old_handler(*self._fired)
-
-
-
-if __name__ == '__main__':
-
-    # Example: the goal here is to make sure that if we print "hello", we always
-    # print "goodbye", even if a KeyboardInterrupt happens. If a KeyboardInterrupt
-    # did happen, SigIntDefer will re-fire it upon exiting the context.
-
-    import time
-
-    def loop():
-        with SigIntDefer() as sigint:
-            while True:
-                if sigint.fired:
-                    return
-                print("hello")
-                time.sleep(0.5)
-                print("goodbye")
-
-    loop()
