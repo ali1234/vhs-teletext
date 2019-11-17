@@ -1,18 +1,22 @@
+import itertools
+
 import enchant
 
 from .coding import parity_encode
 
+
 class SpellChecker(object):
+
+    common_errors = set(itertools.chain(
+        *(itertools.permutations(s, 2) for s in ('eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh'))
+    ))
 
     def __init__(self, language='en_GB'):
         self.dictionary = enchant.Dict(language)
 
     def check_pair(self, x, y):
-        if x == y:
+        if x == y or (x, y) in self.common_errors:
             return 0
-        for s in ('eij', 'rstuk', 'yz', 'kgo', 'nm', 'dh'):
-            if x in s and y in s:
-                return 0
         return 1
 
     def weighted_hamming(self, a, b):
