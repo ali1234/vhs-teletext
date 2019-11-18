@@ -78,6 +78,14 @@ class Pattern(object):
             if r[1][0] < 5:
                 errors.append(c+d)
 
+        errorsu = []
+        for c, d in itertools.combinations('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 2):
+            r = get(c, d)
+            if r[1][0] < 5:
+                errorsu.append(c+d)
+
+        print(errorsu)
+
         return errors
 
 # Classes used to build pattern files from training data.
