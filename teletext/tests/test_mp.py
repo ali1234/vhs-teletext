@@ -1,6 +1,6 @@
 import unittest
 
-from teletext.mp import itermap
+from teletext.mp import itermap, PureGeneratorPool
 
 
 def func(it):
@@ -8,7 +8,7 @@ def func(it):
         yield x*x
 
 
-class TestStatsList(unittest.TestCase):
+class TestMP(unittest.TestCase):
 
     def setUp(self):
         self.input = list(range(512))
@@ -22,3 +22,10 @@ class TestStatsList(unittest.TestCase):
     def test_multi(self):
         result = list(itermap(func, self.input, processes=2))
         self.assertListEqual(result, self.result)
+
+    def test_reuse(self):
+        with PureGeneratorPool(func, processes=2) as pool:
+            result = list(pool.apply(self.input[:100]))
+            self.assertListEqual(result, self.result[:100])
+            result = list(pool.apply(self.input[100:]))
+            self.assertListEqual(result, self.result[100:])
