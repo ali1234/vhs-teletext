@@ -18,7 +18,6 @@ class TestStatsList(unittest.TestCase):
         result = list(itermap(func, self.input, processes=1))
         self.assertListEqual(result, self.result)
 
-    @unittest.skip # This test completely crashes unittest
     def test_multi(self):
-        result = list(itermap(func, self.input, processes=8))
+        result = list(itermap(func, self.input, processes=2))
         self.assertListEqual(result, self.result)
