@@ -18,7 +18,7 @@ class TestStatsList(unittest.TestCase):
         result = list(itermap(func, self.input, processes=1))
         self.assertListEqual(result, self.result)
 
-    @unittest.skip # breaks coverage - https://github.com/nedbat/coveragepy/issues/745
+    #@unittest.skip # breaks coverage - https://github.com/nedbat/coveragepy/issues/745
     def test_multi(self):
         result = list(itermap(func, self.input, processes=2))
         self.assertListEqual(result, self.result)
