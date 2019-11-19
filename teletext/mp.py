@@ -50,6 +50,15 @@ def itermap(function, iterator, processes=1, *args, **kwargs):
     will only be pickled once rather than for every item in i. It also allows you
     to do one-time setup at the beginning of f.
 
+    f must be a "pure generator". This means it must yield exactly one result for
+    each item in the iterator, and that result must only depend on the current
+    item being processed. It must not have any mutable state. For example, any
+    function of the form:
+
+        itertools.partial(map, f)
+
+    is a pure generator.
+
     itermap() preserves the ordering of items in the input iterator.
     """
     if processes <= 1:
