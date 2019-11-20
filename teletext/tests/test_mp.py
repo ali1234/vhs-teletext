@@ -12,7 +12,7 @@ def hush(f):
     def wrapper(it, *args, **kwargs):
         if current_process().name != 'MainProcess':
             import sys
-            sys.stderr = open('/dev/null')
+            sys.stderr.close()
         yield from f(it, *args, **kwargs)
     return wrapper
 
