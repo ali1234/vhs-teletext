@@ -37,7 +37,7 @@ def worker(function, started_event, stopped_event, quit_event, work_queue, done_
     """
     try:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        tmp_queue = mp.Queue() # holds work item numbers to be recombined with the result
+        tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
         started_event.set()
         renumerate(function(denumerate(quit_event, work_queue, tmp_queue), *args, **kwargs), done_queue, tmp_queue)
     finally:
