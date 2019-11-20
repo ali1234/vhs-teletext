@@ -83,6 +83,15 @@ class _PureGeneratorPoolMP(object):
         pickle.dumps(item)
         self._work_queue.put(item)
 
+    @property
+    def _workers_exited(self):
+        # p[2].is_set means the process wants to exit but is waiting for
+        # use to read from the _done_queue, or it has exited.
+        # p[0].is_alive() is false when the process has exited.
+        # The process may exit without setting p[2] due to race conditions
+        # in multiprocessing - see __exit__.
+        return (p[2].is_set() or not p[0].is_alive() for p in self._pool)
+
     def apply(self, iterable):
         iterable = enumerate(iterable)
 
@@ -102,7 +111,7 @@ class _PureGeneratorPoolMP(object):
             try:
                 n, item = self._done_queue.get(timeout=0.1)
             except queue.Empty:
-                if any(p[2].is_set() for p in self._pool):
+                if any(self._workers_exited):
                     raise ChildProcessError('A worker process stopped unexpectedly.')
             else:
                 received[n] = item
@@ -117,12 +126,22 @@ class _PureGeneratorPoolMP(object):
                     pass
 
     def __exit__(self, *args):
+        # In the event of a KeyboardInterrupt we might end up running this code
+        # after multiprocessing killed all remaining worker processes. If that is
+        # true then we can't rely on them having set _quit_event before being
+        # terminated. Whether this function or multiprocessing's atexit handler
+        # runs first is the subject of a race condition due to with/yield semantics.
         self._quit_event.set()
-        while not all(p[2].is_set() for p in self._pool):
+        # _workers_exited checks both _quit_event and P.is_alive() in order to
+        # detect when this has happened.
+        while not all(self._workers_exited):
             try:
                 self._done_queue.get(timeout=0.1)
             except queue.Empty:
                 pass
+        # We also can't guarantee that the workers emptied the _work_queue if
+        # multiprocessing terminated them before we got here.
+        self._work_queue.cancel_join_thread()
         for p in self._pool:
             p[0].join()
 
