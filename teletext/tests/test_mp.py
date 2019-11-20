@@ -1,6 +1,6 @@
 import unittest
 
-from teletext.mp import itermap, PureGeneratorPool
+from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _PureGeneratorPoolMP
 
 
 def square(it):
@@ -33,6 +33,7 @@ def crashy_quiet(it):
 
 class TestMPSingle(unittest.TestCase):
     procs = 1
+    desired_type = _PureGeneratorPoolSingle
 
     def setUp(self):
         self.input = list(range(200))
@@ -50,6 +51,7 @@ class TestMPSingle(unittest.TestCase):
 
     def test_reuse(self):
         with PureGeneratorPool(square, processes=self.procs) as pool:
+            self.assertIsInstance(pool, self.desired_type)
             result = list(pool.apply(self.input[:100]))
             self.assertListEqual(result, self.result[:100])
             result = list(pool.apply(self.input[100:]))
@@ -57,7 +59,7 @@ class TestMPSingle(unittest.TestCase):
 
     def test_called_once_reuse(self):
         with PureGeneratorPool(callcount, processes=self.procs) as pool:
-            for n in range(self.procs + 1):
+            for n in range(self.procs + 1): # ensure at least one process is used twice
                 result = list(pool.apply([None]))
                 self.assertListEqual(result, [1])
 
@@ -74,11 +76,8 @@ class TestMPSingle(unittest.TestCase):
 
 class TestMPMulti(TestMPSingle):
     procs = 2
+    desired_type = _PureGeneratorPoolMP
 
     def _crashing_iter(self, n):
         with self.assertRaises(ChildProcessError):
             list(itermap(crashy_quiet, ([False]*n) + [True], processes=self.procs))
-
-
-class TestMPMulti8(TestMPMulti):
-    procs = 8
