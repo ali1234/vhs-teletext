@@ -211,9 +211,11 @@ def command(group, *args, **kwargs):
         @click.pass_context
         @wraps(f)
         def cmd(ctx, *_args, **_kwargs):
+            tqdm.monitor_interval = 0
+
             if plop is not None and ctx.obj['PROFILE'] is not None:
                 # disable tqdm monitor thread as it messes with the profiling
-                tqdm.monitor_interval = 0
+
                 p = plop.Collector()
                 p.start()
                 try:

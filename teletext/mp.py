@@ -4,6 +4,13 @@ import queue
 import signal
 
 import multiprocessing as mp
+import sys, os, atexit, _thread
+
+
+def efunc():
+    sys.stderr.write(f"{os.getpid()}:{_thread.get_ident()} atexit runs\n")
+
+atexit.register(efunc)
 
 
 def denumerate(quit_event, work_queue, tmp_queue):
@@ -41,6 +48,7 @@ def worker(function, started_event, stopped_event, quit_event, work_queue, done_
         started_event.set()
         renumerate(function(denumerate(quit_event, work_queue, tmp_queue), *args, **kwargs), done_queue, tmp_queue)
     finally:
+        print("finally")
         stopped_event.set()
 
 
@@ -117,6 +125,7 @@ class _PureGeneratorPoolMP(object):
                     pass
 
     def __exit__(self, *args):
+        sys.stderr.write(f"{os.getpid()}:{_thread.get_ident()} __exit__ runs\n")
         self._quit_event.set()
         while not all(p[2].is_set() for p in self._pool):
             try:
