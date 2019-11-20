@@ -30,32 +30,33 @@ def crashy_quiet(it):
     crashy(it)
 
 
-
 class TestMPSingle(unittest.TestCase):
     procs = 1
     desired_type = _PureGeneratorPoolSingle
 
     def setUp(self):
-        self.input = list(range(100))
-        self.result = list(square(self.input))
         global callcounter
         callcounter = 0
 
     def test_single(self):
-        result = list(itermap(square, self.input, processes=self.procs))
-        self.assertListEqual(result, self.result)
+        input = list(range(100))
+        expected = list(square(input))
+        result = list(itermap(square, input, processes=self.procs))
+        self.assertListEqual(result, expected)
 
     def test_called_once_single(self):
         result = list(itermap(callcount, [None] * (self.procs + 1), processes=self.procs))
         self.assertListEqual(result, [1] * (self.procs + 1))
 
     def test_reuse(self):
+        input = list(range(100))
+        expected = list(square(input))
         with PureGeneratorPool(square, processes=self.procs) as pool:
             self.assertIsInstance(pool, self.desired_type)
-            result = list(pool.apply(self.input[:50]))
-            self.assertListEqual(result, self.result[:50])
-            result = list(pool.apply(self.input[50:]))
-            self.assertListEqual(result, self.result[50:])
+            result = list(pool.apply(input[:50]))
+            self.assertListEqual(result, expected[:50])
+            result = list(pool.apply(input[50:]))
+            self.assertListEqual(result, expected[50:])
 
     def test_called_once_reuse(self):
         with PureGeneratorPool(callcount, processes=self.procs) as pool:
