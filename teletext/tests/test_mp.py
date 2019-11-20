@@ -3,9 +3,9 @@ import unittest
 from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _PureGeneratorPoolMP
 
 
-def square(it):
+def multiply(it, a):
     for x in it:
-        yield x*x
+        yield x*a
 
 
 callcounter = 0
@@ -30,6 +30,16 @@ def crashy_quiet(it):
     crashy(it)
 
 
+def early_crash(it):
+    raise ValueError('Crashed early on purpose.')
+
+
+def early_crash_quiet(it):
+    import sys
+    sys.stderr = open('/dev/null') # so as not to spam all over the tests
+    raise ValueError('Crashed early on purpose.')
+
+
 class TestMPSingle(unittest.TestCase):
     procs = 1
     desired_type = _PureGeneratorPoolSingle
@@ -40,8 +50,8 @@ class TestMPSingle(unittest.TestCase):
 
     def test_single(self):
         input = list(range(100))
-        expected = list(square(input))
-        result = list(itermap(square, input, processes=self.procs))
+        expected = list(multiply(input, 3))
+        result = list(itermap(multiply, input, self.procs, 3))
         self.assertListEqual(result, expected)
 
     def test_called_once_single(self):
@@ -50,8 +60,8 @@ class TestMPSingle(unittest.TestCase):
 
     def test_reuse(self):
         input = list(range(100))
-        expected = list(square(input))
-        with PureGeneratorPool(square, processes=self.procs) as pool:
+        expected = list(multiply(input, 3))
+        with PureGeneratorPool(multiply, self.procs, 3) as pool:
             self.assertIsInstance(pool, self.desired_type)
             result = list(pool.apply(input[:50]))
             self.assertListEqual(result, expected[:50])
@@ -73,6 +83,10 @@ class TestMPSingle(unittest.TestCase):
         self._crashing_iter(self.procs + 1)
         self._crashing_iter(40)
 
+    def test_early_crash(self):
+        with self.assertRaises(ValueError):
+            list(itermap(early_crash, ([False]*3), processes=self.procs))
+
 
 class TestMPMulti(TestMPSingle):
     procs = 2
@@ -81,3 +95,7 @@ class TestMPMulti(TestMPSingle):
     def _crashing_iter(self, n):
         with self.assertRaises(ChildProcessError):
             list(itermap(crashy_quiet, ([False]*n) + [True], processes=self.procs))
+
+    def test_early_crash(self):
+        with self.assertRaises(ChildProcessError):
+            list(itermap(early_crash_quiet, ([False]*3), processes=self.procs))
