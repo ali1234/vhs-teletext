@@ -8,6 +8,11 @@ def multiply(it, a):
         yield x*a
 
 
+def null(it, a):
+    for x in it:
+        yield (x, a)
+
+
 callcounter = 0
 def callcount(it):
     global callcounter
@@ -38,6 +43,16 @@ def early_crash_quiet(it):
     import sys
     sys.stderr = open('/dev/null') # so as not to spam all over the tests
     raise ValueError('Crashed early on purpose.')
+
+
+def not_generator(it):
+    return 23
+
+
+def not_generator_quiet(it):
+    import sys
+    sys.stderr = open('/dev/null') # so as not to spam all over the tests
+    return 23
 
 
 class TestMPSingle(unittest.TestCase):
@@ -87,6 +102,10 @@ class TestMPSingle(unittest.TestCase):
         with self.assertRaises(ValueError):
             list(itermap(early_crash, ([False]*3), processes=self.procs))
 
+    def test_not_generator(self):
+        with self.assertRaises(TypeError):
+            list(itermap(not_generator, ([False]*3), processes=self.procs))
+
 
 class TestMPMulti(TestMPSingle):
     procs = 2
@@ -94,8 +113,24 @@ class TestMPMulti(TestMPSingle):
 
     def _crashing_iter(self, n):
         with self.assertRaises(ChildProcessError):
-            list(itermap(crashy_quiet, ([False]*n) + [True], processes=self.procs))
+            list(itermap(crashy_quiet, ([False]*n) + [True], self.procs))
 
     def test_early_crash(self):
         with self.assertRaises(ChildProcessError):
-            list(itermap(early_crash_quiet, ([False]*3), processes=self.procs))
+            list(itermap(early_crash_quiet, ([False]*3), self.procs))
+
+    def test_unpickleable_function(self):
+        with self.assertRaises(AttributeError):
+            list(itermap(lambda x: x, ([False] * 3), self.procs))
+
+    def test_unpickleable_item_in_args(self):
+        with self.assertRaises(AttributeError):
+            list(itermap(null, ([None]*10), self.procs, lambda x: x))
+
+    def test_unpickleable_item_in_iter(self):
+        with self.assertRaises(AttributeError):
+            list(itermap(null, ([None]*10) + [lambda x: x], self.procs, None))
+
+    def test_not_generator(self):
+        with self.assertRaises(ChildProcessError):
+            list(itermap(not_generator_quiet, ([False]*3), processes=self.procs))

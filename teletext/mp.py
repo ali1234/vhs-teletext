@@ -1,4 +1,5 @@
 import itertools
+import pickle
 import queue
 import signal
 
@@ -78,6 +79,10 @@ class _PureGeneratorPoolMP(object):
                 raise TimeoutError('Timed out waiting for worker process to start.')
         return self
 
+    def _put_work(self, item):
+        pickle.dumps(item)
+        self._work_queue.put(item)
+
     def apply(self, iterable):
         iterable = enumerate(iterable)
 
@@ -86,7 +91,7 @@ class _PureGeneratorPoolMP(object):
 
         # Prime the queue with some items.
         for item in itertools.islice(iterable, 32):
-            self._work_queue.put(item)
+            self._put_work(item)
             sent_count += 1
 
         # Dict to use for sorting received items back into
@@ -106,7 +111,7 @@ class _PureGeneratorPoolMP(object):
                     del received[received_count]
                     received_count += 1
                 try:
-                    self._work_queue.put(next(iterable))
+                    self._put_work(next(iterable))
                     sent_count += 1
                 except StopIteration:
                     pass
