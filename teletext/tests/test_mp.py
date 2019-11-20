@@ -1,6 +1,8 @@
 from multiprocessing import current_process
 import unittest
 from functools import wraps
+from itertools import count, islice
+import os, signal
 
 from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _PureGeneratorPoolMP
 
@@ -142,3 +144,24 @@ class TestMPMulti(TestMPSingle):
     def test_too_many_args(self):
         with self.assertRaises(ChildProcessError):
             list(itermap(multiply, ([False]*3), self.procs, 3, 4))
+
+
+class TestSigInt(unittest.TestCase):
+
+    pool_size = 4
+
+    def items(self):
+        with PureGeneratorPool(multiply, self.pool_size, 1) as pool:
+            self.pool = pool
+            yield from pool.apply(islice(count(), 100))
+
+    def test_sigint_to_self(self):
+        result = self.items()
+        with self.assertRaises(KeyboardInterrupt):
+            for r in result:
+                os.kill(os.getpid(), signal.SIGINT)
+
+    def test_sigint_to_child(self):
+        result = self.items()
+        for r in result:
+            os.kill(self.pool._pool[r%self.pool_size][0].pid, signal.SIGINT)
