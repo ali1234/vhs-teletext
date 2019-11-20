@@ -36,7 +36,7 @@ class TestMPSingle(unittest.TestCase):
     desired_type = _PureGeneratorPoolSingle
 
     def setUp(self):
-        self.input = list(range(200))
+        self.input = list(range(100))
         self.result = list(square(self.input))
         global callcounter
         callcounter = 0
@@ -52,10 +52,10 @@ class TestMPSingle(unittest.TestCase):
     def test_reuse(self):
         with PureGeneratorPool(square, processes=self.procs) as pool:
             self.assertIsInstance(pool, self.desired_type)
-            result = list(pool.apply(self.input[:100]))
-            self.assertListEqual(result, self.result[:100])
-            result = list(pool.apply(self.input[100:]))
-            self.assertListEqual(result, self.result[100:])
+            result = list(pool.apply(self.input[:50]))
+            self.assertListEqual(result, self.result[:50])
+            result = list(pool.apply(self.input[50:]))
+            self.assertListEqual(result, self.result[50:])
 
     def test_called_once_reuse(self):
         with PureGeneratorPool(callcount, processes=self.procs) as pool:
@@ -69,9 +69,8 @@ class TestMPSingle(unittest.TestCase):
 
     def test_crashing_iter(self):
         self._crashing_iter(0)
-        self._crashing_iter(1)
         self._crashing_iter(self.procs + 1)
-        self._crashing_iter(105)
+        self._crashing_iter(40)
 
 
 class TestMPMulti(TestMPSingle):
