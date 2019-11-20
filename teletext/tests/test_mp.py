@@ -1,19 +1,34 @@
+from multiprocessing import current_process
 import unittest
+from functools import wraps
 
 from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _PureGeneratorPoolMP
 
 
+def hush(f):
+    @wraps(f)
+    def wrapper(it, *args, **kwargs):
+        if current_process().name != 'MainProcess':
+            import sys
+            sys.stderr = open('/dev/null')
+        yield from f(it, *args, **kwargs)
+    return wrapper
+
+
+@hush
 def multiply(it, a):
     for x in it:
         yield x*a
 
 
+@hush
 def null(it, a):
     for x in it:
         yield (x, a)
 
 
 callcounter = 0
+@hush
 def callcount(it):
     global callcounter
     callcounter += 1
@@ -21,6 +36,7 @@ def callcount(it):
         yield callcounter
 
 
+@hush
 def crashy(it):
     for x in it:
         if x:
@@ -29,29 +45,13 @@ def crashy(it):
             yield x
 
 
-def crashy_quiet(it):
-    import sys
-    sys.stderr = open('/dev/null') # so as not to spam all over the tests
-    crashy(it)
-
-
+@hush
 def early_crash(it):
     raise ValueError('Crashed early on purpose.')
 
 
-def early_crash_quiet(it):
-    import sys
-    sys.stderr = open('/dev/null') # so as not to spam all over the tests
-    raise ValueError('Crashed early on purpose.')
-
-
+@hush
 def not_generator(it):
-    return 23
-
-
-def not_generator_quiet(it):
-    import sys
-    sys.stderr = open('/dev/null') # so as not to spam all over the tests
     return 23
 
 
@@ -106,6 +106,10 @@ class TestMPSingle(unittest.TestCase):
         with self.assertRaises(TypeError):
             list(itermap(not_generator, ([False]*3), processes=self.procs))
 
+    def test_too_many_args(self):
+        with self.assertRaises(TypeError):
+            list(itermap(multiply, ([False]*3), self.procs, 3, 4))
+
 
 class TestMPMulti(TestMPSingle):
     procs = 2
@@ -113,11 +117,11 @@ class TestMPMulti(TestMPSingle):
 
     def _crashing_iter(self, n):
         with self.assertRaises(ChildProcessError):
-            list(itermap(crashy_quiet, ([False]*n) + [True], self.procs))
+            list(itermap(crashy, ([False]*n) + [True], self.procs))
 
     def test_early_crash(self):
         with self.assertRaises(ChildProcessError):
-            list(itermap(early_crash_quiet, ([False]*3), self.procs))
+            list(itermap(early_crash, ([False]*3), self.procs))
 
     def test_unpickleable_function(self):
         with self.assertRaises(AttributeError):
@@ -133,4 +137,8 @@ class TestMPMulti(TestMPSingle):
 
     def test_not_generator(self):
         with self.assertRaises(ChildProcessError):
-            list(itermap(not_generator_quiet, ([False]*3), processes=self.procs))
+            list(itermap(not_generator, ([False]*3), processes=self.procs))
+
+    def test_too_many_args(self):
+        with self.assertRaises(ChildProcessError):
+            list(itermap(multiply, ([False]*3), self.procs, 3, 4))
