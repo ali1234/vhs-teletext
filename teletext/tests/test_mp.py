@@ -150,7 +150,7 @@ class TestMPMulti(TestMPSingle):
             list(itermap(multiply, ([False]*3), self.procs, 3, 4))
 
 
-class TestSigInt(unittest.TestCase):
+class TestMPMultiSigInt(unittest.TestCase):
 
     pool_size = 4
 
