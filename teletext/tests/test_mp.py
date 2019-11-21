@@ -2,9 +2,11 @@ from multiprocessing import current_process
 import unittest
 from functools import wraps
 from itertools import count, islice
-import os, signal
+import os
 
 from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _PureGeneratorPoolMP
+
+from .test_sigint import ctrl_c
 
 
 def hush(f):
@@ -159,9 +161,9 @@ class TestSigInt(unittest.TestCase):
         result = self.items()
         with self.assertRaises(KeyboardInterrupt):
             for r in result:
-                os.kill(os.getpid(), signal.SIGINT)
+                ctrl_c(os.getpid())
 
     def test_sigint_to_child(self):
         result = self.items()
         for r in result:
-            os.kill(self.pool._pool[r%self.pool_size][0].pid, signal.SIGINT)
+            ctrl_c(self.pool._pool[r%self.pool_size][0].pid)
