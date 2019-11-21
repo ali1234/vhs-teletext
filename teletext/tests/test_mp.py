@@ -164,12 +164,9 @@ class TestSigInt(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             for r in result:
                 ctrl_c(os.getpid())
-                time.sleep(0.1)
 
     @unittest.skipIf(sys.platform.startswith('win'), "Can't send ctrl-c to an individual process on Windows")
     def test_sigint_to_child(self):
         result = self.items()
         for r in result:
-            # No need to sleep here because we send to another
-            # process which should ignore it anyway.
             ctrl_c(self.pool._pool[r%self.pool_size][0].pid)
