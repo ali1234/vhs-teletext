@@ -83,7 +83,7 @@ class _PureGeneratorPoolMP(object):
         for p in self._pool:
             p[0].start()
         for p in self._pool:
-            if not p[1].wait(timeout=1):
+            if not p[1].wait(timeout=3):
                 raise TimeoutError('Timed out waiting for worker process to start.')
         return self
 
