@@ -53,6 +53,14 @@ class _PureGeneratorPoolMP(object):
         self._kwargs = kwargs
         self._pool = []
 
+        # Similar to how, on Linux, putting an unpickleable object on a Queue
+        # causes an uncatchable exception, passing unpickleable objects to
+        # ctx.Process does the same thing on Windows. So we must check that
+        # everything can be pickled before attempting to use it. (See _put_work.)
+        pickle.dumps(self._function)
+        pickle.dumps(self._args)
+        pickle.dumps(self._kwargs)
+
         ctx = mp.get_context('spawn')
 
         # Work items are placed on this queue by the main process.
@@ -80,6 +88,10 @@ class _PureGeneratorPoolMP(object):
         return self
 
     def _put_work(self, item):
+        # On Linux, putting unpickleable items on the Queue causes an error
+        # to be raised on a different thread, meaning it cannot be caught.
+        # So we must check every item before putting it on the thread. This
+        # should not have much effect on performance because pickle caches.
         pickle.dumps(item)
         self._work_queue.put(item)
 
