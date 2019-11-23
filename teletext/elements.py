@@ -57,7 +57,7 @@ class ElementHamming(Element):
 
 class Mrag(ElementHamming):
 
-    def __init__(self, array):
+    def __init__(self, array=None):
         super().__init__((2,), array)
 
     @property
@@ -181,23 +181,6 @@ class Header(Page):
         return e
 
 
-class DesignationCode(Element):
-
-    @property
-    def dc(self):
-        return hamming8_decode(self._array[0])
-
-    @dc.setter
-    def dc(self, dc):
-        self._array[0] = hamming8_encode(dc)
-
-    @property
-    def errors(self):
-        e = np.zeros_like(self._array)
-        e[0] = hamming8_errors(self._array[0])
-        return e
-
-
 class PageLink(Page):
 
     def __init__(self, array, mrag):
@@ -243,6 +226,23 @@ class PageLink(Page):
     def errors(self):
         e = super().errors
         e[2:8] = hamming8_errors(self._array[2:8])
+        return e
+
+
+class DesignationCode(Element):
+
+    @property
+    def dc(self):
+        return hamming8_decode(self._array[0])
+
+    @dc.setter
+    def dc(self, dc):
+        self._array[0] = hamming8_encode(dc)
+
+    @property
+    def errors(self):
+        e = np.zeros_like(self._array)
+        e[0] = hamming8_errors(self._array[0])
         return e
 
 
