@@ -11,30 +11,17 @@ from teletext.mp import itermap, PureGeneratorPool, _PureGeneratorPoolSingle, _P
 from .test_sigint import ctrl_c
 
 
-def hush(f):
-    @wraps(f)
-    def wrapper(it, *args, **kwargs):
-        if current_process().name != 'MainProcess':
-            import sys
-            sys.stderr.close()
-        yield from f(it, *args, **kwargs)
-    return wrapper
-
-
-@hush
 def multiply(it, a):
     for x in it:
         yield x*a
 
 
-@hush
 def null(it, a):
     for x in it:
         yield (x, a)
 
 
 callcounter = 0
-@hush
 def callcount(it):
     global callcounter
     callcounter += 1
@@ -42,7 +29,6 @@ def callcount(it):
         yield callcounter
 
 
-@hush
 def crashy(it):
     for x in it:
         if x:
@@ -51,12 +37,10 @@ def crashy(it):
             yield x
 
 
-@hush
 def early_crash(it):
     raise ValueError('Crashed early on purpose.')
 
 
-@hush
 def not_generator(it):
     return 23
 
