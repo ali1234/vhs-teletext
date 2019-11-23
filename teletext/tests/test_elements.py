@@ -151,5 +151,6 @@ class TestFastext(TestDesignationCode):
     sized = True
     needsmrag = True
 
+    @unittest.skip("Not implemented yet.")
     def test_errors(self):
         pass # TODO
