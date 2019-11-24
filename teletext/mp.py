@@ -89,7 +89,7 @@ class _PureGeneratorPoolMP(object):
 
         try:
             # Send 32 items to each pipe to prime it.
-            for i in range(32):
+            for i in range(8):
                 for p, item in zip(self._pipes, itertools.islice(iterable, len(self._pipes))):
                     p.send(item)
                     sent_count += 1
