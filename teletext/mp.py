@@ -54,7 +54,8 @@ class _PureGeneratorPoolMP(object):
         # Similar to how, on Linux, putting an unpickleable object on a Queue
         # causes an uncatchable exception, passing unpickleable objects to
         # ctx.Process does the same thing on Windows. So we must check that
-        # everything can be pickled before attempting to use it. (See _put_work.)
+        # everything can be pickled before attempting to use it. Luckily this
+        # is only done once.
         pickle.dumps(self._function)
         pickle.dumps(self._args)
         pickle.dumps(self._kwargs)
