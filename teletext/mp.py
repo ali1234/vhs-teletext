@@ -4,44 +4,43 @@ import queue
 import signal
 
 import multiprocessing as mp
+import time
 
 
-def denumerate(quit_event, work_queue, tmp_queue):
+def denumerate(quit_event, pipe, tmp_queue):
     """
     Strips sequence numbers from work_queue items and yields the work.
-    If work_queue is empty and quit_event is set, exit.
+    If quit_event is set, exit.
     """
     while True:
-        try:
-            n, item = work_queue.get(timeout=0.1)
-        except queue.Empty:
-            if quit_event.is_set():
-                return
+        if quit_event.is_set():
+            return
         else:
-            tmp_queue.put(n)
-            yield item
+            if pipe.poll(timeout=0.1):
+                n, item = pipe.recv()
+                tmp_queue.put(n)
+                yield item
 
 
-def renumerate(iterator, done_queue, tmp_queue):
+def renumerate(iterator, pipe, tmp_queue):
     """
     Recombines results with the sequence numbers stored in tmp_queue.
     """
     for item in iterator:
         n = tmp_queue.get()
-        done_queue.put((n, item))
+        pipe.send((n, item))
 
 
-def worker(function, started_event, stopped_event, quit_event, work_queue, done_queue, args, kwargs):
+def worker(function, quit_event, pipe, args, kwargs):
     """
     The main function for subprocesses.
     """
     try:
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
-        started_event.set()
-        renumerate(function(denumerate(quit_event, work_queue, tmp_queue), *args, **kwargs), done_queue, tmp_queue)
+        renumerate(function(denumerate(quit_event, pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
     finally:
-        stopped_event.set()
+        pass
 
 
 class _PureGeneratorPoolMP(object):
@@ -51,111 +50,78 @@ class _PureGeneratorPoolMP(object):
         self._function = function
         self._args = args
         self._kwargs = kwargs
-        self._pool = []
+        self._procs = []
+        self._pipes = []
 
         # Similar to how, on Linux, putting an unpickleable object on a Queue
         # causes an uncatchable exception, passing unpickleable objects to
         # ctx.Process does the same thing on Windows. So we must check that
-        # everything can be pickled before attempting to use it. (See _put_work.)
+        # everything can be pickled before attempting to use it. Luckily this
+        # is only done once.
         pickle.dumps(self._function)
         pickle.dumps(self._args)
         pickle.dumps(self._kwargs)
 
         ctx = mp.get_context('spawn')
 
-        # Work items are placed on this queue by the main process.
-        self._work_queue = ctx.Queue()
-        # Sub-processes place results on this queue.
-        self._done_queue = ctx.Queue()
         # Tells sub-processes that we are done and they should exit.
         self._quit_event = ctx.Event()
 
         for id in range(processes):
-            started_event = ctx.Event()
-            stopped_event = ctx.Event()
+            local, remote = ctx.Pipe(duplex=True)
             p = ctx.Process(target=worker, daemon=True, args=(
-                function, started_event, stopped_event, self._quit_event,
-                self._work_queue, self._done_queue, self._args, self._kwargs
+                function, self._quit_event, remote, self._args, self._kwargs
             ))
-            self._pool.append((p, started_event, stopped_event))
+            self._procs.append(p)
+            self._pipes.append(local)
 
     def __enter__(self):
-        for p in self._pool:
-            p[0].start()
-        for p in self._pool:
-            if not p[1].wait(timeout=3):
-                raise TimeoutError('Timed out waiting for worker process to start.')
+        for p in self._procs:
+            p.start()
         return self
-
-    def _put_work(self, item):
-        # On Linux, putting unpickleable items on the Queue causes an error
-        # to be raised on a different thread, meaning it cannot be caught.
-        # So we must check every item before putting it on the thread. This
-        # should not have much effect on performance because pickle caches.
-        pickle.dumps(item)
-        self._work_queue.put(item)
-
-    @property
-    def _workers_exited(self):
-        # p[2].is_set means the process wants to exit but is waiting for
-        # use to read from the _done_queue, or it has exited.
-        # p[0].is_alive() is false when the process has exited.
-        # The process may exit without setting p[2] due to race conditions
-        # in multiprocessing - see __exit__.
-        return (p[2].is_set() or not p[0].is_alive() for p in self._pool)
 
     def apply(self, iterable):
         iterable = enumerate(iterable)
-
+        received = {}
         sent_count = 0
         received_count = 0
+        done = False
 
-        # Prime the queue with some items.
-        for item in itertools.islice(iterable, 32):
-            self._put_work(item)
-            sent_count += 1
+        try:
+            # Send 32 items to each pipe to prime it.
+            for i in range(32):
+                for p, item in zip(self._pipes, itertools.islice(iterable, len(self._pipes))):
+                    p.send(item)
+                    sent_count += 1
 
-        # Dict to use for sorting received items back into
-        # their original order.
-        received = {}
+            while True:
+                # Wait for any pipe to become ready. No timeout.
+                for p in mp.connection.wait(self._pipes):
+                    n, item = p.recv()
+                    received[n] = item
+                    try:
+                        p.send(next(iterable))
+                        sent_count += 1
+                    except StopIteration:
+                        done = True
 
-        while received_count < sent_count:
-            try:
-                n, item = self._done_queue.get(timeout=0.1)
-            except queue.Empty:
-                if any(self._workers_exited):
-                    raise ChildProcessError('A worker process stopped unexpectedly.')
-            else:
-                received[n] = item
+                # Yield what items we can.
                 while received_count in received:
                     yield received[received_count]
                     del received[received_count]
                     received_count += 1
-                try:
-                    self._put_work(next(iterable))
-                    sent_count += 1
-                except StopIteration:
-                    pass
+
+                # Check if we've done all the work.
+                if done and sent_count == received_count:
+                    return
+
+        except (BrokenPipeError, ConnectionResetError, EOFError):
+            raise ChildProcessError('A worker process stopped unexpectedly.')
 
     def __exit__(self, *args):
-        # In the event of a KeyboardInterrupt we might end up running this code
-        # after multiprocessing killed all remaining worker processes. If that is
-        # true then we can't rely on them having set _quit_event before being
-        # terminated. Whether this function or multiprocessing's atexit handler
-        # runs first is the subject of a race condition due to with/yield semantics.
         self._quit_event.set()
-        # _workers_exited checks both _quit_event and P.is_alive() in order to
-        # detect when this has happened.
-        while not all(self._workers_exited):
-            try:
-                self._done_queue.get(timeout=0.1)
-            except queue.Empty:
-                pass
-        # We also can't guarantee that the workers emptied the _work_queue if
-        # multiprocessing terminated them before we got here.
-        self._work_queue.cancel_join_thread()
-        for p in self._pool:
-            p[0].join()
+        for p in self._procs:
+            p.join()
 
 
 class _PureGeneratorPoolSingle(object):
