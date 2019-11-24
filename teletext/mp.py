@@ -4,12 +4,13 @@ import queue
 import signal
 
 import multiprocessing as mp
+import time
 
 
 def denumerate(quit_event, pipe, tmp_queue):
     """
     Strips sequence numbers from work_queue items and yields the work.
-    If work_queue is empty and quit_event is set, exit.
+    If quit_event is set, exit.
     """
     while True:
         if quit_event.is_set():
@@ -49,7 +50,8 @@ class _PureGeneratorPoolMP(object):
         self._function = function
         self._args = args
         self._kwargs = kwargs
-        self._pool = []
+        self._procs = []
+        self._pipes = []
 
         # Similar to how, on Linux, putting an unpickleable object on a Queue
         # causes an uncatchable exception, passing unpickleable objects to
@@ -70,11 +72,12 @@ class _PureGeneratorPoolMP(object):
             p = ctx.Process(target=worker, daemon=True, args=(
                 function, self._quit_event, remote, self._args, self._kwargs
             ))
-            self._pool.append((p, local))
+            self._procs.append(p)
+            self._pipes.append(local)
 
     def __enter__(self):
-        for p in self._pool:
-            p[0].start()
+        for p in self._procs:
+            p.start()
         return self
 
     def apply(self, iterable):
@@ -85,27 +88,30 @@ class _PureGeneratorPoolMP(object):
         done = False
 
         try:
+            # Send 32 items to prime each pipe.
             for i in range(32):
-                for p, item in zip(self._pool, itertools.islice(iterable, len(self._pool))):
-                    p[1].send(item)
+                for p, item in zip(self._pipes, itertools.islice(iterable, len(self._pipes))):
+                    p.send(item)
                     sent_count += 1
 
             while True:
-                for p in self._pool:
-                    if p[1].poll(timeout=0):
-                        n, item = p[1].recv()
-                        received[n] = item
-                        try:
-                            p[1].send(next(iterable))
-                            sent_count += 1
-                        except StopIteration:
-                            done = True
+                # Wait for any pipe to become ready. No timeout.
+                for p in mp.connection.wait(self._pipes):
+                    n, item = p.recv()
+                    received[n] = item
+                    try:
+                        p.send(next(iterable))
+                        sent_count += 1
+                    except StopIteration:
+                        done = True
 
+                # Yield what items we can.
                 while received_count in received:
                     yield received[received_count]
                     del received[received_count]
                     received_count += 1
 
+                # Check if we've done all the work.
                 if done and sent_count == received_count:
                     return
 
@@ -114,8 +120,8 @@ class _PureGeneratorPoolMP(object):
 
     def __exit__(self, *args):
         self._quit_event.set()
-        for p in self._pool:
-            p[0].join()
+        for p in self._procs:
+            p.join()
 
 
 class _PureGeneratorPoolSingle(object):

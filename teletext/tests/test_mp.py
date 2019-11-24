@@ -137,4 +137,4 @@ class TestMPMultiSigInt(unittest.TestCase):
     def test_sigint_to_child(self):
         result = self.items()
         for r in result:
-            ctrl_c(self.pool._pool[r%self.pool_size][0].pid)
+            ctrl_c(self.pool._procs[r%self.pool_size].pid)
