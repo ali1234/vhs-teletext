@@ -1,6 +1,7 @@
 import itertools
 import pickle
 import queue
+import sys
 
 import multiprocessing as mp
 
@@ -11,19 +12,17 @@ import multiprocessing.connection
 multiprocessing.connection.BUFSIZE = 65536
 
 
-def denumerate(quit_event, pipe, tmp_queue):
+def denumerate(pipe, tmp_queue):
     """
     Strips sequence numbers from work_queue items and yields the work.
     If quit_event is set, exit.
     """
     while True:
-        if quit_event.is_set():
-            return
-        else:
-            if pipe.poll(timeout=0.1):
-                n, item = pipe.recv()
-                tmp_queue.put(n)
-                yield item
+        n, item = pipe.recv()
+        if n < 0:
+            sys.exit(0)
+        tmp_queue.put(n)
+        yield item
 
 
 def renumerate(iterator, pipe, tmp_queue):
@@ -35,13 +34,13 @@ def renumerate(iterator, pipe, tmp_queue):
         pipe.send((n, item))
 
 
-def worker(function, quit_event, pipe, args, kwargs):
+def worker(function, pipe, args, kwargs):
     """
     The main function for subprocesses.
     """
     try:
         tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
-        renumerate(function(denumerate(quit_event, pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
+        renumerate(function(denumerate(pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
     finally:
         pass
 
@@ -67,13 +66,10 @@ class _PureGeneratorPoolMP(object):
 
         ctx = mp.get_context('spawn')
 
-        # Tells sub-processes that we are done and they should exit.
-        self._quit_event = ctx.Event()
-
         for id in range(processes):
             local, remote = ctx.Pipe(duplex=True)
             p = ctx.Process(target=worker, daemon=True, args=(
-                function, self._quit_event, remote, self._args, self._kwargs
+                function, remote, self._args, self._kwargs
             ))
             self._procs.append(p)
             self._pipes.append(local)
@@ -122,7 +118,11 @@ class _PureGeneratorPoolMP(object):
             raise ChildProcessError('A worker process stopped unexpectedly.')
 
     def __exit__(self, *args):
-        self._quit_event.set()
+        for p in self._pipes:
+            try:
+                p.send((-1, None))
+            except (BrokenPipeError, ConnectionResetError, EOFError):
+                pass
         for p in self._procs:
             p.join()
 
