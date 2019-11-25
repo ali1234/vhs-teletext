@@ -136,5 +136,6 @@ class TestMPMultiSigInt(unittest.TestCase):
     @unittest.skipIf(sys.platform.startswith('win'), "Can't send ctrl-c to an individual process on Windows")
     def test_sigint_to_child(self):
         result = self.items()
-        for r in result:
-            ctrl_c(self.pool._procs[r%self.pool_size].pid)
+        with self.assertRaises(ChildProcessError):
+            for r in result:
+                ctrl_c(self.pool._procs[r%self.pool_size].pid)

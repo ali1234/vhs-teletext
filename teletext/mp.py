@@ -1,7 +1,6 @@
 import itertools
 import pickle
 import queue
-import signal
 
 import multiprocessing as mp
 import time
@@ -36,7 +35,6 @@ def worker(function, quit_event, pipe, args, kwargs):
     The main function for subprocesses.
     """
     try:
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
         tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
         renumerate(function(denumerate(quit_event, pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
     finally:
