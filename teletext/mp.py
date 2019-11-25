@@ -6,7 +6,7 @@ import multiprocessing as mp
 
 # On Windows, multiprocessing sets the buffer size to 8192.
 # We need to make it bigger to fit a decent amount of work.
-# This has no effect one Linux.
+# This has no effect on Linux.
 import multiprocessing.connection
 multiprocessing.connection.BUFSIZE = 65536
 
