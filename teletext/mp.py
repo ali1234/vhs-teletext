@@ -3,7 +3,12 @@ import pickle
 import queue
 
 import multiprocessing as mp
-import time
+
+# On Windows, multiprocessing sets the buffer size to 8192.
+# We need to make it bigger to fit a decent amount of work.
+# This has no effect one Linux.
+import multiprocessing.connection
+multiprocessing.connection.BUFSIZE = 65536
 
 
 def denumerate(quit_event, pipe, tmp_queue):
@@ -86,8 +91,8 @@ class _PureGeneratorPoolMP(object):
         done = False
 
         try:
-            # Send 32 items to each pipe to prime it.
-            for i in range(8):
+            # Send 4 items to each pipe to prime it.
+            for i in range(4):
                 for p, item in zip(self._pipes, itertools.islice(iterable, len(self._pipes))):
                     p.send(item)
                     sent_count += 1
