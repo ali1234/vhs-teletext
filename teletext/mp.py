@@ -2,6 +2,7 @@ import itertools
 import pickle
 import queue
 import sys
+import threading
 
 import multiprocessing as mp
 
@@ -9,38 +10,84 @@ import multiprocessing as mp
 # We need to make it bigger to fit a decent amount of work.
 # This has no effect on Linux.
 import multiprocessing.connection
+
+
 multiprocessing.connection.BUFSIZE = 65536
 
 
-def denumerate(pipe, tmp_queue):
-    """
-    Strips sequence numbers from work_queue items and yields the work.
-    If quit_event is set, exit.
-    """
+def reader_thread(work_queue, pipe):
+
+    """Reads work from the pipe and places it on the work queue."""
+
+    try:
+        # Read from pipe until sentinel received.
+        while True:
+            n, item = pipe.recv()
+            if n < 0:
+                return
+            work_queue.put((n, item))
+    finally:
+        # Clear the work queue and signal other threads to exit.
+        while not work_queue.empty():
+            work_queue.get()
+        work_queue.put((-1, None))
+
+
+def writer_thread(result_queue, pipe):
+
+    """Writes results from the queue back into the pipe."""
+
     while True:
-        n, item = pipe.recv()
-        if n < 0:
-            sys.exit(0)
+        n, item = result_queue.get()
+        pipe.send((n, item))
+        if n < 0: # Sentinel received.
+            return
+
+
+def denumerate(work_queue, tmp_queue):
+
+    """Strips sequence numbers from work_queue items and yields the work."""
+
+    while True:
+        n, item = work_queue.get()
+        if n < 0: # Sentinel received.
+            return
         tmp_queue.put(n)
         yield item
 
 
-def renumerate(iterator, pipe, tmp_queue):
-    """
-    Recombines results with the sequence numbers stored in tmp_queue.
-    """
+def renumerate(iterator, result_queue, tmp_queue):
+
+    """Recombines results with the sequence numbers stored in tmp_queue."""
+
     for item in iterator:
         n = tmp_queue.get()
-        pipe.send((n, item))
+        result_queue.put((n, item))
 
 
 def worker(function, pipe, args, kwargs):
-    """
-    The main function for subprocesses.
-    """
+
+    """Subprocess main. Runs a generator function on items from a pipe."""
+
     try:
-        tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
-        renumerate(function(denumerate(pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
+        work_queue = queue.Queue()
+        result_queue = queue.Queue()
+        tmp_queue = queue.Queue() # Holds work item numbers to be recombined with the result.
+
+        reader = threading.Thread(target=reader_thread, args=(work_queue, pipe))
+        writer = threading.Thread(target=writer_thread, args=(result_queue, pipe))
+        reader.start()
+        writer.start()
+
+        try:
+            renumerate(function(denumerate(work_queue, tmp_queue), *args, **kwargs), result_queue, tmp_queue)
+        finally:
+            while not result_queue.empty():
+                result_queue.get()
+            result_queue.put((-1, None))
+            reader.join()
+            writer.join()
+
     except KeyboardInterrupt:
         pass
 
@@ -68,7 +115,7 @@ class _PureGeneratorPoolMP(object):
 
         for id in range(processes):
             local, remote = ctx.Pipe(duplex=True)
-            p = ctx.Process(target=worker, daemon=True, args=(
+            p = ctx.Process(target=worker, args=(
                 function, remote, self._args, self._kwargs
             ))
             self._procs.append(p)
@@ -97,6 +144,8 @@ class _PureGeneratorPoolMP(object):
                 # Wait for any pipe to become ready. No timeout.
                 for p in mp.connection.wait(self._pipes):
                     n, item = p.recv()
+                    if n < 0:
+                        raise ChildProcessError('A worker process stopped unexpectedly.')
                     received[n] = item
                     try:
                         p.send(next(iterable))
@@ -119,10 +168,7 @@ class _PureGeneratorPoolMP(object):
 
     def __exit__(self, *args):
         for p in self._pipes:
-            try:
-                p.send((-1, None))
-            except (BrokenPipeError, ConnectionResetError, EOFError):
-                pass
+            p.send((-1, None))
         for p in self._procs:
             p.join()
 
