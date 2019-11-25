@@ -41,7 +41,7 @@ def worker(function, pipe, args, kwargs):
     try:
         tmp_queue = queue.Queue() # holds work item numbers to be recombined with the result
         renumerate(function(denumerate(pipe, tmp_queue), *args, **kwargs), pipe, tmp_queue)
-    finally:
+    except KeyboardInterrupt:
         pass
 
 
