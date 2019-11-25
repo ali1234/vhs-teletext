@@ -1,7 +1,7 @@
+import atexit
 import itertools
 import pickle
 import queue
-import sys
 import threading
 
 import multiprocessing as mp
@@ -37,11 +37,15 @@ def writer_thread(result_queue, pipe):
 
     """Writes results from the queue back into the pipe."""
 
-    while True:
-        n, item = result_queue.get()
-        pipe.send((n, item))
-        if n < 0: # Sentinel received.
-            return
+    try:
+        while True:
+            n, item = result_queue.get()
+            if n < 0: # Sentinel received.
+                return
+            pipe.send((n, item))
+    finally:
+        pipe.send((-1, None))
+
 
 
 def denumerate(work_queue, tmp_queue):
