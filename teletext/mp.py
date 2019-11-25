@@ -126,6 +126,7 @@ class _PureGeneratorPoolMP(object):
             self._pipes.append(local)
 
     def __enter__(self):
+        atexit.register(self.shutdown)
         for p in self._procs:
             p.start()
         return self
@@ -170,12 +171,21 @@ class _PureGeneratorPoolMP(object):
         except (BrokenPipeError, ConnectionResetError, EOFError):
             raise ChildProcessError('A worker process stopped unexpectedly.')
 
-    def __exit__(self, *args):
-        for p in self._pipes:
-            p.send((-1, None))
-        for p in self._procs:
-            p.join()
+    def shutdown(self):
+        for proc, pipe in zip(self._procs, self._pipes):
+            if proc.is_alive():
+                try:
+                    pipe.send((-1, None))
+                    while pipe.poll(timeout=0):
+                        pipe.recv()
+                except (BrokenPipeError, ConnectionResetError, EOFError):
+                    continue
+                finally:
+                    proc.join()
 
+    def __exit__(self, *args):
+        self.shutdown()
+        atexit.unregister(self.shutdown)
 
 class _PureGeneratorPoolSingle(object):
 
