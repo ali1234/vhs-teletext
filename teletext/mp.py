@@ -92,28 +92,34 @@ class _PureGeneratorPoolMP(object):
         self._result = self._ctx.socket(zmq.PULL)
         result_port = self._result.bind_to_random_port('tcp://*')
 
-        self._control = self._ctx.socket(zmq.PUB)
-        control_port = self._control.bind_to_random_port('tcp://*')
-
         self._status = self._ctx.socket(zmq.PULL)
         status_port = self._status.bind_to_random_port('tcp://*')
 
-        for id in range(self._processes):
-            p = mp_ctx.Process(target=worker, args=(
-                work_port, result_port, control_port, status_port,
-                self._function, self._args, self._kwargs
-            ))
-            self._procs.append(p)
+        self._control = self._ctx.socket(zmq.PUB)
+        control_port = self._control.bind_to_random_port('tcp://*')
 
-        atexit.register(self.shutdown)
-        for p in self._procs:
-            p.start()
+        try:
 
-        for p in self._procs:
-            s = self._status.recv_string()
-            if s == 'DED':
-                self._control.send_string("DIE")
-                raise ChildProcessError("Worker failed to start.")
+            for id in range(self._processes):
+                p = mp_ctx.Process(target=worker, args=(
+                    work_port, result_port, control_port, status_port,
+                    self._function, self._args, self._kwargs
+                ))
+                self._procs.append(p)
+
+            for p in self._procs:
+                p.start()
+
+            atexit.register(self.__exit__)
+
+            for p in self._procs:
+                s = self._status.recv_string()
+                if s == 'DED':
+                    raise ChildProcessError("Worker failed to start.")
+
+        except (KeyboardInterrupt, ChildProcessError):
+            self._control.send_string("DIE")
+            raise
 
         return self
 
@@ -133,7 +139,6 @@ class _PureGeneratorPoolMP(object):
             socks = dict(poller.poll())
 
             if socks.get(self._status) == zmq.POLLIN:
-                self._control.send_string("DIE")
                 raise ChildProcessError('Worker exited unexpectedly.')
 
             if socks.get(self._result) == zmq.POLLIN:
@@ -155,14 +160,12 @@ class _PureGeneratorPoolMP(object):
                 except StopIteration:
                     done = True
 
-    def shutdown(self):
+    def __exit__(self, *args):
         self._control.send_string("DIE")
         for proc in self._procs:
             proc.join()
+        atexit.unregister(self.__exit__)
 
-    def __exit__(self, *args):
-        self.shutdown()
-        atexit.unregister(self.shutdown)
 
 class _PureGeneratorPoolSingle(object):
 
