@@ -2,98 +2,62 @@ import atexit
 import itertools
 import pickle
 import queue
-import threading
 
 import multiprocessing as mp
 
-# On Windows, multiprocessing sets the buffer size to 8192.
-# We need to make it bigger to fit a decent amount of work.
-# This has no effect on Linux.
-import multiprocessing.connection
+import zmq
 
 
-multiprocessing.connection.BUFSIZE = 65536
-
-
-def reader_thread(work_queue, pipe):
-
-    """Reads work from the pipe and places it on the work queue."""
-
-    try:
-        # Read from pipe until sentinel received.
-        while True:
-            n, item = pipe.recv()
-            if n < 0:
-                return
-            work_queue.put((n, item))
-    finally:
-        # Clear the work queue and signal other threads to exit.
-        while not work_queue.empty():
-            work_queue.get()
-        work_queue.put((-1, None))
-
-
-def writer_thread(result_queue, pipe):
-
-    """Writes results from the queue back into the pipe."""
-
-    try:
-        while True:
-            n, item = result_queue.get()
-            if n < 0: # Sentinel received.
-                return
-            pipe.send((n, item))
-    finally:
-        pipe.send((-1, None))
-
-
-
-def denumerate(work_queue, tmp_queue):
+def denumerate(work, control, tmp_queue):
 
     """Strips sequence numbers from work_queue items and yields the work."""
 
+    poller = zmq.Poller()
+    poller.register(work, zmq.POLLIN)
+    poller.register(control, zmq.POLLIN)
+
     while True:
-        n, item = work_queue.get()
-        if n < 0: # Sentinel received.
+        socks = dict(poller.poll())
+        if socks.get(work) == zmq.POLLIN:
+            n, item = work.recv_pyobj()
+            tmp_queue.put(n)
+            yield item
+        if socks.get(control) == zmq.POLLIN:
             return
-        tmp_queue.put(n)
-        yield item
 
-
-def renumerate(iterator, result_queue, tmp_queue):
+def renumerate(iterator, result, tmp_queue):
 
     """Recombines results with the sequence numbers stored in tmp_queue."""
 
     for item in iterator:
         n = tmp_queue.get()
-        result_queue.put((n, item))
+        result.send_pyobj((n, item))
 
 
-def worker(function, pipe, args, kwargs):
+def worker(function, work_port, result_port, control_port, args, kwargs):
 
     """Subprocess main. Runs a generator function on items from a pipe."""
 
+    tmp_queue = queue.Queue()
+
+    ctx = zmq.Context()
+    work = ctx.socket(zmq.PULL)
+    work.set_hwm(10)
+    result = ctx.socket(zmq.PUSH)
+    control = ctx.socket(zmq.SUB)
+
     try:
-        work_queue = queue.Queue()
-        result_queue = queue.Queue()
-        tmp_queue = queue.Queue() # Holds work item numbers to be recombined with the result.
-
-        reader = threading.Thread(target=reader_thread, args=(work_queue, pipe))
-        writer = threading.Thread(target=writer_thread, args=(result_queue, pipe))
-        reader.start()
-        writer.start()
-
-        try:
-            renumerate(function(denumerate(work_queue, tmp_queue), *args, **kwargs), result_queue, tmp_queue)
-        finally:
-            while not result_queue.empty():
-                result_queue.get()
-            result_queue.put((-1, None))
-            reader.join()
-            writer.join()
-
+        work.connect(f'tcp://localhost:{work_port}')
+        result.connect(f'tcp://localhost:{result_port}')
+        control.connect(f"tcp://localhost:{control_port}")
+        control.setsockopt(zmq.SUBSCRIBE, b"")
+        renumerate(function(denumerate(work, control, tmp_queue), *args, **kwargs), result, tmp_queue)
     except KeyboardInterrupt:
         pass
+    finally:
+        work.close(linger=False)
+        result.close(linger=False)
+        control.close(linger=False)
 
 
 class _PureGeneratorPoolMP(object):
@@ -104,7 +68,6 @@ class _PureGeneratorPoolMP(object):
         self._args = args
         self._kwargs = kwargs
         self._procs = []
-        self._pipes = []
 
         # Similar to how, on Linux, putting an unpickleable object on a Queue
         # causes an uncatchable exception, passing unpickleable objects to
@@ -115,20 +78,31 @@ class _PureGeneratorPoolMP(object):
         pickle.dumps(self._args)
         pickle.dumps(self._kwargs)
 
-        ctx = mp.get_context('spawn')
+    def __enter__(self):
+        mp_ctx = mp.get_context('spawn')
 
-        for id in range(processes):
-            local, remote = ctx.Pipe(duplex=True)
-            p = ctx.Process(target=worker, args=(
-                function, remote, self._args, self._kwargs
+        self._ctx = zmq.Context()
+
+        self._work = self._ctx.socket(zmq.PUSH)
+        self._work.set_hwm(10)
+        work_port = self._work.bind_to_random_port('tcp://*')
+
+        self._result = self._ctx.socket(zmq.PULL)
+        result_port = self._result.bind_to_random_port('tcp://*')
+
+        self._control = self._ctx.socket(zmq.PUB)
+        control_port = self._control.bind_to_random_port('tcp://*')
+
+        for id in range(self._processes):
+            p = mp_ctx.Process(target=worker, args=(
+                self._function, work_port, result_port, control_port, self._args, self._kwargs
             ))
             self._procs.append(p)
-            self._pipes.append(local)
 
-    def __enter__(self):
         atexit.register(self.shutdown)
         for p in self._procs:
             p.start()
+
         return self
 
     def apply(self, iterable):
@@ -138,50 +112,36 @@ class _PureGeneratorPoolMP(object):
         received_count = 0
         done = False
 
-        try:
-            # Send 4 items to each pipe to prime it.
-            for i in range(4):
-                for p, item in zip(self._pipes, itertools.islice(iterable, len(self._pipes))):
-                    p.send(item)
-                    sent_count += 1
+        poller = zmq.Poller()
+        poller.register(self._work, zmq.POLLOUT)
+        poller.register(self._result, zmq.POLLIN)
 
-            while True:
-                # Wait for any pipe to become ready. No timeout.
-                for p in mp.connection.wait(self._pipes):
-                    n, item = p.recv()
-                    if n < 0:
-                        raise ChildProcessError('A worker process stopped unexpectedly.')
-                    received[n] = item
-                    try:
-                        p.send(next(iterable))
-                        sent_count += 1
-                    except StopIteration:
-                        done = True
+        while True:
+            socks = dict(poller.poll())
 
-                # Yield what items we can.
+            if socks.get(self._result) == zmq.POLLIN:
+                n, item = self._result.recv_pyobj()
+                received[n] = item
+
                 while received_count in received:
                     yield received[received_count]
                     del received[received_count]
                     received_count += 1
 
-                # Check if we've done all the work.
                 if done and sent_count == received_count:
                     return
 
-        except (BrokenPipeError, ConnectionResetError, EOFError):
-            raise ChildProcessError('A worker process stopped unexpectedly.')
+            if socks.get(self._work) == zmq.POLLOUT:
+                try:
+                    self._work.send_pyobj(next(iterable))
+                    sent_count += 1
+                except StopIteration:
+                    done = True
 
     def shutdown(self):
-        for proc, pipe in zip(self._procs, self._pipes):
-            if proc.is_alive():
-                try:
-                    pipe.send((-1, None))
-                    while pipe.poll(timeout=0):
-                        pipe.recv()
-                except (BrokenPipeError, ConnectionResetError, EOFError):
-                    continue
-                finally:
-                    proc.join()
+        self._control.send_string("DIE")
+        for proc in self._procs:
+            proc.join()
 
     def __exit__(self, *args):
         self.shutdown()
