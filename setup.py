@@ -21,8 +21,8 @@ setup(
         ]
     },
     install_requires=[
-        'numpy', 'scipy', 'click', 'tqdm',
-        'windows-curses;platform_system=="Windows"'
+        'numpy', 'scipy', 'click', 'tqdm',  'pyzmq',
+        'windows-curses;platform_system=="Windows"',
     ],
     extras_require={
         'spellcheck': ['pyenchant'],
