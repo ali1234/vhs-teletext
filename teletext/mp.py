@@ -2,6 +2,7 @@ import atexit
 import itertools
 import pickle
 import queue
+import time
 
 import multiprocessing as mp
 
@@ -34,7 +35,7 @@ def renumerate(iterator, result, tmp_queue):
         result.send_pyobj((n, item))
 
 
-def worker(function, work_port, result_port, control_port, args, kwargs):
+def worker(work_port, result_port, control_port, status_port, function, args, kwargs):
 
     """Subprocess main. Runs a generator function on items from a pipe."""
 
@@ -44,20 +45,22 @@ def worker(function, work_port, result_port, control_port, args, kwargs):
     work = ctx.socket(zmq.PULL)
     work.set_hwm(10)
     result = ctx.socket(zmq.PUSH)
+    status = ctx.socket(zmq.PUSH)
     control = ctx.socket(zmq.SUB)
 
     try:
         work.connect(f'tcp://localhost:{work_port}')
         result.connect(f'tcp://localhost:{result_port}')
+        status.connect(f"tcp://localhost:{status_port}")
         control.connect(f"tcp://localhost:{control_port}")
         control.setsockopt(zmq.SUBSCRIBE, b"")
+        status.send_string('CON')
+
         renumerate(function(denumerate(work, control, tmp_queue), *args, **kwargs), result, tmp_queue)
     except KeyboardInterrupt:
         pass
     finally:
-        work.close(linger=False)
-        result.close(linger=False)
-        control.close(linger=False)
+        status.send_string('DED')
 
 
 class _PureGeneratorPoolMP(object):
@@ -84,7 +87,6 @@ class _PureGeneratorPoolMP(object):
         self._ctx = zmq.Context()
 
         self._work = self._ctx.socket(zmq.PUSH)
-        self._work.set_hwm(10)
         work_port = self._work.bind_to_random_port('tcp://*')
 
         self._result = self._ctx.socket(zmq.PULL)
@@ -93,15 +95,25 @@ class _PureGeneratorPoolMP(object):
         self._control = self._ctx.socket(zmq.PUB)
         control_port = self._control.bind_to_random_port('tcp://*')
 
+        self._status = self._ctx.socket(zmq.PULL)
+        status_port = self._status.bind_to_random_port('tcp://*')
+
         for id in range(self._processes):
             p = mp_ctx.Process(target=worker, args=(
-                self._function, work_port, result_port, control_port, self._args, self._kwargs
+                work_port, result_port, control_port, status_port,
+                self._function, self._args, self._kwargs
             ))
             self._procs.append(p)
 
         atexit.register(self.shutdown)
         for p in self._procs:
             p.start()
+
+        for p in self._procs:
+            s = self._status.recv_string()
+            if s == 'DED':
+                self._control.send_string("DIE")
+                raise ChildProcessError("Worker failed to start.")
 
         return self
 
@@ -114,10 +126,15 @@ class _PureGeneratorPoolMP(object):
 
         poller = zmq.Poller()
         poller.register(self._work, zmq.POLLOUT)
+        poller.register(self._status, zmq.POLLIN)
         poller.register(self._result, zmq.POLLIN)
 
         while True:
             socks = dict(poller.poll())
+
+            if socks.get(self._status) == zmq.POLLIN:
+                self._control.send_string("DIE")
+                raise ChildProcessError('Worker exited unexpectedly.')
 
             if socks.get(self._result) == zmq.POLLIN:
                 n, item = self._result.recv_pyobj()
