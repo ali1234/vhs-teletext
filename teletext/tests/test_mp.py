@@ -125,17 +125,20 @@ class TestMPMultiSigInt(unittest.TestCase):
     def items(self):
         with PureGeneratorPool(multiply, self.pool_size, 1) as pool:
             self.pool = pool
-            yield from pool.apply(islice(count(), 100))
+            yield from pool.apply(islice(count(), 2000))
 
     def test_sigint_to_self(self):
         result = self.items()
+        next(result)
         with self.assertRaises(KeyboardInterrupt):
-            for r in result:
-                ctrl_c(os.getpid())
+            ctrl_c(os.getpid())
 
     @unittest.skipIf(sys.platform.startswith('win'), "Can't send ctrl-c to an individual process on Windows")
     def test_sigint_to_child(self):
         result = self.items()
+        next(result)
         with self.assertRaises(ChildProcessError):
+            for i in range(self.pool_size):
+                ctrl_c(self.pool._procs[i].pid)
             for r in result:
-                ctrl_c(self.pool._procs[r%self.pool_size].pid)
+                pass
