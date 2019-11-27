@@ -130,9 +130,9 @@ class _PureGeneratorPoolMP(object):
 
     def apply(self, iterable):
         try:
-            chunksize = min(128, 1+(len(iterable)//len(self._procs)))
+            chunksize = min(64, 1+(len(iterable)//len(self._procs)))
         except TypeError:
-            chunksize = 128
+            chunksize = 64
 
         it = iter(iterable)
         iterable = enumerate(iter(lambda: list(itertools.islice(it, chunksize)), []))
@@ -160,7 +160,7 @@ class _PureGeneratorPoolMP(object):
                     yield from received[received_count]
                     del received[received_count]
                     received_count += 1
-                    if sent_count - received_count < self._processes * 6:
+                    if sent_count - received_count < self._processes * 3:
                         poller.register(self._work, zmq.POLLOUT)
 
                 if done and sent_count == received_count:
@@ -170,7 +170,7 @@ class _PureGeneratorPoolMP(object):
                 try:
                     self._work.send_pyobj(next(iterable))
                     sent_count += 1
-                    if sent_count - received_count > self._processes * 10:
+                    if sent_count - received_count > self._processes * 4:
                         poller.unregister(self._work)
                 except StopIteration:
                     done = True
