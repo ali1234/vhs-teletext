@@ -2,7 +2,6 @@ import atexit
 import itertools
 import pickle
 import queue
-import time
 
 import multiprocessing as mp
 
@@ -21,8 +20,8 @@ def denumerate(work, control, tmp_queue):
         socks = dict(poller.poll())
         if socks.get(work) == zmq.POLLIN:
             n, item = work.recv_pyobj()
-            tmp_queue.put(n)
-            yield item
+            tmp_queue.put((n, len(item)))
+            yield from item
         if socks.get(control) == zmq.POLLIN:
             return
 
@@ -30,9 +29,15 @@ def renumerate(iterator, result, tmp_queue):
 
     """Recombines results with the sequence numbers stored in tmp_queue."""
 
-    for item in iterator:
-        n = tmp_queue.get()
-        result.send_pyobj((n, item))
+    try:
+        while True:
+            r = [next(iterator)]
+            n, l = tmp_queue.get()
+            while len(r) < l:
+                r.append(next(iterator))
+            result.send_pyobj((n, r))
+    except StopIteration:
+        pass
 
 
 def worker(work_port, result_port, control_port, status_port, function, args, kwargs):
@@ -124,7 +129,13 @@ class _PureGeneratorPoolMP(object):
         return self
 
     def apply(self, iterable):
-        iterable = enumerate(iterable)
+        try:
+            chunksize = min(128, 1+(len(iterable)//len(self._procs)))
+        except TypeError:
+            chunksize = 128
+
+        it = iter(iterable)
+        iterable = enumerate(iter(lambda: list(itertools.islice(it, chunksize)), []))
         received = {}
         sent_count = 0
         received_count = 0
@@ -146,9 +157,11 @@ class _PureGeneratorPoolMP(object):
                 received[n] = item
 
                 while received_count in received:
-                    yield received[received_count]
+                    yield from received[received_count]
                     del received[received_count]
                     received_count += 1
+                    if sent_count - received_count < self._processes * 6:
+                        poller.register(self._work, zmq.POLLOUT)
 
                 if done and sent_count == received_count:
                     return
@@ -157,6 +170,8 @@ class _PureGeneratorPoolMP(object):
                 try:
                     self._work.send_pyobj(next(iterable))
                     sent_count += 1
+                    if sent_count - received_count > self._processes * 10:
+                        poller.unregister(self._work)
                 except StopIteration:
                     done = True
 
