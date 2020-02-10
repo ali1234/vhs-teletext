@@ -40,17 +40,20 @@ class Subpage(Element):
         else:
             return Packet(self._array[((row-26)*16)+26+dc, :])
 
+    def has_packet(self, row, dc=0):
+        return self.number(row, dc) > -100
+
     @property
     def mrag(self):
-        return Packet(self._array[0, :]).mrag
+        return self.packet(0).mrag
 
     @property
     def header(self):
-        return Packet(self._array[0, :]).header
+        return self.packet(0).header
 
     @property
     def fastext(self):
-        return Packet(self._array[27, :]).fastext
+        return self.packet(27, 0).fastext
 
     @property
     def displayable(self):
@@ -60,7 +63,7 @@ class Subpage(Element):
     def checksum(self):
         '''Calculates the actual checksum of the subpage.'''
         c = 0
-        if self.number(0) > -100:
+        if self.has_packet(0):
             for b in self.header.displayable:
                 c = crc(b, c)
         else:
@@ -68,7 +71,7 @@ class Subpage(Element):
                 c = crc(b, c)
 
         for r in range(1, 26):
-            if self.number(r) > -100:
+            if self.has_packet(r):
                 for b in self.packet(r)[2:]:
                     c = crc(b, c)
             else:
