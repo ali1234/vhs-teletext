@@ -160,7 +160,7 @@ class _PureGeneratorPoolMP(object):
                     yield from received[received_count]
                     del received[received_count]
                     received_count += 1
-                    if sent_count - received_count < self._processes * 3:
+                    if not done and sent_count - received_count < self._processes * 3:
                         poller.register(self._work, zmq.POLLOUT)
 
                 if done and sent_count == received_count:
