@@ -109,8 +109,23 @@ class Subpage(Element):
 
     @property
     def url(self):
-        data = base64.b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit, b'-_').decode('ascii')
-        return f'0:{data}'
+        parts = ['0']
+        parts.append(base64.b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit, b'-_').decode('ascii'))
+        parts.append(f'PN={self.mrag.magazine}{self.header.page:02x}')
+        # TODO: PS
+        parts.append(f'SC={self.header.subpage:04x}')
+        if self.has_packet(25):
+            parts.append('X25=' + base64.b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit, b'-_').decode('ascii'))
+        if self.has_packet(26):
+            pass # TODO
+        #if self.has_packet(27, 0):
+        parts.append('X270=' + ''.join([f'{l.magazine}{l.page:02x}{l.subpage:04x}' for l in self.fastext.links]))
+        if self.has_packet(28, 0):
+            pass # TODO
+        if self.has_packet(28, 4):
+            pass # TODO
+
+        return ':'.join(parts)
 
 
     def to_html(self, pages_set):
