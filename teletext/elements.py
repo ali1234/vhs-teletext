@@ -254,7 +254,15 @@ class Fastext(DesignationCode):
 
     @property
     def links(self):
-        return tuple(PageLink(self._array[n:n+6], self._mrag) for n in range(1, 37, 6))
+        return tuple(PageLink(self._array[n:n+6], self._mrag) for n in range(1, 36, 6))
+
+    @property
+    def control(self):
+        return hamming8_decode(self._array[37])
+
+    @control.setter
+    def control(self, value):
+        self._array[37] = hamming8_encode(value)
 
     @property
     def checksum(self):

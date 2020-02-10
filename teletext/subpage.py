@@ -118,8 +118,8 @@ class Subpage(Element):
             parts.append('X25=' + base64.b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit, b'-_').decode('ascii'))
         if self.has_packet(26):
             pass # TODO
-        #if self.has_packet(27, 0):
-        parts.append('X270=' + ''.join([f'{l.magazine}{l.page:02x}{l.subpage:04x}' for l in self.fastext.links]))
+        if self.has_packet(27, 0):
+            parts.append('X270=' + ''.join([f'{l.magazine}{l.page:02x}{l.subpage:04x}' for l in self.fastext.links]) + f'{self.fastext.control:1x}')
         if self.has_packet(28, 0):
             pass # TODO
         if self.has_packet(28, 4):
