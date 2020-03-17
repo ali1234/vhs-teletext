@@ -233,7 +233,7 @@ def record(output, device, config):
     import struct
     import sys
 
-    chunks = FileChunker(device, config.line_length*32)
+    chunks = FileChunker(device, config.line_length*config.field_lines*2)
     bar = tqdm(chunks, unit=' Frames')
 
     prev_seq = None
