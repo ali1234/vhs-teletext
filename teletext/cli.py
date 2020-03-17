@@ -242,11 +242,12 @@ def record(output, device, config):
     try:
         for n, chunk in bar:
             output.write(chunk)
-            seq, = struct.unpack('<I', chunk[-4:])
-            if prev_seq is not None and seq != (prev_seq + 1):
-               dropped += 1
-               sys.stderr.write('Frame drop? %d\n' % dropped)
-            prev_seq = seq
+            if config.card == 'bt8x8':
+                seq, = struct.unpack('<I', chunk[-4:])
+                if prev_seq is not None and seq != (prev_seq + 1):
+                   dropped += 1
+                   sys.stderr.write('Frame drop? %d\n' % dropped)
+                prev_seq = seq
 
     except KeyboardInterrupt:
         pass

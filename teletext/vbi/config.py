@@ -68,6 +68,8 @@ class Config(object):
     }
 
     def __init__(self, card='bt8x8', **kwargs):
+        setattr(self, 'card', card)
+
         for k, v in self.cards[card].items():
             setattr(self, k, v)
 
