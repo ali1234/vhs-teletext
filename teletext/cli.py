@@ -233,6 +233,9 @@ def record(output, device, config):
     import struct
     import sys
 
+    if output.name.startswith('/dev/vbi'):
+        raise click.UsageError(f'Refusing to write output to VBI device. Did you mean -d?')
+
     chunks = FileChunker(device, config.line_length*config.field_lines*2)
     bar = tqdm(chunks, unit=' Frames')
 
