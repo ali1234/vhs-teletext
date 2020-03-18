@@ -36,7 +36,7 @@ class Config(object):
         'cx88': {
             'sample_rate': 35468950.0,
             'line_length': 2048,
-            'line_start_range': (60, 130),
+            'line_start_range': (90, 150),
             'dtype': np.uint8,
             'field_lines': 18,
             'field_range': range(1, 17),
