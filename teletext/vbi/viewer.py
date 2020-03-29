@@ -79,11 +79,7 @@ class VBIViewer(object):
         elif key == b'1':
             self.line_attr = 'original'
         elif key == b'2':
-            self.line_attr = 'rolled'
-        elif key == b'3':
             self.line_attr = 'fft'
-        elif key == b'4':
-            self.line_attr = 'chopped'
         elif key == b'q':
             exit(0)
         self.set_title()
