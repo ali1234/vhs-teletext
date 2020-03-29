@@ -124,7 +124,7 @@ class Interactive(object):
 
         packet = next(self.packet_iter)
         if self.inputstate == 0 and not self.hold:
-            if packet.mrag.magazine == self.magazine % 8:
+            if packet.mrag.magazine == self.magazine:
                 if packet.mrag.row == 0:
                     self.last_header = packet.header.page
                     if self.last_header == self.page:
