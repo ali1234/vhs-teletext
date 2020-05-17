@@ -39,14 +39,20 @@ def teletext(unicode):
 @command(teletext)
 @packetwriter
 @paginated()
+@click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
 @packetreader
-def filter(packets, pages, subpages, paginate):
+def filter(packets, pages, subpages, paginate, n):
 
     """Demultiplex and display t42 packet streams."""
 
+    if n:
+        paginate = True
+
     if paginate:
-        for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
+        for pn, pl in enumerate(pipeline.paginate(packets, pages=pages, subpages=subpages), start=1):
             yield from pl
+            if pn == n:
+                return
     else:
         yield from packets
 
