@@ -21,19 +21,26 @@ def parse_pes(pes):
     pos = 0
     while (len(pes) - pos) >= 9:
         l, o = struct.unpack('!xxxxHxxB', pes[pos:pos+9])
-        yield from parse_data(pes[pos+9+o:pos+l-o-3])
+        yield from parse_data(pes[pos+10+o:pos+l-o-4])
         pos += l + 6
 
 
 def pidextract(packets, pid):
     pes = []
-    c = itertools.count()
+    count = itertools.count()
+    start_seen = False
     for n, packet in packets:
-        t, p, l = struct.unpack('!BHB', packet[:4])
+        t, p, c = struct.unpack('!BHB', packet[:4])
+        o = 4
         if t == 0x47 and (p&0x1fff) == pid:
-            pes.append(packet[4+l:])
-            if (p & 0x4000):
-                yield from zip(c, parse_pes(b''.join(pes)))
-                pes = []
+            if p & 0x4000:
+                if pes:
+                    yield from ((y, x) for x, y in zip(parse_pes(b''.join(pes)), count))
+                    pes = []
+                start_seen = True
+            if start_seen:
+                if c & 0x20:  # adaptation field
+                    o += packet[4] + 1
+                pes.append(packet[o:])
 
 
