@@ -1,19 +1,15 @@
+# Based on https://github.com/fsphil/tstxtdump with assistance from the author :)
+
 import itertools
 import struct
 
-
-def rev(b):
-    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4
-    b = (b & 0xCC) >> 2 | (b & 0x33) << 2
-    b = (b & 0xAA) >> 1 | (b & 0x55) << 1
-    return b
-
+from .coding import byte_reverse
 
 def parse_data(data):
     pos = 0
     while (len(data) - pos) >= 46:
         if data[pos] in [2, 3]:
-            yield bytes(rev(b) for b in data[pos+4:pos+4+42])
+            yield bytes(byte_reverse(b) for b in data[pos+4:pos+4+42])
         pos += 46
 
 
