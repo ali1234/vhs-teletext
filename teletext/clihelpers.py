@@ -87,14 +87,22 @@ def chunkreader(f):
 def packetreader(f):
     @chunkreader
     @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
+    @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
     @filterparams
     @progressparams()
     @wraps(f)
-    def wrapper(chunker, wst, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
+    def wrapper(chunker, wst, ts, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
+
+        if wst and (ts is not None):
+            raise click.UsageError('--wst and --ts can not be specified at the same time.')
 
         if wst:
             chunks = chunker(43)
             chunks = ((c[0],c[1][:42]) for c in chunks if c[1][0] != 0)
+        elif ts is not None:
+            from .ts import pidextract
+            chunks = chunker(188)
+            chunks = pidextract(chunks, ts)
         else:
             chunks = chunker(42)
 
