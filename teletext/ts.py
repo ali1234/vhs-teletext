@@ -5,6 +5,7 @@ import struct
 
 from .coding import byte_reverse
 
+
 def parse_data(data):
     pos = 0
     while (len(data) - pos) >= 46:
