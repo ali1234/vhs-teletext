@@ -13,8 +13,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setGeometry(50, 50, 500, 300)
-        self.setWindowTitle('VBI Viewer')
+        #self.setGeometry(50, 50, 500, 300)
+        self.setWindowTitle('Teletext Viewer')
 
         build_menu(self, self.menuBar(), [
             ('&File', [
