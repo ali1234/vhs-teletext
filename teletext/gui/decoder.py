@@ -7,11 +7,34 @@ from PyQt5.QtQuickWidgets import QQuickWidget
 from PyQt5.QtWidgets import QMainWindow, QApplication
 
 try:
-    from PyQt5.QtCore import QStringListModel, QUrl, QSize
+    from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel
 except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
 from teletext.gui.qthelpers import build_menu
+
+
+class TTModel(QAbstractListModel):
+    def rowCount(self, x):
+        return 25*40
+
+    def data(self, index, a):
+        result = {}
+        if (index.row()//40) % 2:
+            result['text'] = ''
+            result['fg'] = 'red'
+            result['bg'] = 'green'
+            result['width'] = 1
+            result['height'] = 1
+        else:
+            result['text'] = 'A'
+            result['fg'] = 'yellow'
+            result['bg'] = 'blue'
+            result['width'] = 2
+            result['height'] = 2
+
+        return result
+
 
 
 class TTWidget(QQuickWidget):
@@ -21,25 +44,33 @@ class TTWidget(QQuickWidget):
 
         self.setResizeMode(QQuickWidget.SizeViewToRootObject)
 
-        self._font = QFont("teletext2")
-        #font.setStyleStrategy(
-        #    QtGui.QFont.NoAntialias | QtGui.QFont.NoSubpixelAntialias | QtGui.QFont.ForceIntegerMetrics)
-        self._font.setHintingPreference(QFont.PreferNoHinting)
-        self._font.setPixelSize(20)
-        stretch = 104
-        self._font.setStretch(stretch)
-        self._font.setLetterSpacing(QFont.PercentageSpacing, 10000/stretch)
+        self._fonts = [[
+            self.make_font('teletext2', 20),
+            self.make_font('teletext4', 40),
+            ],[
+            self.make_font('teletext1', 20),
+            self.make_font('teletext2', 40),
+        ]]
 
-        self._model = QStringListModel()
-        self._model.setStringList(['']*25)
+        self._model = TTModel()
+#        self._model.setStringList(['']*25)
 
         self._effect = True
 
         self.rootContext().setContextProperty('ttmodel', self._model)
-        self.rootContext().setContextProperty('ttfont', self._font)
         self.rootContext().setContextProperty('tteffect', self._effect)
+        self.rootContext().setContextProperty('ttfonts', self._fonts)
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
         self.setSource(QUrl.fromLocalFile(qml_file))
+
+    def make_font(self, name, size):
+        font = QFont(name)
+        #self._font.setStyleStrategy(QFont.NoAntialias | QFont.NoSubpixelAntialias | QFont.ForceIntegerMetrics)
+        font.setHintingPreference(QFont.PreferFullHinting)
+        font.setPixelSize(size)
+        stretch = 114
+        font.setStretch(stretch)
+        return font
 
     def __setitem__(self, item, s):
         if item > 24:
@@ -47,8 +78,11 @@ class TTWidget(QQuickWidget):
         self._model.setData(self._model.index(item), s)
 
     def setZoom(self, zoom):
-        self._font.setPixelSize(zoom*10)
-        self.rootContext().setContextProperty('ttfont', self._font)
+        self._fonts[0][0].setPixelSize(zoom*10)
+        self._fonts[0][1].setPixelSize(zoom*20)
+        self._fonts[1][0].setPixelSize(zoom*10)
+        self._fonts[1][1].setPixelSize(zoom*20)
+        self.rootContext().setContextProperty('ttfonts', self._fonts)
         self.setFixedSize(self.sizeHint())
 
     def sizeHint(self):
