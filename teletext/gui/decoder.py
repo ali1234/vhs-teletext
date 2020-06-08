@@ -27,11 +27,11 @@ class TTModel(QAbstractListModel):
             result['width'] = 1
             result['height'] = 1
         else:
-            result['text'] = ''
+            result['text'] = 'A'
             result['fg'] = 'yellow'
-            result['bg'] = 'blue'
-            result['width'] = 2
-            result['height'] = 2
+            result['bg'] = 'black'
+            result['width'] = 1
+            result['height'] = 1
 
         result['visible'] = not ((index.row()%2) or ((index.row()//40) % 2))
 
@@ -62,6 +62,7 @@ class TTWidget(QQuickWidget):
         self.rootContext().setContextProperty('ttmodel', self._model)
         self.rootContext().setContextProperty('tteffect', self._effect)
         self.rootContext().setContextProperty('ttfonts', self._fonts)
+        self.rootContext().setContextProperty('ttzoom', 2)
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
         self.setSource(QUrl.fromLocalFile(qml_file))
 
@@ -70,7 +71,7 @@ class TTWidget(QQuickWidget):
         #self._font.setStyleStrategy(QFont.NoAntialias | QFont.NoSubpixelAntialias | QFont.ForceIntegerMetrics)
         font.setHintingPreference(QFont.PreferFullHinting)
         font.setPixelSize(size)
-        stretch = 100 + (14 / (size/20))
+        stretch = 100 + ((16 * 20) // size)
         font.setStretch(stretch)
         return font
 
@@ -85,6 +86,7 @@ class TTWidget(QQuickWidget):
         self._fonts[1][0].setPixelSize(zoom*10)
         self._fonts[1][1].setPixelSize(zoom*20)
         self.rootContext().setContextProperty('ttfonts', self._fonts)
+        self.rootContext().setContextProperty('ttzoom', zoom)
         self.setFixedSize(self.sizeHint())
 
     def sizeHint(self):
