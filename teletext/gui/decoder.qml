@@ -23,7 +23,7 @@ Rectangle {
         delegate: Rectangle {
             color: display.bg
             Text {
-                x: -0.4
+                renderType: Text.NativeRendering
                 color: display.fg
                 text: display.text
                 font: ttfonts[display.width-1][display.height-1]
