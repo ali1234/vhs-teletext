@@ -27,11 +27,13 @@ class TTModel(QAbstractListModel):
             result['width'] = 1
             result['height'] = 1
         else:
-            result['text'] = 'A'
+            result['text'] = ''
             result['fg'] = 'yellow'
             result['bg'] = 'blue'
             result['width'] = 2
             result['height'] = 2
+
+        result['visible'] = not ((index.row()%2) or ((index.row()//40) % 2))
 
         return result
 
@@ -68,7 +70,7 @@ class TTWidget(QQuickWidget):
         #self._font.setStyleStrategy(QFont.NoAntialias | QFont.NoSubpixelAntialias | QFont.ForceIntegerMetrics)
         font.setHintingPreference(QFont.PreferFullHinting)
         font.setPixelSize(size)
-        stretch = 114
+        stretch = 100 + (14 / (size/20))
         font.setStretch(stretch)
         return font
 
@@ -123,6 +125,7 @@ class MainWindow(QMainWindow):
                 ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
                 ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
                 ('3x', lambda x: self.setZoom(3), 'Ctrl+3'),
+                ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
                 ('CRT simulation', lambda x: self._tt.setEffect(True), None),
                 ('Regular', lambda x: self._tt.setEffect(False), None),
             ], None),

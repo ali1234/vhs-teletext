@@ -3,7 +3,7 @@ import QtGraphicalEffects 1.12
 
 
 Rectangle {
-    property var borderSize: ttfonts[0][0].pixelSize
+    property var borderSize: ttfonts[0][0].pixelSize / 2
     width: teletext.width + borderSize * 2
     height: teletext.height + borderSize * 2
     border.width: borderSize
@@ -31,6 +31,7 @@ Rectangle {
             height: display.height * ttfonts[0][0].pixelSize
             width: display.width * 8 * ttfonts[0][0].pixelSize / 10
             clip: true
+            visible: display.visible
         }
         layer.enabled: tteffect && (ttfonts[0][0].pixelSize > 10)
         layer.effect: ShaderEffect {
@@ -48,7 +49,7 @@ Rectangle {
     }
     layer.enabled: tteffect && (ttfonts[0].pixelSize > 10)
     layer.effect: FastBlur {
-        radius: 0.75;
+        radius: 1.75;
     }
 }
 
