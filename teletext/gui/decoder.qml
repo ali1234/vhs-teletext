@@ -3,19 +3,19 @@ import QtGraphicalEffects 1.12
 
 
 Rectangle {
-    property var borderSize: ttfonts[0][0].pixelSize / 2
-    width: teletext.width + borderSize * 2
+    property var borderSize: 19 * ttzoom
+    width: teletext.width + borderSize * 4
     height: teletext.height + borderSize * 2
     border.width: borderSize
     border.color: "black"
     color: "black"
     GridView {
         id: teletext
-        width: (40 * 8 * ttfonts[0][0].pixelSize / 10)
-        height: ttfonts[0][0].pixelSize * 25
-        cellHeight: ttfonts[0][0].pixelSize
-        cellWidth: 8 * ttfonts[0][0].pixelSize / 10
-        x: parent.borderSize
+        width: (320 * ttzoom)
+        height: 250 * ttzoom
+        cellHeight: 10 * ttzoom
+        cellWidth: 8 * ttzoom
+        x: parent.borderSize * 2
         y: parent.borderSize
         interactive: false
         clip: true
@@ -28,8 +28,8 @@ Rectangle {
                 text: display.text
                 font: ttfonts[display.width-1][display.height-1]
             }
-            height: display.height * ttfonts[0][0].pixelSize
-            width: display.width * 8 * ttfonts[0][0].pixelSize / 10
+            height: display.height * 10 * ttzoom
+            width: display.width * 8 * ttzoom
             clip: true
             visible: display.visible
         }
@@ -42,14 +42,16 @@ Rectangle {
                     varying lowp vec3 qt_FragCoord0;
                     void main() {
                         lowp vec4 tex = texture2D(source, qt_TexCoord0);
-                        gl_FragColor = (int(gl_FragCoord.y)%(" + (ttfonts[0][0].pixelSize / 10) + ")) == 1 ? tex : tex*0.5;
+                        int ttzoom = " + ttzoom + ";
+                        int row = int(gl_FragCoord.y) % ttzoom;
+                        gl_FragColor = (0 < row && (row < 2 || row < (ttzoom-1))) ? tex : tex*0.7;
                     }
                 "
         }
     }
-    layer.enabled: tteffect && (ttfonts[0].pixelSize > 10)
-    layer.effect: FastBlur {
-        radius: 1.75;
+    layer.enabled: tteffect && (ttzoom > 1)
+    layer.effect: GaussianBlur {
+        radius: 0.75*ttzoom
     }
 }
 
