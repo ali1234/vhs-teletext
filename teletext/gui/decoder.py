@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import webbrowser
 
@@ -20,20 +21,14 @@ class TTModel(QAbstractListModel):
 
     def data(self, index, a):
         result = {}
-        if (index.row()//40) % 2:
-            result['text'] = ''
-            result['fg'] = 'red'
-            result['bg'] = 'green'
-            result['width'] = 1
-            result['height'] = 1
-        else:
-            result['text'] = 'A'
-            result['fg'] = 'yellow'
-            result['bg'] = 'black'
-            result['width'] = 1
-            result['height'] = 1
+        result['text'] = random.choice(['M', ''])
+        result['fg'] = 'white'#random.choice(['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'white', 'black'])
+        result['bg'] = 'black'#random.choice(['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'white', 'black'])
+        result['width'] = 1
+        result['height'] = 1
+        result['visible'] = True
 
-        result['visible'] = not ((index.row()%2) or ((index.row()//40) % 2))
+        #not ((index.row()%2) or ((index.row()//40) % 2))
 
         return result
 
@@ -68,10 +63,10 @@ class TTWidget(QQuickWidget):
 
     def make_font(self, name, size):
         font = QFont(name)
-        #self._font.setStyleStrategy(QFont.NoAntialias | QFont.NoSubpixelAntialias | QFont.ForceIntegerMetrics)
-        font.setHintingPreference(QFont.PreferFullHinting)
+        font.setStyleStrategy(QFont.NoSubpixelAntialias)
+        font.setHintingPreference(QFont.PreferNoHinting)
         font.setPixelSize(size)
-        stretch = 100 + ((16 * 20) // size)
+        stretch = 105 # + ((7 * 20) // size)
         font.setStretch(stretch)
         return font
 
