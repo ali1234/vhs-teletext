@@ -1,44 +1,52 @@
-import QtQuick 2.9
+import QtQuick 2.12
 import QtGraphicalEffects 1.12
 
 
 Rectangle {
-    property var borderSize: ttfont.pixelSize
+    property var borderSize: ttfonts[0][0].pixelSize
     width: teletext.width + borderSize * 2
     height: teletext.height + borderSize * 2
     border.width: borderSize
     border.color: "black"
     color: "black"
-    ListView {
+    GridView {
         id: teletext
-        width: 40 * 7.68 * ttfont.pixelSize / 10
-        height: ttfont.pixelSize * 25
+        width: (40 * 8 * ttfonts[0][0].pixelSize / 10)
+        height: ttfonts[0][0].pixelSize * 25
+        cellHeight: ttfonts[0][0].pixelSize
+        cellWidth: 8 * ttfonts[0][0].pixelSize / 10
         x: parent.borderSize
         y: parent.borderSize
         interactive: false
+        clip: true
         model: ttmodel
-        delegate: Text {
-            color: "white"
-            textFormat: Text.RichText
-            text: display
-            font: ttfont
-            height: ttfont.pixelSize
+        delegate: Rectangle {
+            color: display.bg
+            Text {
+                x: -0.4
+                color: display.fg
+                text: display.text
+                font: ttfonts[display.width-1][display.height-1]
+            }
+            height: display.height * ttfonts[0][0].pixelSize
+            width: display.width * 8 * ttfonts[0][0].pixelSize / 10
             clip: true
-            layer.enabled: tteffect && (ttfont.pixelSize > 10)
-            layer.effect: ShaderEffect {
-                fragmentShader: "
+        }
+        layer.enabled: tteffect && (ttfonts[0][0].pixelSize > 10)
+        layer.effect: ShaderEffect {
+            fragmentShader: "
                     uniform lowp sampler2D source;
                     uniform lowp float qt_Opacity;
                     varying highp vec2 qt_TexCoord0;
+                    varying lowp vec3 qt_FragCoord0;
                     void main() {
                         lowp vec4 tex = texture2D(source, qt_TexCoord0);
-                        gl_FragColor = (int(qt_TexCoord0.y*2500)%10)<7 ? tex : tex*0.4;
+                        gl_FragColor = (int(gl_FragCoord.y)%(" + (ttfonts[0][0].pixelSize / 10) + ")) == 1 ? tex : tex*0.5;
                     }
                 "
-            }
         }
     }
-    layer.enabled: tteffect && (ttfont.pixelSize > 10)
+    layer.enabled: tteffect && (ttfonts[0].pixelSize > 10)
     layer.effect: FastBlur {
         radius: 0.75;
     }
