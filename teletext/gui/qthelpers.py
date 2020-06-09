@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtProperty
 
 
 def build_menu(window, parent_menu, menu_defs):
@@ -17,3 +18,17 @@ def build_menu(window, parent_menu, menu_defs):
             else:
                 print(f'Warning: menu item {name}: {action} is not callable.')
             parent_menu.addAction((a))
+
+
+def auto_property(name, type, notify_object, notify_name):
+
+    def get(self):
+        return getattr(self, name)
+
+    def set(self, value):
+        old = getattr(self, name)
+        if value != old:
+            setattr(self, name, value)
+            getattr(self, notify_name).emit()
+
+    return pyqtProperty(type, get, set, notify=notify_object)
