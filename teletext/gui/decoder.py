@@ -3,35 +3,66 @@ import random
 import sys
 import webbrowser
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtQuickWidgets import QQuickWidget
-from PyQt5.QtWidgets import QMainWindow, QApplication
 
 try:
-    from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel
+    from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel, QObject, pyqtProperty, \
+    pyqtSignal, pyqtSlot
+    from PyQt5.QtGui import QFont
+    from PyQt5.QtQuickWidgets import QQuickWidget
+    from PyQt5.QtWidgets import QMainWindow, QApplication
 except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
-from teletext.gui.qthelpers import build_menu
+from teletext.gui.qthelpers import build_menu, auto_property
+
+
+class TTChar(QObject):
+    def __init__(self):
+        super().__init__()
+        self._text = ' '
+        self._fg = 7
+        self._bg = 0
+        self._width = 1
+        self._height = 1
+        self._visible = True
+
+    textChanged = pyqtSignal()
+    text = auto_property('_text', str, textChanged, 'textChanged')
+
+    fgChanged = pyqtSignal()
+    fg = auto_property('_fg', int, fgChanged, 'fgChanged')
+
+    bgChanged = pyqtSignal()
+    bg = auto_property('_bg', int, bgChanged, 'bgChanged')
+
+    widthChanged = pyqtSignal()
+    width = auto_property('_width', int, widthChanged, 'widthChanged')
+
+    heightChanged = pyqtSignal()
+    height = auto_property('_height', int, heightChanged, 'heightChanged')
+
+    visibleChanged = pyqtSignal()
+    visible = auto_property('_visible', bool, visibleChanged, 'visibleChanged')
 
 
 class TTModel(QAbstractListModel):
+
+    def __init__(self):
+        super().__init__()
+        self._data = [TTChar() for _ in range(25*40)]
+
     def rowCount(self, x):
         return 25*40
 
     def data(self, index, a):
-        result = {}
-        result['text'] = random.choice(['M', ''])
-        result['fg'] = 'white'#random.choice(['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'white', 'black'])
-        result['bg'] = 'black'#random.choice(['red', 'green', 'blue', 'yellow', 'cyan', 'magenta', 'white', 'black'])
-        result['width'] = 1
-        result['height'] = 1
-        result['visible'] = True
+        return self._data[index.row()]
 
-        #not ((index.row()%2) or ((index.row()//40) % 2))
-
-        return result
-
+    def randomize(self):
+        for i in range(25*40):
+            self._data[i].text = chr(random.randint(ord('0'), ord('Z')))
+            self._data[i].fg = random.randrange(1, 8)
+            self._data[i].bg = random.randrange(1, 8)
+        #self.dataChanged.emit(self._data[0]._index, self._data[-1]._index)
 
 
 class TTWidget(QQuickWidget):
@@ -41,22 +72,35 @@ class TTWidget(QQuickWidget):
 
         self.setResizeMode(QQuickWidget.SizeViewToRootObject)
 
-        self._fonts = [[
-            self.make_font('teletext2', 20),
-            self.make_font('teletext4', 40),
+        self._fonts = [
+            [
+                self.make_font('teletext2', 20),
+                self.make_font('teletext4', 40),
             ],[
-            self.make_font('teletext1', 20),
-            self.make_font('teletext2', 40),
-        ]]
+                self.make_font('teletext1', 20),
+                self.make_font('teletext2', 40),
+            ]
+        ]
+
+        self._palette = [
+            'black',
+            'red',
+            'green',
+            'yellow',
+            'blue',
+            'magenta',
+            'cyan',
+            'white',
+        ]
 
         self._model = TTModel()
-#        self._model.setStringList(['']*25)
 
         self._effect = True
 
         self.rootContext().setContextProperty('ttmodel', self._model)
         self.rootContext().setContextProperty('tteffect', self._effect)
         self.rootContext().setContextProperty('ttfonts', self._fonts)
+        self.rootContext().setContextProperty('ttpalette', self._palette)
         self.rootContext().setContextProperty('ttzoom', 2)
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
         self.setSource(QUrl.fromLocalFile(qml_file))
@@ -97,6 +141,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
         self.setWindowTitle('Teletext Viewer')
 
         self._tt = TTWidget()
@@ -106,18 +151,10 @@ class MainWindow(QMainWindow):
         self._tt[5] = 'hello'
 
         build_menu(self, self.menuBar(), [
-            ('&File', [
-                ('Open VBI...', None, 'Ctrl+O'),
-                ('Open Metadata...', None, 'Ctrl+Shift+O'),
-                (None, None, None),
-                ('Save Metadata', None, 'Ctrl+S'),
-                ('Save Metadata As...', None, 'Ctrl+Shift+S'),
-                ('Export VBI...', None, 'Ctrl+E'),
-                (None, None, None),
-                ('Close Project', None, None),
-                ('Quit', self.quit, 'Ctrl+Q'),
+            ('&File', [], None),
+            ('&Edit', [
+                ('Randomize', lambda x: self._tt._model.randomize(), 'Ctrl+r'),
             ], None),
-            ('&Edit', [], None),
             ('&View', [
                 ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
                 ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
@@ -150,6 +187,7 @@ def main():
     app = QApplication(sys.argv)
     w = MainWindow()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()

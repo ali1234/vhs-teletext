@@ -21,10 +21,10 @@ Rectangle {
         clip: true
         model: ttmodel
         delegate: Rectangle {
-            color: display.bg
+            color: ttpalette[display.bg]
             Text {
                 renderType: Text.NativeRendering
-                color: display.fg
+                color: ttpalette[display.fg]
                 text: display.text
                 font: ttfonts[display.width-1][display.height-1]
             }
@@ -44,7 +44,7 @@ Rectangle {
                         lowp vec4 tex = texture2D(source, qt_TexCoord0);
                         int ttzoom = " + ttzoom + ";
                         int row = int(gl_FragCoord.y) % ttzoom;
-                        gl_FragColor = (0 < row && (row < 2 || row < (ttzoom-1))) ? tex : tex*0.7;
+                        gl_FragColor = (0 < row && (row < 2 || row < (ttzoom-1))) ? tex : tex*0.6;
                     }
                 "
         }
