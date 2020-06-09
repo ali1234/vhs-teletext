@@ -6,7 +6,7 @@ import webbrowser
 
 try:
     from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel, QObject, pyqtProperty, \
-    pyqtSignal, pyqtSlot
+    pyqtSignal, pyqtSlot, QTimer
     from PyQt5.QtGui import QFont
     from PyQt5.QtQuickWidgets import QQuickWidget
     from PyQt5.QtWidgets import QMainWindow, QApplication
@@ -50,6 +50,10 @@ class TTModel(QAbstractListModel):
     def __init__(self):
         super().__init__()
         self._data = [TTChar() for _ in range(25*40)]
+        self._timer = QTimer()
+        self._timer.setSingleShot(False)
+        self._timer.start(200)
+        self._timer.timeout.connect(self.randomize)
 
     def rowCount(self, x):
         return 25*40
@@ -59,7 +63,7 @@ class TTModel(QAbstractListModel):
 
     def randomize(self):
         for i in range(25*40):
-            self._data[i].text = chr(random.randint(ord('0'), ord('Z')))
+            self._data[i].text = chr(random.randint(ord('0'), ord('z')))
             self._data[i].fg = random.randrange(1, 8)
             self._data[i].bg = random.randrange(1, 8)
         #self.dataChanged.emit(self._data[0]._index, self._data[-1]._index)
