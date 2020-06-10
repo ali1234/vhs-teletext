@@ -27,12 +27,35 @@ Rectangle {
                 color: ttpalette[display.fg]
                 text: display.text
                 font: ttfonts[display.width-1][display.height-1]
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: teletext.currentIndex = index
+                }
+                SequentialAnimation on opacity {
+                    loops: -1
+                    running: display.flash
+                    alwaysRunToEnd: true
+                    PropertyAction { value: 0 }
+                    PauseAnimation { duration: 500 }
+                    PropertyAction { value: 1 }
+                    PauseAnimation { duration: 500 }
+                }
             }
             height: display.height * 10 * ttzoom
             width: display.width * 8 * ttzoom
             clip: true
             visible: display.visible
         }
+        highlight: Rectangle {
+            color: "white"
+            z: 1
+            SequentialAnimation on opacity {
+                loops: -1
+                OpacityAnimator { from: 1; to: 0; duration: 300 }
+                OpacityAnimator { from: 0; to: 1; duration: 300 }
+            }
+        }
+        highlightMoveDuration: 0
         layer.enabled: tteffect && (ttfonts[0][0].pixelSize > 10)
         layer.effect: ShaderEffect {
             fragmentShader: "

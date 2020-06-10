@@ -24,6 +24,7 @@ class TTChar(QObject):
         self._bg = 0
         self._width = 1
         self._height = 1
+        self._flash = False
         self._visible = True
 
     textChanged = pyqtSignal()
@@ -41,6 +42,9 @@ class TTChar(QObject):
     heightChanged = pyqtSignal()
     height = auto_property('_height', int, heightChanged, 'heightChanged')
 
+    flashChanged = pyqtSignal()
+    flash = auto_property('_flash', bool, flashChanged, 'flashChanged')
+
     visibleChanged = pyqtSignal()
     visible = auto_property('_visible', bool, visibleChanged, 'visibleChanged')
 
@@ -53,7 +57,7 @@ class TTModel(QAbstractListModel):
         self._timer = QTimer()
         self._timer.setSingleShot(False)
         self._timer.start(200)
-        self._timer.timeout.connect(self.randomize)
+        #self._timer.timeout.connect(self.randomize)
 
     def rowCount(self, x):
         return 25*40
@@ -66,6 +70,7 @@ class TTModel(QAbstractListModel):
             self._data[i].text = chr(random.randint(ord('0'), ord('z')))
             self._data[i].fg = random.randrange(1, 8)
             self._data[i].bg = random.randrange(1, 8)
+            self._data[i].flash = random.choice([True, False])
         #self.dataChanged.emit(self._data[0]._index, self._data[-1]._index)
 
 
