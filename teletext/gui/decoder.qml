@@ -76,8 +76,7 @@ Rectangle {
     }
     SequentialAnimation on flashsrc {
         loops: -1
-        running: flash
-        alwaysRunToEnd: true
+        running: true
         PropertyAction { value: false }
         PauseAnimation { duration: 333 }
         PropertyAction { value: true }
