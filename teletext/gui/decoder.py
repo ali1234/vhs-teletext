@@ -95,7 +95,7 @@ class TTWidget(QQuickWidget):
     def make_font(self, size):
         font = QFont('teletext2')
         font.setStyleStrategy(QFont.NoSubpixelAntialias)
-        font.setHintingPreference(QFont.PreferFullHinting)
+        font.setHintingPreference(QFont.PreferNoHinting)
         stretch = 53 * size
         font.setStretch(stretch)
         return font
