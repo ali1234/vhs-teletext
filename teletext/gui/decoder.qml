@@ -20,6 +20,7 @@ Rectangle {
         interactive: false
         clip: true
         model: ttmodel
+
         delegate: Rectangle {
             color: ttpalette[display.bg]
             Text {
@@ -46,20 +47,33 @@ Rectangle {
             clip: true
             visible: display.visible
         }
-        highlight: Rectangle {
-            color: "white"
+
+        highlightMoveDuration: 0
+        highlight: ShaderEffect {
             z: 1
+            property variant source: ShaderEffectSource { sourceItem: teletext.currentItem }
+            fragmentShader: "
+                uniform lowp sampler2D source;
+                uniform lowp float qt_Opacity;
+                varying highp vec2 qt_TexCoord0;
+                varying lowp vec3 qt_FragCoord0;
+                void main(void)
+                {
+                    lowp vec4 tex = texture2D(source, qt_TexCoord0);
+                    gl_FragColor = vec4(1-tex.r, 1-tex.g, 1-tex.b, 1);
+                }
+            "
             SequentialAnimation on opacity {
                 loops: -1
                 running: true
                 alwaysRunToEnd: true
                 PropertyAction { value: 1 }
-                PauseAnimation { duration: 300 }
+                PauseAnimation { duration: 166 }
                 PropertyAction { value: 0 }
-                PauseAnimation { duration: 300 }
+                PauseAnimation { duration: 166 }
             }
         }
-        highlightMoveDuration: 0
+
         layer.enabled: tteffect && (ttfonts[0][0].pixelSize > 10)
         layer.effect: ShaderEffect {
             fragmentShader: "
