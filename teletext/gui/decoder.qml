@@ -36,9 +36,9 @@ Rectangle {
                     running: display.flash
                     alwaysRunToEnd: true
                     PropertyAction { value: 0 }
-                    PauseAnimation { duration: 500 }
+                    PauseAnimation { duration: 333 }
                     PropertyAction { value: 1 }
-                    PauseAnimation { duration: 500 }
+                    PauseAnimation { duration: 1000 }
                 }
             }
             height: display.height * 10 * ttzoom
@@ -51,8 +51,12 @@ Rectangle {
             z: 1
             SequentialAnimation on opacity {
                 loops: -1
-                OpacityAnimator { from: 1; to: 0; duration: 300 }
-                OpacityAnimator { from: 0; to: 1; duration: 300 }
+                running: true
+                alwaysRunToEnd: true
+                PropertyAction { value: 1 }
+                PauseAnimation { duration: 300 }
+                PropertyAction { value: 0 }
+                PauseAnimation { duration: 300 }
             }
         }
         highlightMoveDuration: 0
