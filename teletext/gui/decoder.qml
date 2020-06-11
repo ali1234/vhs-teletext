@@ -28,14 +28,16 @@ Rectangle {
                         property int fg: 7
                         property bool dw: false
                         property bool dh: false
+                        property bool glyph: false
                         property bool flash: false
                         color: ttpalette[bg]
                         Text {
                             renderType: Text.NativeRendering
-                            x: -0.55
+                            x: (text[0]>=''&&text[0]<='')?-zoom:0
+                            z: 1
                             color: ttpalette[fg]
                             text: c
-                            font: ttfonts[dw?1:0][dh?1:0]
+                            font: ttfonts[(text[0]>=''&&text[0]<='')?1:0][dw?1:0][dh?1:0]
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: teletext.currentIndex = index
@@ -52,7 +54,7 @@ Rectangle {
                         }
                         height: (dh?2:1) * 10 * zoom
                         width: (dw?2:1) * 8 * zoom
-                        clip: false
+                        clip: true
                     }
                 }
             }
