@@ -3,78 +3,61 @@ import QtGraphicalEffects 1.12
 
 
 Rectangle {
-    property var borderSize: 19 * ttzoom
+    property int zoom: 2
+    property int borderSize: 10 * zoom
+    property bool crteffect: true
     width: teletext.width + borderSize * 4
     height: teletext.height + borderSize * 2
     border.width: borderSize
     border.color: "black"
     color: "black"
-    GridView {
+    Column {
         id: teletext
-        width: (320 * ttzoom)
-        height: 250 * ttzoom
-        cellHeight: 10 * ttzoom
-        cellWidth: 8 * ttzoom
-        x: parent.borderSize * 2
-        y: parent.borderSize
-        interactive: false
-        clip: true
-        model: ttmodel
-
-        delegate: Rectangle {
-            color: ttpalette[display.bg]
-            Text {
-                renderType: Text.NativeRendering
-                color: ttpalette[display.fg]
-                text: display.text
-                font: ttfonts[display.dw?1:0][display.dh?1:0]
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: teletext.currentIndex = index
-                }
-                SequentialAnimation on opacity {
-                    loops: -1
-                    running: display.flash
-                    alwaysRunToEnd: true
-                    PropertyAction { value: 0 }
-                    PauseAnimation { duration: 333 }
-                    PropertyAction { value: 1 }
-                    PauseAnimation { duration: 1000 }
+        width: 40 * 8 * zoom
+        height: 250 * zoom
+        x: borderSize * 2
+        y: borderSize
+        Repeater {
+            model: 25
+            Row {
+                Repeater {
+                    model: 40
+                    Rectangle {
+                        property string c: "X"
+                        property int bg: 1
+                        property int fg: 7
+                        property bool dw: false
+                        property bool dh: false
+                        property bool flash: false
+                        color: ttpalette[bg]
+                        Text {
+                            renderType: Text.NativeRendering
+                            x: -0.55
+                            color: ttpalette[fg]
+                            text: c
+                            font: ttfonts[dw?1:0][dh?1:0]
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: teletext.currentIndex = index
+                            }
+                            SequentialAnimation on opacity {
+                                loops: -1
+                                running: flash
+                                alwaysRunToEnd: true
+                                PropertyAction { value: 0 }
+                                PauseAnimation { duration: 333 }
+                                PropertyAction { value: 1 }
+                                PauseAnimation { duration: 1000 }
+                            }
+                        }
+                        height: (dh?2:1) * 10 * zoom
+                        width: (dw?2:1) * 8 * zoom
+                        clip: false
+                    }
                 }
             }
-            height: (display.dh?2:1) * 10 * ttzoom
-            width: (display.dw?2:1) * 8 * ttzoom
-            clip: true
-            visible: display.visible
         }
-
-        highlightMoveDuration: 0
-        highlight: ShaderEffect {
-            z: 1
-            property variant source: ShaderEffectSource { sourceItem: teletext.currentItem }
-            fragmentShader: "
-                uniform lowp sampler2D source;
-                uniform lowp float qt_Opacity;
-                varying highp vec2 qt_TexCoord0;
-                varying lowp vec3 qt_FragCoord0;
-                void main(void)
-                {
-                    lowp vec4 tex = texture2D(source, qt_TexCoord0);
-                    gl_FragColor = vec4(1-tex.r, 1-tex.g, 1-tex.b, 1);
-                }
-            "
-            SequentialAnimation on opacity {
-                loops: -1
-                running: true
-                alwaysRunToEnd: true
-                PropertyAction { value: 1 }
-                PauseAnimation { duration: 166 }
-                PropertyAction { value: 0 }
-                PauseAnimation { duration: 166 }
-            }
-        }
-
-        layer.enabled: tteffect && (ttfonts[0][0].pixelSize > 10)
+        layer.enabled: crteffect && (zoom > 1)
         layer.effect: ShaderEffect {
             fragmentShader: "
                     uniform lowp sampler2D source;
@@ -83,16 +66,16 @@ Rectangle {
                     varying lowp vec3 qt_FragCoord0;
                     void main() {
                         lowp vec4 tex = texture2D(source, qt_TexCoord0);
-                        int ttzoom = " + ttzoom + ";
-                        int row = int(gl_FragCoord.y) % ttzoom;
-                        gl_FragColor = (0 < row && (row < 2 || row < (ttzoom-1))) ? tex : tex*0.6;
+                        int zoom = " + zoom + ";
+                        int row = int(gl_FragCoord.y) % zoom;
+                        gl_FragColor = (0 < row && (row < 2 || row < (zoom-1))) ? tex : tex*0.6;
                     }
                 "
         }
     }
-    layer.enabled: tteffect && (ttzoom > 1)
+    layer.enabled: crteffect && (zoom > 1)
     layer.effect: GaussianBlur {
-        radius: 0.75*ttzoom
+        radius: 0.75 * zoom
     }
 }
 

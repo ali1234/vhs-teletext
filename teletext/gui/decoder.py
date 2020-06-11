@@ -7,7 +7,7 @@ import webbrowser
 try:
     from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel, QObject, pyqtProperty, \
     pyqtSignal, pyqtSlot, QTimer
-    from PyQt5.QtGui import QFont
+    from PyQt5.QtGui import QFont, QColor
     from PyQt5.QtQuickWidgets import QQuickWidget
     from PyQt5.QtWidgets import QMainWindow, QApplication
 except ImportError:
@@ -16,62 +16,30 @@ except ImportError:
 from teletext.gui.qthelpers import build_menu, auto_property
 
 
-class TTChar(QObject):
-    def __init__(self):
-        super().__init__()
-        self._text = ' '
-        self._fg = 7
-        self._bg = 0
-        self._dw = False
-        self._dh = False
-        self._flash = False
-        self._visible = True
+class TTPalette(object):
 
-    textChanged = pyqtSignal()
-    text = auto_property('_text', str, textChanged, 'textChanged')
+    def __init__(self, context):
+        self._context = context
+        self._palette = [
+            QColor(0, 0, 0),
+            QColor(255, 0, 0),
+            QColor(0, 255, 0),
+            QColor(255, 255, 0),
+            QColor(0, 0, 255),
+            QColor(255, 0, 255),
+            QColor(0, 255, 255),
+            QColor(255, 255, 255),
+        ]
+        self._context.setContextProperty('ttpalette', self._palette)
 
-    fgChanged = pyqtSignal()
-    fg = auto_property('_fg', int, fgChanged, 'fgChanged')
+    def __getitem__(self, item):
+        return (self._palette[item].red(), self._palette[item].green(), self._palette[item].blue())
 
-    bgChanged = pyqtSignal()
-    bg = auto_property('_bg', int, bgChanged, 'bgChanged')
-
-    dwChanged = pyqtSignal()
-    dw = auto_property('_dw', bool, dwChanged, 'dwChanged')
-
-    dhChanged = pyqtSignal()
-    dh = auto_property('_dh', bool, dhChanged, 'dhChanged')
-
-    flashChanged = pyqtSignal()
-    flash = auto_property('_flash', bool, flashChanged, 'flashChanged')
-
-    visibleChanged = pyqtSignal()
-    visible = auto_property('_visible', bool, visibleChanged, 'visibleChanged')
-
-
-class TTModel(QAbstractListModel):
-
-    def __init__(self):
-        super().__init__()
-        self._data = [TTChar() for _ in range(25*40)]
-        self._timer = QTimer()
-        self._timer.setSingleShot(False)
-        self._timer.start(200)
-        #self._timer.timeout.connect(self.randomize)
-
-    def rowCount(self, x):
-        return 25*40
-
-    def data(self, index, a):
-        return self._data[index.row()]
-
-    def randomize(self):
-        for i in range(25*40):
-            self._data[i].text = chr(random.randint(ord('0'), ord('z')))
-            self._data[i].fg = random.randrange(1, 8)
-            self._data[i].bg = random.randrange(1, 8)
-            self._data[i].flash = random.choice([True, False])
-        #self.dataChanged.emit(self._data[0]._index, self._data[-1]._index)
+    def __setitem__(self, item, value):
+        self._palette[item].setRed(value[0])
+        self._palette[item].setGreen(value[1])
+        self._palette[item].setBlue(value[2])
+        self._context.setContextProperty('ttpalette', self._palette)
 
 
 class TTWidget(QQuickWidget):
@@ -82,60 +50,81 @@ class TTWidget(QQuickWidget):
         self.setResizeMode(QQuickWidget.SizeViewToRootObject)
 
         self._fonts = [
-            [
-                self.make_font('teletext2', 20),
-                self.make_font('teletext4', 40),
-            ],[
-                self.make_font('teletext1', 20),
-                self.make_font('teletext2', 40),
-            ]
+            [self.make_font(2), self.make_font(1)],
+            [self.make_font(4), self.make_font(2)]
         ]
 
-        self._palette = [
-            '#000000',
-            '#FF0000',
-            '#00FF00',
-            '#FFFF00',
-            '#0000FF',
-            '#FF00FF',
-            '#00FFFF',
-            '#FFFFFF',
-        ]
-
-        self._model = TTModel()
-
-        self._effect = True
-
-        self.rootContext().setContextProperty('ttmodel', self._model)
-        self.rootContext().setContextProperty('tteffect', self._effect)
+        self._palette = TTPalette(self.rootContext())
         self.rootContext().setContextProperty('ttfonts', self._fonts)
-        self.rootContext().setContextProperty('ttpalette', self._palette)
-        self.rootContext().setContextProperty('ttzoom', 2)
+
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
         self.setSource(QUrl.fromLocalFile(qml_file))
+        self.zoom = 2
 
-    def make_font(self, name, size):
-        font = QFont(name)
+        self._rows = list(self.rootObject().childItems()[0].childItems()[:-1])
+        self._data = [x.childItems()[:-1] for x in self._rows]
+
+    def randomize(self):
+        # fill with test data
+        for row in range(5):
+            for col in range(40):
+                self._data[row][col].setProperty('c', chr(random.randint(ord('0'), ord('z'))))
+                self._data[row][col].setProperty('fg', random.randrange(1, 8))
+                self._data[row][col].setProperty('bg', random.randrange(1, 8))
+                self._data[row][col].setProperty('flash', random.choice([True, False]))
+
+        for row in range(5, 10):
+            for col in range(0, 40):
+                self._data[row][col].setProperty('c', '')
+                self._data[row][col].setProperty('fg', 1+((col//2)%2))
+                self._data[row][col].setProperty('bg', 0)
+                self._data[row][col].setProperty('flash', random.choice([True, False]))
+
+        for row in range(10, 24, 2):
+            for col in range(0, 40, 2):
+                self._data[row][col].setProperty('c', random.choice(['', 'X']))
+                self._data[row][col].setProperty('fg', 1+((col//4)%2))
+                self._data[row][col].setProperty('bg', 0)
+                self._data[row][col].setProperty('flash', random.choice([True, False]))
+                self._data[row][col].setProperty('dw', True)
+                self._data[row][col].setProperty('dh', True)
+                self._data[row][col+1].setProperty('visible', False)
+            self._rows[row + 1].setProperty('visible', False)
+
+
+    def make_font(self, size):
+        font = QFont('teletext2')
         font.setStyleStrategy(QFont.NoSubpixelAntialias)
-        font.setHintingPreference(QFont.PreferNoHinting)
-        font.setPixelSize(size)
-        stretch = 105 # + ((7 * 20) // size)
+        font.setHintingPreference(QFont.PreferFullHinting)
+        stretch = 53 * size
         font.setStretch(stretch)
         return font
 
-    def __setitem__(self, item, s):
-        if item > 24:
-            raise ValueError
-        self._model.setData(self._model.index(item), s)
+    @property
+    def palette(self):
+        return self._palette
 
-    def setZoom(self, zoom):
-        self._fonts[0][0].setPixelSize(zoom*10)
-        self._fonts[0][1].setPixelSize(zoom*20)
-        self._fonts[1][0].setPixelSize(zoom*10)
-        self._fonts[1][1].setPixelSize(zoom*20)
+    @property
+    def zoom(self):
+        return self.rootObject().property('zoom')
+
+    @zoom.setter
+    def zoom(self, zoom):
+        self._fonts[0][0].setPixelSize(zoom * 10)
+        self._fonts[0][1].setPixelSize(zoom * 20)
+        self._fonts[1][0].setPixelSize(zoom * 10)
+        self._fonts[1][1].setPixelSize(zoom * 20)
         self.rootContext().setContextProperty('ttfonts', self._fonts)
-        self.rootContext().setContextProperty('ttzoom', zoom)
+        self.rootObject().setProperty('zoom', zoom)
         self.setFixedSize(self.sizeHint())
+
+    @property
+    def crteffect(self):
+        return self.rootObject().property('crteffect')
+
+    @crteffect.setter
+    def crteffect(self, crteffect):
+        self.rootObject().setProperty('crteffect', crteffect)
 
     def sizeHint(self):
         sf = self.rootObject().size()
@@ -155,22 +144,18 @@ class MainWindow(QMainWindow):
 
         self._tt = TTWidget()
 
-        for i in range(25):
-            self._tt[i] = f'{i:02d} <span style="color:yellow; background-color: blue;">&nbsp;Teletext&nbsp;</span>123456789012345678901234'
-        self._tt[5] = 'hello'
-
         build_menu(self, self.menuBar(), [
             ('&File', [], None),
             ('&Edit', [
-                ('Randomize', lambda x: self._tt._model.randomize(), 'Ctrl+r'),
+                ('Randomize', lambda x: self._tt.randomize(), 'Ctrl+r'),
             ], None),
             ('&View', [
                 ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
                 ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
                 ('3x', lambda x: self.setZoom(3), 'Ctrl+3'),
                 ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
-                ('CRT simulation', lambda x: self._tt.setEffect(True), None),
-                ('Regular', lambda x: self._tt.setEffect(False), None),
+                ('CRT simulation', lambda x: setattr(self._tt, 'crteffect', True), None),
+                ('Regular', lambda x: setattr(self._tt, 'crteffect', False), None),
             ], None),
             ('&Settings', [], None),
             ('&Help', [
@@ -185,7 +170,7 @@ class MainWindow(QMainWindow):
         self.show()
 
     def setZoom(self, zoom):
-        self._tt.setZoom(zoom)
+        self._tt.zoom = zoom
         self.setFixedSize(QSize(self.centralWidget().width(), self.centralWidget().height() + self.menuWidget().height()))
 
     def quit(self, checked):
