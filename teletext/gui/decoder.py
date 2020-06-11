@@ -92,14 +92,14 @@ class TTWidget(QQuickWidget):
         ]
 
         self._palette = [
-            'black',
-            'red',
-            'green',
-            'yellow',
-            'blue',
-            'magenta',
-            'cyan',
-            'white',
+            '#000000',
+            '#FF0000',
+            '#00FF00',
+            '#FFFF00',
+            '#0000FF',
+            '#FF00FF',
+            '#00FFFF',
+            '#FFFFFF',
         ]
 
         self._model = TTModel()
