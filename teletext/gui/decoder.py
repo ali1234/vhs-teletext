@@ -22,8 +22,8 @@ class TTChar(QObject):
         self._text = ' '
         self._fg = 7
         self._bg = 0
-        self._width = 1
-        self._height = 1
+        self._dw = False
+        self._dh = False
         self._flash = False
         self._visible = True
 
@@ -36,11 +36,11 @@ class TTChar(QObject):
     bgChanged = pyqtSignal()
     bg = auto_property('_bg', int, bgChanged, 'bgChanged')
 
-    widthChanged = pyqtSignal()
-    width = auto_property('_width', int, widthChanged, 'widthChanged')
+    dwChanged = pyqtSignal()
+    dw = auto_property('_dw', bool, dwChanged, 'dwChanged')
 
-    heightChanged = pyqtSignal()
-    height = auto_property('_height', int, heightChanged, 'heightChanged')
+    dhChanged = pyqtSignal()
+    dh = auto_property('_dh', bool, dhChanged, 'dhChanged')
 
     flashChanged = pyqtSignal()
     flash = auto_property('_flash', bool, flashChanged, 'flashChanged')

@@ -27,7 +27,7 @@ Rectangle {
                 renderType: Text.NativeRendering
                 color: ttpalette[display.fg]
                 text: display.text
-                font: ttfonts[display.width-1][display.height-1]
+                font: ttfonts[display.dw?1:0][display.dh?1:0]
                 MouseArea {
                     anchors.fill: parent
                     onClicked: teletext.currentIndex = index
@@ -42,8 +42,8 @@ Rectangle {
                     PauseAnimation { duration: 1000 }
                 }
             }
-            height: display.height * 10 * ttzoom
-            width: display.width * 8 * ttzoom
+            height: (display.dh?2:1) * 10 * ttzoom
+            width: (display.dw?2:1) * 8 * ttzoom
             clip: true
             visible: display.visible
         }
