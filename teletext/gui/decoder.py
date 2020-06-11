@@ -50,8 +50,14 @@ class Decoder(QQuickWidget):
         self.setResizeMode(QQuickWidget.SizeViewToRootObject)
 
         self._fonts = [
-            [self.make_font(2), self.make_font(1)],
-            [self.make_font(4), self.make_font(2)]
+            [
+                [self.make_font(100), self.make_font(50)],
+                [self.make_font(200), self.make_font(100)]
+            ],
+            [
+                [self.make_font(120), self.make_font(60)],
+                [self.make_font(240), self.make_font(120)]
+            ]
         ]
 
         self.rootContext().setContextProperty('ttfonts', self._fonts)
@@ -76,28 +82,27 @@ class Decoder(QQuickWidget):
 
         for row in range(5, 10):
             for col in range(0, 40):
-                self._data[row][col].setProperty('c', '')
+                self._data[row][col].setProperty('c', chr(random.randint(0xee20, 0xee3f)))
                 self._data[row][col].setProperty('fg', 1+((col//2)%2))
                 self._data[row][col].setProperty('bg', 0)
-                self._data[row][col].setProperty('flash', random.choice([True, False]))
+                #self._data[row][col].setProperty('flash', random.choice([True, False]))
 
         for row in range(10, 24, 2):
             for col in range(0, 40, 2):
-                self._data[row][col].setProperty('c', random.choice(['', 'X']))
+                self._data[row][col].setProperty('c', random.choice([chr(random.randint(0xee20, 0xee3f)), 'X']))
                 self._data[row][col].setProperty('fg', 1+((col//4)%2))
                 self._data[row][col].setProperty('bg', 0)
-                self._data[row][col].setProperty('flash', random.choice([True, False]))
+                #self._data[row][col].setProperty('flash', random.choice([True, False]))
                 self._data[row][col].setProperty('dw', True)
                 self._data[row][col].setProperty('dh', True)
                 self._data[row][col+1].setProperty('visible', False)
             self._rows[row + 1].setProperty('visible', False)
 
 
-    def make_font(self, size):
+    def make_font(self, stretch):
         font = QFont('teletext2')
         font.setStyleStrategy(QFont.NoSubpixelAntialias)
         font.setHintingPreference(QFont.PreferNoHinting)
-        stretch = 53 * size
         font.setStretch(stretch)
         return font
 
@@ -111,10 +116,14 @@ class Decoder(QQuickWidget):
 
     @zoom.setter
     def zoom(self, zoom):
-        self._fonts[0][0].setPixelSize(zoom * 10)
-        self._fonts[0][1].setPixelSize(zoom * 20)
-        self._fonts[1][0].setPixelSize(zoom * 10)
-        self._fonts[1][1].setPixelSize(zoom * 20)
+        self._fonts[0][0][0].setPixelSize(zoom * 10)
+        self._fonts[0][0][1].setPixelSize(zoom * 20)
+        self._fonts[0][1][0].setPixelSize(zoom * 10)
+        self._fonts[0][1][1].setPixelSize(zoom * 20)
+        self._fonts[1][0][0].setPixelSize(zoom * 10)
+        self._fonts[1][0][1].setPixelSize(zoom * 20)
+        self._fonts[1][1][0].setPixelSize(zoom * 10)
+        self._fonts[1][1][1].setPixelSize(zoom * 20)
         self.rootContext().setContextProperty('ttfonts', self._fonts)
         self.rootObject().setProperty('zoom', zoom)
         self.setFixedSize(self.sizeHint())
