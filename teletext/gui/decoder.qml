@@ -6,6 +6,7 @@ Rectangle {
     property int zoom: 2
     property int borderSize: 10 * zoom
     property bool crteffect: true
+    property bool flashsrc: true
     width: teletext.width + borderSize * 4
     height: teletext.height + borderSize * 2
     border.width: borderSize
@@ -44,15 +45,7 @@ Rectangle {
                                 anchors.fill: parent
                                 onClicked: teletext.currentIndex = index
                             }
-                            SequentialAnimation on opacity {
-                                loops: -1
-                                running: flash
-                                alwaysRunToEnd: true
-                                PropertyAction { value: 0 }
-                                PauseAnimation { duration: 333 }
-                                PropertyAction { value: 1 }
-                                PauseAnimation { duration: 1000 }
-                            }
+                            visible: (!flash) || flashsrc
                         }
                         height: (dh?2:1) * 10 * zoom
                         width: (dw?2:1) * 8 * zoom
@@ -80,6 +73,14 @@ Rectangle {
     layer.enabled: crteffect && (zoom > 1)
     layer.effect: GaussianBlur {
         radius: 0.75 * zoom
+    }
+    SequentialAnimation on flashsrc {
+        loops: -1
+        running: true
+        PropertyAction { value: false }
+        PauseAnimation { duration: 333 }
+        PropertyAction { value: true }
+        PauseAnimation { duration: 1000 }
     }
 }
 
