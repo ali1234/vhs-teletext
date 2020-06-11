@@ -13,7 +13,7 @@ try:
 except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
-from teletext.gui.qthelpers import build_menu, auto_property
+from teletext.gui.qthelpers import build_menu
 
 
 class TTPalette(object):
@@ -67,8 +67,8 @@ class TTWidget(QQuickWidget):
         self.setSource(QUrl.fromLocalFile(qml_file))
         self.zoom = 2
 
-        self._rows = list(self.rootObject().childItems()[0].childItems()[:-1])
-        self._data = [x.childItems()[:-1] for x in self._rows]
+        self._rows = [self.rootObject().findChild(QObject, 'teletext').findChild(QObject, 'rows').itemAt(x) for x in range(25)]
+        self._data = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
 
     def randomize(self):
         # fill with test data

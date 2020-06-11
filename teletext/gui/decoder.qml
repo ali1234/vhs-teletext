@@ -13,14 +13,17 @@ Rectangle {
     color: "black"
     Column {
         id: teletext
+        objectName: "teletext"
         width: 40 * 8 * zoom
         height: 250 * zoom
         x: borderSize * 2
         y: borderSize
         Repeater {
+            objectName: "rows"
             model: 25
             Row {
                 Repeater {
+                    objectName: "cols"
                     model: 40
                     Rectangle {
                         property string c: "X"
