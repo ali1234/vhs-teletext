@@ -56,7 +56,7 @@ class TTWidget(QQuickWidget):
             ],
             [
                 [self.make_font(120), self.make_font(60)],
-                [self.make_font(240), self.make_font(120)]
+                [self.make_font(240), self.make_font(116)]
             ]
         ]
         self.rootContext().setContextProperty('ttfonts', self._fonts)
