@@ -139,10 +139,8 @@ class Subpage(Element):
         for i in range(0,24):
             # only draw the line if previous line does not contain double height code
             if i == 0 or np.all(self.displayable[i-1,:] != 0x0d):
-                p = PrinterHTML(self.displayable[i,:], pages_set=pages_set)
-                if i == 23:
-                    p.fastext = True
-                    p.links = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links]
+                fastext = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links] if i == 23 else None
+                p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set)
                 lines.append(str(p))
 
         lines.append('</div>')

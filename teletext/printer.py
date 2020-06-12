@@ -1,148 +1,84 @@
 import re
 
-from . import charset
-
-_unicode13 = False
+from .parser import Parser
 
 
-class PrinterANSI(object):
+class PrinterANSI(Parser):
 
     def __init__(self, tt, colour=True, codepage=0):
-        self.tt = tt&0x7f
-        self.fg = 7
-        self.bg = 0
-        self.mosaic = False
-        self.solid = True
-        self.double = True if 0x0d in tt else False
-        self.flash = False
-        self.conceal = False
-        self.boxed = False
-        self.flinkopen = False
-        # ignored for now
-        self.codepage = codepage
-
         self.colour = colour
+        super().__init__(tt)
 
-
-    def ttchar(self, c):
-        if self.mosaic and c not in range(0x41, 0x5B):
-            if _unicode13:
-                return charset.g1[c]
-            else:
-                return chr(c+0xee00) if self.solid else chr(c+0xede0)
-        else:
-            return charset.g0[c]
-
-
-    def setstyle(self, fg=None, bg=None):
+    def fgChanged(self):
         if self.colour:
-            return '\033[3%dm\033[4%dm' % ((fg or self.fg), (bg or self.bg))
-        else:
-            return ''
+            self._results.append('\033[3{fg}m'.format(**self._state))
 
+    def bgChanged(self):
+        if self.colour:
+            self._results.append('\033[4{bg}m'.format(**self._state))
 
-    def transform(self, c):
-        h = c&0xf0
-        l = c&0x0f
-        if h == 0x0:
-            if l < 8:
-                self.fg = l
-                self.conceal = False
-                self.mosaic = False
-                ret = ' '+self.setstyle()
-            elif l == 0x8: # flashing
-                self.flash = True
-                ret = ' '+self.setstyle()
-            elif l == 0x9: # steady
-                self.flash = False
-                ret = ' '+self.setstyle()
-            elif l == 0xa: # flashing
-                self.boxed = True
-                ret = ' '+self.setstyle()
-            elif l == 0xb: # steady
-                self.boxed = False
-                ret = ' '+self.setstyle()
-            else:
-                ret = ' '
-                #print hex(int(c&0xff))
-        elif h == 0x10:
-            if l < 8:
-                self.fg = l
-                self.conceal = False
-                self.mosaic = True
-                self.solid = True
-                ret = ' '+self.setstyle()
-            elif l == 0x8: # conceal
-                self.conceal = True
-                ret = ' '+self.setstyle()
-            elif l == 0x9:
-                self.solid = True
-                ret = ' '
-            elif l == 0xa:
-                self.solid = False
-                ret = ' '
-            elif l == 0xc:
-                self.bg = 0
-                ret = self.setstyle()+' '
-            elif l == 0xd:
-                self.bg = self.fg
-                ret = self.setstyle()+' '
-            else:
-                ret = ' '
-                #print hex(int(c&0xff))
-        else:
-            ret = self.ttchar(c)
+    def emitcharacter(self, c):
+        self._results.append(c)
 
-        return ret
-
+    def parse(self):
+        self._results = []
+        if self.colour:
+            self._results.append('\033[37m\033[40m')
+        super().parse()
+        if self.colour:
+            self._results.append('\033[0m')
 
     def __str__(self):
-        head = self.setstyle(fg=7, bg=0)
-        body = "".join([self.transform(x) for x in self.tt])
-        return head+body+('\033[0m' if self.colour else '')
+        return ''.join(self._results)
 
 
+class PrinterHTML(Parser):
 
-class PrinterHTML(PrinterANSI):
-
-    def __init__(self, tt, codepage=0, pages_set=range(0x100)):
-        PrinterANSI.__init__(self, tt, colour=False, codepage=codepage)
-        self.fastext = False
+    def __init__(self, tt, fastext=None, pages_set=range(0x100)):
+        self.flinkopen = False
+        self.fastext = fastext
         self.pages_set = pages_set
 
         # anchor for header links so we can bookmark a subpage
         self.anchor = ""
 
+        super().__init__(tt)
+
     def ttchar(self, c):
-        if self.mosaic:
-            return PrinterANSI.ttchar(self, c)
-        elif c == ord('<'):
+        # Use the unicode characters produced by the base parser
+        # but escape < and > so as not to break the HTML.
+        c = Parser.ttchar(self, c)
+        if c == ord('<'):
             return '&lt;'
         elif c == ord('>'):
             return '&gt;'
         else:
-            return PrinterANSI.ttchar(self, c)
+            return c
 
-
-    def htmlspanstyle(self, fg=None, bg=None):
-        return '<span class="f%d b%d%s%s%s%s">' % ((fg or self.fg), (bg or self.bg), 
-                      (" dh" if self.double else ""), (" fl" if self.flash else ""),
-                      (" cn" if self.conceal else ""), (" bx" if self.boxed else " nx"))
-
-
-    def setstyle(self, fg=None, bg=None):
+    def stateChanged(self):
         link = ''
         linkclose = ''
         if self.fastext:
             if self.flinkopen:
                 linkclose = '</a>'
                 self.flinkopen = False
-            if self.fg in [1,2,3,6] and self.links[[1,2,3,6].index(self.fg)] in self.pages_set:
-                link = '<a href="%s.html">' % self.links[[1,2,3,6].index(self.fg)]
+            fg = self._state['fg']
+            if fg in [1,2,3,6] and self.fastext[[1,2,3,6].index(fg)] in self.pages_set:
+                link = '<a href="%s.html">' % self.fastext[[1,2,3,6].index(fg)]
                 self.flinkopen = True
 
-        return linkclose+'</span>'+self.htmlspanstyle()+link
+        self._results.extend([
+            linkclose, '</span>',
+            '<span class="f{fg} b{bg}'.format(**self._state),
+            (' dh' if self._state['dh'] else ''),
+            (' fl' if self._state['flash'] else ''),
+            (' cn' if self._state['conceal'] else ''),
+            (' bx' if self._state['boxed'] else ' nx'),
+            '">', link
+        ])
 
+    def emitcharacter(self, c):
+        self._results.append(c)
 
     def linkify(self, html):
         e = '([^0-9])([0-9]{3})([^0-9]|$)'
@@ -154,14 +90,15 @@ class PrinterHTML(PrinterANSI):
         p = re.compile(e)
         return p.sub(repl, html)
 
+    def parse(self):
+        self._results = ['<span class="f7 b0 nx">']
+        super().parse()
+        self._results.append('</span>')
+        if self.flinkopen:
+            self._results.append('</a>')
+        self._string = ''.join(self._results)
+        if self.fastext is None:
+            self._string = self.linkify(self._string)
 
     def __str__(self):
-        head = self.htmlspanstyle(fg=7, bg=0)
-        body = "".join([self.transform(x) for x in self.tt])
-        foot = '</span>'
-        if self.fastext:
-            if self.flinkopen:
-                foot += '</a>'
-        else:
-            body = self.linkify(body)
-        return head+body+foot
+        return self._string
