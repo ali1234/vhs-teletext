@@ -37,7 +37,7 @@ Rectangle {
                         color: ttpalette[bg]
                         Text {
                             renderType: Text.NativeRendering
-                            x: (text[0]>="\uee20"&&text[0]<="\uee7f")?-zoom:0
+                            anchors.centerIn: parent
                             color: ttpalette[fg]
                             text: c
                             font: ttfonts[(text[0]>="\uee20"&&text[0]<="\uee7f")?1:0][dw?1:0][dh?1:0]

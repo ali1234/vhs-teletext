@@ -51,12 +51,12 @@ class TTWidget(QQuickWidget):
 
         self._fonts = [
             [
-                [self.make_font(100), self.make_font(52)],
-                [self.make_font(208), self.make_font(104)]
+                [self.make_font(100), self.make_font(50)],
+                [self.make_font(200), self.make_font(100)]
             ],
             [
                 [self.make_font(120), self.make_font(60)],
-                [self.make_font(240), self.make_font(116)]
+                [self.make_font(240), self.make_font(120)]
             ]
         ]
         self.rootContext().setContextProperty('ttfonts', self._fonts)
@@ -88,7 +88,7 @@ class TTWidget(QQuickWidget):
 
         for row in range(10, 24, 2):
             for col in range(0, 40, 2):
-                self._data[row][col].setProperty('c', chr(random.randint(0xee20, 0xee3f)))
+                self._data[row][col].setProperty('c', random.choice([chr(random.randint(0xee20, 0xee3f)), 'X']))
                 self._data[row][col].setProperty('fg', 1+((col//4)%2))
                 self._data[row][col].setProperty('bg', 0)
                 #self._data[row][col].setProperty('flash', random.choice([True, False]))
