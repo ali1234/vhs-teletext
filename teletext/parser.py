@@ -91,9 +91,9 @@ class Parser(object):
                 self.emitcharacter(self._heldmosaic if self._held else ' ')
                 self._esc = not self._esc
             elif l == 0xc: # black background
-                self.setafter(bg = 0)
+                self.setat(bg = 0)
             elif l == 0xd: # new background
-                self.setafter(bg = self._state['fg'])
+                self.setat(bg = self._state['fg'])
             elif l == 0xe: # hold mosaic
                 self._hold = True
                 self.emitcharacter(self._heldmosaic)
