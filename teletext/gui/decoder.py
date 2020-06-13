@@ -54,8 +54,8 @@ class ParserQML(Parser):
     def emitcharacter(self, c):
         self._cells[self._cell].setProperty('c', c)
         self._cells[self._cell].setProperty('fg', 4)
-        for state in ['fg', 'bg', 'dw', 'dh', 'flash']:
-            self._cells[self._cell].setProperty(state, self._state[state])
+        for state, value in self._state.items():
+            self._cells[self._cell].setProperty(state, value)
         if self._cell > 1:
             self._cells[self._cell].setProperty('visible', not self._cells[self._cell-1].property('dw'))
         self._cell += 1

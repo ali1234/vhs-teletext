@@ -33,13 +33,15 @@ Rectangle {
                         property bool dw: false
                         property bool dh: false
                         property bool flash: false
+                        property bool mosaic: false
+                        property bool solid: true
                         color: ttpalette[bg]
                         Text {
                             renderType: Text.NativeRendering
                             anchors.centerIn: parent
                             color: ttpalette[fg]
                             text: c
-                            font: ttfonts[(text[0]>="\uee20"&&text[0]<="\uee7f")?1:0][dw?1:0][dh?1:0]
+                            font: ttfonts[(mosaic && solid)?1:0][dw?1:0][dh?1:0]
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: teletext.currentIndex = index
