@@ -10,7 +10,7 @@ class Parser(object):
     "Abstract base class for parsers"
 
     def __init__(self, tt):
-        self.tt = tt&0x7f
+        self.tt = tt
         self._state = {}
         self.parse()
 
@@ -108,5 +108,5 @@ class Parser(object):
 
     def parse(self):
         self.reset()
-        for c in self.tt:
+        for c in self.tt&0x7f:
             self.parsebyte(c)
