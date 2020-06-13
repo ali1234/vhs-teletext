@@ -41,7 +41,7 @@ Rectangle {
                             anchors.centerIn: parent
                             color: ttpalette[fg]
                             text: c
-                            font: ttfonts[(mosaic && solid)?1:0][dw?1:0][dh?1:0]
+                            font: ttfonts[(mosaic && solid && text[0] > "\ue000")?1:0][dw?1:0][dh?1:0]
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: teletext.currentIndex = index
