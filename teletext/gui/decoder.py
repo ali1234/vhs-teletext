@@ -10,12 +10,13 @@ try:
     pyqtSignal, pyqtSlot, QTimer
     from PyQt5.QtGui import QFont, QColor
     from PyQt5.QtQuickWidgets import QQuickWidget
-    from PyQt5.QtWidgets import QMainWindow, QApplication
+    from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
 except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
 from teletext.gui.qthelpers import build_menu
 from teletext.parser import Parser
+from teletext.subpage import Subpage
 
 
 class Palette(object):
@@ -168,7 +169,9 @@ class MainWindow(QMainWindow):
         self._tt = Decoder()
 
         build_menu(self, self.menuBar(), [
-            ('&File', [], None),
+            ('&File', [
+                ('Open Page...', lambda x: self.load(), 'Ctrl+o'),
+            ], None),
             ('&Edit', [
                 ('Randomize', lambda x: self._tt.randomize(), 'Ctrl+r'),
             ], None),
@@ -198,6 +201,12 @@ class MainWindow(QMainWindow):
 
     def quit(self, checked):
         self.close()
+
+    def load(self):
+        filename = QFileDialog.getOpenFileName(self, "Open Teletext Page", "", "T42 Files (*.t42)")[0]
+        print(filename)
+        p = Subpage.from_file(filename)
+        self._tt[1:] = p.displayable[:]
 
 
 def main():

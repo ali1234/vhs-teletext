@@ -7,7 +7,7 @@ from .coding import crc
 from .packet import Packet
 from .elements import Element, Displayable
 from .printer import PrinterHTML
-
+from .file import FileChunker
 
 class Subpage(Element):
 
@@ -100,6 +100,13 @@ class Subpage(Element):
                 s._array[i, :] = p[:]
                 s._numbers[i] = -1 if p.number is None else p.number
         return s
+
+    @staticmethod
+    def from_file(filename):
+        with open(filename, 'rb') as f:
+            chunks = FileChunker(f, 42)
+            packets = (Packet(data, number) for number, data in chunks)
+            return Subpage.from_packets(packets)
 
     @property
     def packets(self):
