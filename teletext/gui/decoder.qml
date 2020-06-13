@@ -40,6 +40,7 @@ Rectangle {
                         property bool flash: false
                         property bool mosaic: false
                         property bool solid: true
+                        property bool boxed: false
                         property bool conceal: false
                         property bool rendered: true
                         height: 10 * zoom
