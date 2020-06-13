@@ -122,7 +122,7 @@ class Parser(object):
                 self._held = False
         else:
             c = self.ttchar(b)
-            if self._state['mosaic'] and (b & 0x40):
+            if self._state['mosaic'] and (b & 0x20):
                 self._heldmosaic = c
                 self._heldsolid = self._state['solid']
             self._emitcharacter(c)
