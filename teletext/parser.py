@@ -24,8 +24,10 @@ class Parser(object):
         self._state['flash'] = False
         self._state['conceal'] = False
         self._state['boxed'] = False
+        self._state['rendered'] = True
 
         self._heldmosaic = ' '
+        self._heldsolid = True
         self._held = False
         self._esc = False
         self._codepage = 0 # not implemented
@@ -51,15 +53,29 @@ class Parser(object):
         else:
             return charset.g0[c]
 
-    def emitcharacter(self, c):
-        raise NotImplementedError
+    def _emitcharacter(self, c):
+        getattr(self, 'emitcharacter', lambda x: None)(c)
+        if self._state['dw']:
+            self._state['rendered'] = not self._state['rendered']
+        else:
+            self._state['rendered'] = True
+        print(c, self._state['rendered'])
+
+    def emitcode(self):
+        if self._held:
+            tmp = self._state['solid']
+            self._state['solid'] = self._heldsolid
+            self._emitcharacter(self._heldmosaic)
+            self._state['solid'] = tmp
+        else:
+            self._emitcharacter(' ')
 
     def setat(self, **kwargs):
         self.setstate(**kwargs)
-        self.emitcharacter(self._heldmosaic if self._held else ' ')
+        self.emitcode()
 
     def setafter(self, **kwargs):
-        self.emitcharacter(self._heldmosaic if self._held else ' ')
+        self.emitcode()
         self.setstate(**kwargs)
 
     def parsebyte(self, b):
@@ -77,7 +93,12 @@ class Parser(object):
             elif l == 0xb: # start box
                 self.setafter(boxed=True)
             else: # sizes
-                self.setat(dh=bool(l&1), dw=bool(l&2))
+                dh, dw = bool(l&1), bool(l&2)
+                if dh or dw:
+                    self.setafter(dh=dh, dw=dw)
+                else:
+                    self.setat(dh=dh, dw=dw)
+
         elif h == 0x10:
             if l < 8:
                 self.setafter(fg=l, mosaic=True)
@@ -88,23 +109,24 @@ class Parser(object):
             elif l == 0xa: # separated mosaic
                 self.setat(solid=False)
             elif l == 0xb: # esc/switch
-                self.emitcharacter(self._heldmosaic if self._held else ' ')
+                self.emitcode()
                 self._esc = not self._esc
             elif l == 0xc: # black background
                 self.setat(bg = 0)
             elif l == 0xd: # new background
                 self.setat(bg = self._state['fg'])
             elif l == 0xe: # hold mosaic
-                self._hold = True
-                self.emitcharacter(self._heldmosaic)
+                self._held = True
+                self.emitcode()
             elif l == 0xf: # release mosaic
-                self.emitcharacter(self._heldmosaic if self._held else ' ')
-                self._hold = False
+                self.emitcode()
+                self._held = False
         else:
             c = self.ttchar(b)
             if self._state['mosaic'] and (b & 0x40):
                 self._heldmosaic = c
-            self.emitcharacter(c)
+                self._heldsolid = self._state['solid']
+            self._emitcharacter(c)
 
     def parse(self):
         self.reset()

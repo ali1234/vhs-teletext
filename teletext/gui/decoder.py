@@ -47,23 +47,25 @@ class Palette(object):
 
 class ParserQML(Parser):
 
-    def __init__(self, tt, row, cells):
+    def __init__(self, tt, row, cells, nextrow):
         self._row = row
         self._cells = cells
+        self._nextrow = nextrow
         super().__init__(tt)
 
     def emitcharacter(self, c):
         self._cells[self._cell].setProperty('c', c)
-        self._cells[self._cell].setProperty('fg', 4)
         for state, value in self._state.items():
             self._cells[self._cell].setProperty(state, value)
-        if self._cell > 1:
-            self._cells[self._cell].setProperty('visible', not self._cells[self._cell-1].property('dw'))
+        self._dh |= self._state['dh']
         self._cell += 1
 
     def parse(self):
         self._cell = 0
+        self._dh = False
         super().parse()
+        if self._nextrow:
+            self._nextrow.setProperty('rendered', not (self._row.property('rendered') and self._dh))
 
 
 class Decoder(QQuickWidget):
@@ -93,7 +95,7 @@ class Decoder(QQuickWidget):
         self._rows = [self.rootObject().findChild(QObject, 'teletext').findChild(QObject, 'rows').itemAt(x) for x in range(25)]
         self._cells = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
         self._data = np.zeros((25, 40), dtype=np.uint8)
-        self._parsers = [ParserQML(self._data[x], self._rows[x], self._cells[x]) for x in range(25)]
+        self._parsers = [ParserQML(self._data[x], self._rows[x], self._cells[x], self._rows[x+1] if x < 24 else None) for x in range(25)]
 
         self.zoom = 2
 
