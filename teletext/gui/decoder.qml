@@ -53,7 +53,8 @@ Rectangle {
                             color: ttpalette[bg]
                             Text {
                                 renderType: Text.NativeRendering
-                                anchors.centerIn: parent
+                                anchors.top: parent.top
+                                anchors.horizontalCenter: parent.horizontalCenter
                                 color: ttpalette[fg]
                                 text: c
                                 font: ttfonts[(mosaic && solid && text[0] > "\ue000")?1:0][dw?1:0][dh?1:0]
