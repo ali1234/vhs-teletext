@@ -65,7 +65,7 @@ class ParserQML(Parser):
         self._dh = False
         super().parse()
         if self._nextrow:
-            self._nextrow.setProperty('rendered', not (self._row.property('rendered') and self._dh))
+            self._nextrow.setProperty('rowrendered', not (self._row.property('rowrendered') and self._dh))
 
 
 class Decoder(QQuickWidget):
