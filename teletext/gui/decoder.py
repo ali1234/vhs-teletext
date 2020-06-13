@@ -3,6 +3,7 @@ import random
 import sys
 import webbrowser
 
+import numpy as np
 
 try:
     from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel, QObject, pyqtProperty, \
@@ -14,6 +15,7 @@ except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
 from teletext.gui.qthelpers import build_menu
+from teletext.parser import Parser
 
 
 class Palette(object):
@@ -42,6 +44,27 @@ class Palette(object):
         self._context.setContextProperty('ttpalette', self._palette)
 
 
+class ParserQML(Parser):
+
+    def __init__(self, tt, row, cells):
+        self._row = row
+        self._cells = cells
+        super().__init__(tt)
+
+    def emitcharacter(self, c):
+        self._cells[self._cell].setProperty('c', c)
+        self._cells[self._cell].setProperty('fg', 4)
+        for state in ['fg', 'bg', 'dw', 'dh', 'flash']:
+            self._cells[self._cell].setProperty(state, self._state[state])
+        if self._cell > 1:
+            self._cells[self._cell].setProperty('visible', not self._cells[self._cell-1].property('dw'))
+        self._cell += 1
+
+    def parse(self):
+        self._cell = 0
+        super().parse()
+
+
 class Decoder(QQuickWidget):
 
     def __init__(self, parent=None):
@@ -67,37 +90,27 @@ class Decoder(QQuickWidget):
         self.setSource(QUrl.fromLocalFile(qml_file))
 
         self._rows = [self.rootObject().findChild(QObject, 'teletext').findChild(QObject, 'rows').itemAt(x) for x in range(25)]
-        self._data = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
+        self._cells = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
+        self._data = np.zeros((25, 40), dtype=np.uint8)
+        self._parsers = [ParserQML(self._data[x], self._rows[x], self._cells[x]) for x in range(25)]
 
         self.zoom = 2
 
+    def __setitem__(self, item, value):
+        self._data[item] = value
+        if isinstance(item, tuple):
+            item = item[0]
+        if isinstance(item, int):
+            self._parsers[item].parse()
+        else:
+            for p in self._parsers[item]:
+                p.parse()
+
+    def __getitem__(self, item):
+        return self._data[item]
+
     def randomize(self):
-        # fill with test data
-        for row in range(5):
-            for col in range(40):
-                self._data[row][col].setProperty('c', chr(random.randint(ord('0'), ord('z'))))
-                self._data[row][col].setProperty('fg', random.randrange(1, 8))
-                self._data[row][col].setProperty('bg', random.randrange(1, 8))
-                self._data[row][col].setProperty('flash', random.choice([True, False]))
-
-        for row in range(5, 10):
-            for col in range(0, 40):
-                self._data[row][col].setProperty('c', chr(random.randint(0xee20, 0xee3f)))
-                self._data[row][col].setProperty('fg', 1+((col//2)%2))
-                self._data[row][col].setProperty('bg', 0)
-                #self._data[row][col].setProperty('flash', random.choice([True, False]))
-
-        for row in range(10, 24, 2):
-            for col in range(0, 40, 2):
-                self._data[row][col].setProperty('c', random.choice([chr(random.randint(0xee20, 0xee3f)), 'X']))
-                self._data[row][col].setProperty('fg', 1+((col//4)%2))
-                self._data[row][col].setProperty('bg', 0)
-                #self._data[row][col].setProperty('flash', random.choice([True, False]))
-                self._data[row][col].setProperty('dw', True)
-                self._data[row][col].setProperty('dh', True)
-                self._data[row][col+1].setProperty('visible', False)
-            self._rows[row + 1].setProperty('visible', False)
-
+        self[1:] = np.random.randint(0, 256, size=(24, 40), dtype=np.uint8)
 
     def make_font(self, stretch):
         font = QFont('teletext2')
