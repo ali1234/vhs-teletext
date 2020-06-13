@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='teletext',
-    version='3.0.0',
+    version='3.1.99',
     author='Alistair Buxton',
     author_email='a.j.buxton@gmail.com',
     url='http://github.com/ali1234/vhs-teletext',
