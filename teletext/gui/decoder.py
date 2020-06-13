@@ -93,7 +93,7 @@ class Decoder(QQuickWidget):
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
         self.setSource(QUrl.fromLocalFile(qml_file))
 
-        self._rows = [self.rootObject().findChild(QObject, 'teletext').findChild(QObject, 'rows').itemAt(x) for x in range(25)]
+        self._rows = [self.rootObject().findChild(QObject, 'rows').itemAt(x) for x in range(25)]
         self._cells = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
         self._data = np.zeros((25, 40), dtype=np.uint8)
         self._parsers = [ParserQML(self._data[x], self._rows[x], self._cells[x], self._rows[x+1] if x < 24 else None) for x in range(25)]
