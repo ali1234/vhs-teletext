@@ -6,7 +6,8 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
-from teletext.subpage import Subpage
+from .subpage import Subpage
+from .file import FileChunker
 from .packet import Packet
 from . import pipeline
 
@@ -101,6 +102,12 @@ class Service(object):
             svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
 
         return svc
+
+    @classmethod
+    def from_file(cls, f):
+        chunks = FileChunker(f, 42)
+        packets = (Packet(data, number) for number, data in chunks)
+        return cls.from_packets(packets)
 
     def to_html(self, outdir, template=None):
 

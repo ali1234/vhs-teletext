@@ -204,8 +204,8 @@ class MainWindow(QMainWindow):
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self, "Open Teletext Page", "", "T42 Files (*.t42)")[0]
-        print(filename)
-        p = Subpage.from_file(filename)
+        with open(filename, 'rb') as f:
+            p = Subpage.from_file(f)
         self._tt[1:] = p.displayable[:]
 
 
