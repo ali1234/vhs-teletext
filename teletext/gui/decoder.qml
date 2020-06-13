@@ -7,6 +7,7 @@ Rectangle {
     property int borderSize: 10 * zoom
     property bool crteffect: true
     property bool flashsrc: true
+    property bool reveal: false
     width: teletext.width + borderSize * 4
     height: teletext.height + borderSize * 2
     border.width: borderSize
@@ -42,6 +43,7 @@ Rectangle {
                             property bool flash: false
                             property bool mosaic: false
                             property bool solid: true
+                            property bool conceal: false
                             property bool rendered: true
                             height: 10 * zoom
                             width: 8 * zoom
@@ -62,7 +64,7 @@ Rectangle {
                                         anchors.fill: parent
                                         onClicked: teletext.currentIndex = index
                                     }
-                                    visible: (!flash) || flashsrc
+                                    visible: ((!flash) || flashsrc) && (conceal ? reveal : true)
                                 }
                             }
                         }

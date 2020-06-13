@@ -145,6 +145,14 @@ class Decoder(QQuickWidget):
         self.setFixedSize(self.sizeHint())
 
     @property
+    def reveal(self):
+        return self.rootObject().property('reveal')
+
+    @reveal.setter
+    def reveal(self, reveal):
+        self.rootObject().setProperty('reveal', reveal)
+
+    @property
     def crteffect(self):
         return self.rootObject().property('crteffect')
 
@@ -184,6 +192,8 @@ class MainWindow(QMainWindow):
                 ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
                 ('CRT simulation', lambda x: setattr(self._tt, 'crteffect', True), None),
                 ('Regular', lambda x: setattr(self._tt, 'crteffect', False), None),
+                ('Conceal', lambda x: setattr(self._tt, 'reveal', False), None),
+                ('Reveal', lambda x: setattr(self._tt, 'reveal', True), None),
             ], None),
             ('&Settings', [], None),
             ('&Help', [

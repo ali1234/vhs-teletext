@@ -81,7 +81,7 @@ class Parser(object):
         h, l = int(b&0xf0), int(b&0x0f)
         if h == 0x0:
             if l < 8:
-                self.setafter(fg=l, mosaic=False)
+                self.setafter(fg=l, mosaic=False, conceal=False)
                 self._heldmosaic = ' '
             elif l == 0x8: # flashing
                 self.setafter(flash=True)
@@ -100,7 +100,7 @@ class Parser(object):
 
         elif h == 0x10:
             if l < 8:
-                self.setafter(fg=l, mosaic=True)
+                self.setafter(fg=l, mosaic=True, conceal=False)
             elif l == 0x8: # conceal
                 self.setat(conceal=True)
             elif l == 0x9: # contiguous mosaic
