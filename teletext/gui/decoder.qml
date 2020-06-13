@@ -45,7 +45,6 @@ Rectangle {
                         property bool rendered: true
                         height: 10 * zoom
                         width: 8 * zoom
-                        //clip: false
                         Rectangle {
                             height: rowheight * 10 * zoom
                             width: (dw?2:1) * 8 * zoom
