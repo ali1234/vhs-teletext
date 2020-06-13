@@ -32,7 +32,6 @@ Rectangle {
                         property int fg: 7
                         property bool dw: false
                         property bool dh: false
-                        property bool glyph: false
                         property bool flash: false
                         color: ttpalette[bg]
                         Text {
