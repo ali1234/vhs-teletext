@@ -26,6 +26,7 @@ Rectangle {
             objectName: "rows"
             model: 25
             Row {
+                property int rowheight: 1
                 property bool rowrendered: true
                 Repeater {
                     objectName: "cols"
@@ -45,7 +46,7 @@ Rectangle {
                         width: 8 * zoom
                         //clip: false
                         Rectangle {
-                            height: (dh?2:1) * 10 * zoom
+                            height: rowheight * 10 * zoom
                             width: (dw?2:1) * 8 * zoom
                             clip: true
                             visible: rowrendered && rendered

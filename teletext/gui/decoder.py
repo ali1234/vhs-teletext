@@ -64,6 +64,7 @@ class ParserQML(Parser):
         self._cell = 0
         self._dh = False
         super().parse()
+        self._row.setProperty('rowheight', 2 if self._dh else 1)
         if self._nextrow:
             self._nextrow.setProperty('rowrendered', not (self._row.property('rowrendered') and self._dh))
 
