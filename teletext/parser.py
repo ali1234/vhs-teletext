@@ -45,7 +45,7 @@ class Parser(object):
             getattr(self, 'stateChanged', lambda: None)()
 
     def ttchar(self, c):
-        if self._state['mosaic'] and c not in range(0x41, 0x5B):
+        if self._state['mosaic'] and c not in range(0x40, 0x60):
             if _unicode13:
                 return charset.g1[c]
             else:
