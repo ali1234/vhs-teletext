@@ -59,7 +59,6 @@ class Parser(object):
             self._state['rendered'] = not self._state['rendered']
         else:
             self._state['rendered'] = True
-        print(c, self._state['rendered'])
 
     def emitcode(self):
         if self._held:
