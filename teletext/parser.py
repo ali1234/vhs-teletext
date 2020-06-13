@@ -63,7 +63,7 @@ class Parser(object):
         self.setstate(**kwargs)
 
     def parsebyte(self, b):
-        h, l = b&0xf0, b&0x0f
+        h, l = int(b&0xf0), int(b&0x0f)
         if h == 0x0:
             if l < 8:
                 self.setafter(fg=l, mosaic=False)
