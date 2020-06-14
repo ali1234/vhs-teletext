@@ -15,41 +15,65 @@ except ImportError:
 
 from teletext.gui.qthelpers import build_menu, auto_property
 
+from teletext.gui.autoprop import PyQtProp, autoprop
 
+import attr
+
+
+
+def create_attribute(name, type):
+    backing_name = f'_{name}'
+    signal_name = f'{name}_notify'
+
+    def get(self):
+        return getattr(self, backing_name)
+
+    def set(self, value):
+        setattr(self, backing_name, value)
+        try:
+            getattr(self, signal_name).emit(value)
+        except RuntimeError:
+            # TODO: yeah, ugly, do something real
+            pass
+
+    notify_signal = pyqtSignal(type)
+
+    d = {
+        signal_name: notify_signal,
+        name: pyqtProperty(type, fget=get, fset=set, notify=notify_signal),
+    }
+
+    return d
+
+
+def propertize(cls):
+    attributes = {}
+
+    for field in attr.fields(cls):
+        attributes.update(
+            create_attribute(name=field.name, type=field.type),
+        )
+
+    return type(cls.__name__, (cls,), attributes)
+
+
+
+@propertize
+@attr.s(auto_attribs=True)
 class TTChar(QObject):
-    def __init__(self):
-        super().__init__()
-        self._text = ' '
-        self._fg = 7
-        self._bg = 0
-        self._width = 1
-        self._height = 1
-        self._visible = True
-
-    textChanged = pyqtSignal()
-    text = auto_property('_text', str, textChanged, 'textChanged')
-
-    fgChanged = pyqtSignal()
-    fg = auto_property('_fg', int, fgChanged, 'fgChanged')
-
-    bgChanged = pyqtSignal()
-    bg = auto_property('_bg', int, bgChanged, 'bgChanged')
-
-    widthChanged = pyqtSignal()
-    width = auto_property('_width', int, widthChanged, 'widthChanged')
-
-    heightChanged = pyqtSignal()
-    height = auto_property('_height', int, heightChanged, 'heightChanged')
-
-    visibleChanged = pyqtSignal()
-    visible = auto_property('_visible', bool, visibleChanged, 'visibleChanged')
+    text: int
+    fg: int
+    bg: int
+    width: int
+    height: int
+    visible: bool
 
 
 class TTModel(QAbstractListModel):
 
     def __init__(self):
         super().__init__()
-        self._data = [TTChar() for _ in range(25*40)]
+        self._data = [TTChar(' ', 7, 0, 1, 1, True) for _ in range(25*40)]
 
     def rowCount(self, x):
         return 25*40
