@@ -187,10 +187,12 @@ class MainWindow(QMainWindow):
                 ('Randomize', lambda x: self._tt.randomize(), 'Ctrl+r'),
             ], None),
             ('&View', [
-                ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
-                ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
-                ('3x', lambda x: self.setZoom(3), 'Ctrl+3'),
-                ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
+                ('&Zoom', [
+                    ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
+                    ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
+                    ('3x', lambda x: self.setZoom(3), 'Ctrl+3'),
+                    ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
+                ], None),
                 ('CRT simulation', lambda x: setattr(self._tt, 'crteffect', True), None),
                 ('Regular', lambda x: setattr(self._tt, 'crteffect', False), None),
                 ('Conceal', lambda x: setattr(self._tt, 'reveal', False), None),
@@ -206,6 +208,7 @@ class MainWindow(QMainWindow):
         #self.statusBar().showMessage('Ready')
 
         self.setCentralWidget(self._tt)
+        self.setZoom(2)
         self.show()
 
     def setZoom(self, zoom):
