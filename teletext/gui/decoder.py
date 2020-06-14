@@ -68,6 +68,9 @@ class TTChar(QObject):
     height: int
     visible: bool
 
+    def __attrs_post_init__(self):
+        super().__init__()
+
 
 class TTModel(QAbstractListModel):
 
