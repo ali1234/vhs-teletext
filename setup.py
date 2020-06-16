@@ -13,6 +13,10 @@ setup(
             'data/parity.dat',
             'data/hamming.dat',
             'data/full.dat'
+        ],
+        'teletext.gui': [
+            'decoder.qml',
+            'editor.ui',
         ]
     },
     entry_points={

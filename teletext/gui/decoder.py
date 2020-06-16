@@ -4,19 +4,10 @@ import sys
 import webbrowser
 
 import numpy as np
+from PyQt5.QtCore import QSize, QObject, QUrl
+from PyQt5.QtGui import QFont, QColor
 
-try:
-    from PyQt5.QtCore import QStringListModel, QUrl, QSize, QAbstractItemModel, QAbstractListModel, QObject, pyqtProperty, \
-    pyqtSignal, pyqtSlot, QTimer
-    from PyQt5.QtGui import QFont, QColor
-    from PyQt5.QtQuickWidgets import QQuickWidget
-    from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
-except ImportError:
-    print('PyQt5 is not installed. Qt VBI Viewer not available.')
-
-from teletext.gui.qthelpers import build_menu
 from teletext.parser import Parser
-from teletext.subpage import Subpage
 
 
 class Palette(object):
@@ -69,12 +60,11 @@ class ParserQML(Parser):
             self._nextrow.setProperty('rowrendered', not (self._row.property('rowrendered') and self._dh))
 
 
-class Decoder(QQuickWidget):
+class Decoder(object):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, widget):
 
-        self.setResizeMode(QQuickWidget.SizeViewToRootObject)
+        self.widget = widget
 
         self._fonts = [
             [
@@ -87,13 +77,13 @@ class Decoder(QQuickWidget):
             ]
         ]
 
-        self.rootContext().setContextProperty('ttfonts', self._fonts)
-        self._palette = Palette(self.rootContext())
+        self.widget.rootContext().setContextProperty('ttfonts', self._fonts)
+        self._palette = Palette(self.widget.rootContext())
 
         qml_file = os.path.join(os.path.dirname(__file__), 'decoder.qml')
-        self.setSource(QUrl.fromLocalFile(qml_file))
+        self.widget.setSource(QUrl.fromLocalFile(qml_file))
 
-        self._rows = [self.rootObject().findChild(QObject, 'rows').itemAt(x) for x in range(25)]
+        self._rows = [self.widget.rootObject().findChild(QObject, 'rows').itemAt(x) for x in range(25)]
         self._cells = [[r.findChild(QObject, 'cols').itemAt(x) for x in range(40)] for r in self._rows]
         self._data = np.zeros((25, 40), dtype=np.uint8)
         self._parsers = [ParserQML(self._data[x], self._rows[x], self._cells[x], self._rows[x+1] if x < 24 else None) for x in range(25)]
@@ -129,107 +119,43 @@ class Decoder(QQuickWidget):
 
     @property
     def zoom(self):
-        return self.rootObject().property('zoom')
+        return self.widget.rootObject().property('zoom')
 
     @zoom.setter
     def zoom(self, zoom):
-        self._fonts[0][0][0].setPixelSize(zoom * 10)
-        self._fonts[0][0][1].setPixelSize(zoom * 20)
-        self._fonts[0][1][0].setPixelSize(zoom * 10)
-        self._fonts[0][1][1].setPixelSize(zoom * 20)
-        self._fonts[1][0][0].setPixelSize(zoom * 10)
-        self._fonts[1][0][1].setPixelSize(zoom * 20)
-        self._fonts[1][1][0].setPixelSize(zoom * 10)
-        self._fonts[1][1][1].setPixelSize(zoom * 20)
-        self.rootContext().setContextProperty('ttfonts', self._fonts)
-        self.rootObject().setProperty('zoom', zoom)
-        self.setFixedSize(self.sizeHint())
+        if 0 < zoom < 5:
+            self._fonts[0][0][0].setPixelSize(zoom * 10)
+            self._fonts[0][0][1].setPixelSize(zoom * 20)
+            self._fonts[0][1][0].setPixelSize(zoom * 10)
+            self._fonts[0][1][1].setPixelSize(zoom * 20)
+            self._fonts[1][0][0].setPixelSize(zoom * 10)
+            self._fonts[1][0][1].setPixelSize(zoom * 20)
+            self._fonts[1][1][0].setPixelSize(zoom * 10)
+            self._fonts[1][1][1].setPixelSize(zoom * 20)
+            self.widget.rootContext().setContextProperty('ttfonts', self._fonts)
+            self.widget.rootObject().setProperty('zoom', zoom)
+            self.widget.setFixedSize(self.size())
 
     @property
     def reveal(self):
-        return self.rootObject().property('reveal')
+        return self.widget.rootObject().property('reveal')
 
     @reveal.setter
     def reveal(self, reveal):
-        self.rootObject().setProperty('reveal', reveal)
+        self.widget.rootObject().setProperty('reveal', reveal)
 
     @property
     def crteffect(self):
-        return self.rootObject().property('crteffect')
+        return self.widget.rootObject().property('crteffect')
 
     @crteffect.setter
     def crteffect(self, crteffect):
-        self.rootObject().setProperty('crteffect', crteffect)
+        self.widget.rootObject().setProperty('crteffect', crteffect)
 
-    def sizeHint(self):
-        sf = self.rootObject().size()
+    def size(self):
+        sf = self.widget.rootObject().size()
         return QSize(int(sf.width()), int(sf.height()))
 
     def setEffect(self, e):
         self._effect = bool(e)
-        self.rootContext().setContextProperty('tteffect', self._effect)
-
-
-class MainWindow(QMainWindow):
-
-    def __init__(self):
-        super().__init__()
-
-        self.setWindowTitle('Teletext Viewer')
-
-        self._tt = Decoder()
-
-        build_menu(self, self.menuBar(), [
-            ('&File', [
-                ('Open Page...', lambda x: self.load(), 'Ctrl+o'),
-            ], None),
-            ('&Edit', [
-                ('Randomize', lambda x: self._tt.randomize(), 'Ctrl+r'),
-            ], None),
-            ('&View', [
-                ('&Zoom', [
-                    ('1x', lambda x: self.setZoom(1), 'Ctrl+1'),
-                    ('2x', lambda x: self.setZoom(2), 'Ctrl+2'),
-                    ('3x', lambda x: self.setZoom(3), 'Ctrl+3'),
-                    ('4x', lambda x: self.setZoom(4), 'Ctrl+4'),
-                ], None),
-                ('CRT simulation', lambda x: setattr(self._tt, 'crteffect', True), None),
-                ('Regular', lambda x: setattr(self._tt, 'crteffect', False), None),
-                ('Conceal', lambda x: setattr(self._tt, 'reveal', False), None),
-                ('Reveal', lambda x: setattr(self._tt, 'reveal', True), None),
-            ], None),
-            ('&Settings', [], None),
-            ('&Help', [
-                ('&Website', lambda x: webbrowser.open_new_tab('https://github.com/ali1234/vhs-teletext'), None),
-                ('&About', None, None),
-            ], None),
-        ])
-
-        #self.statusBar().showMessage('Ready')
-
-        self.setCentralWidget(self._tt)
-        self.setZoom(2)
-        self.show()
-
-    def setZoom(self, zoom):
-        self._tt.zoom = zoom
-        self.setFixedSize(QSize(self.centralWidget().width(), self.centralWidget().height() + self.menuWidget().height()))
-
-    def quit(self, checked):
-        self.close()
-
-    def load(self):
-        filename = QFileDialog.getOpenFileName(self, "Open Teletext Page", "", "T42 Files (*.t42)")[0]
-        with open(filename, 'rb') as f:
-            p = Subpage.from_file(f)
-        self._tt[1:] = p.displayable[:]
-
-
-def main():
-    app = QApplication(sys.argv)
-    w = MainWindow()
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+        self.widget.rootContext().setContextProperty('tteffect', self._effect)
