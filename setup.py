@@ -24,8 +24,7 @@ setup(
             'teletext = teletext.cli:teletext',
         ],
         'gui_scripts': [
-            'vbiviewer = teletext.gui.main:main',
-            'ttviewer = teletext.gui.decoder:main',
+            'ttviewer = teletext.gui.editor:main',
         ],
     },
     install_requires=[
