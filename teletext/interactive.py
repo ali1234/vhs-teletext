@@ -5,6 +5,7 @@ import locale
 
 from .file import FileChunker
 from .packet import Packet
+from .parser import Parser
 from .printer import PrinterANSI
 
 
@@ -17,6 +18,22 @@ PrinterANSI.setstyle = setstyle
 
 class TerminalTooSmall(Exception):
     pass
+
+
+class ParserNcurses(Parser):
+    def __init__(self, tt, scr, row):
+        self._scr = scr
+        self._row = row
+        super().__init__(tt)
+
+    def emitcharacter(self, c):
+        colour = Interactive.colours[self._state['fg']] | Interactive.colours[self._state['bg']] << 3
+        self._scr.addstr(self._row, self._pos, c, curses.color_pair(colour+1) | (curses.A_BLINK if self._state['flash'] else 0))
+        self._pos += 1
+
+    def parse(self):
+        self._pos = 0 if self._row else 8
+        super().parse()
 
 
 class Interactive(object):
@@ -58,16 +75,12 @@ class Interactive(object):
     def set_input_field(self, str, clr=0):
         self.scr.addstr(0, 3, str, curses.color_pair(clr))
 
-    def addstr(self, row, st):
-        s = iter(st.split('\033['))
-        self.scr.addstr(row, 0, next(s))
-        for fragment in s:
-            fg = ord(fragment[0])
-            bg = ord(fragment[1])
-            flash = ord(fragment[2]) & 1
-            conceal = ord(fragment[2]) & 2
-            colour = (fg | (bg << 3)) + (1 if conceal else 1)
-            self.scr.addstr(fragment[3:], curses.color_pair(colour) | (curses.A_BLINK if flash else 0))
+    def addstr(self, packet):
+        r = packet.mrag.row
+        if r:
+            ParserNcurses(packet.displayable[:], self.scr, r)
+        else:
+            ParserNcurses(packet.header.displayable[:], self.scr, r)
 
     def do_alnum(self, i):
         if self.inputstate == 0:
@@ -129,10 +142,10 @@ class Interactive(object):
                     self.last_header = packet.header.page
                     if self.last_header == self.page:
                         self.scr.clear()
-                    self.addstr(packet.mrag.row, packet.to_ansi(colour=False))
+                    self.addstr(packet)
                     self.set_input_field('P%d%02X' % (self.magazine, self.page))
                 elif self.last_header == self.page and packet.mrag.row < 25:
-                    self.addstr(packet.mrag.row, packet.to_ansi(colour=False))
+                    self.addstr(packet)
 
     def main(self):
         self.running = True
