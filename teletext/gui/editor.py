@@ -12,27 +12,29 @@ except ImportError:
 from teletext.gui.decoder import Decoder
 
 
-class TreeItemMagazine(QtWidgets.QTreeWidgetItem):
+class StdMagazine(QtGui.QStandardItem):
     def __init__(self, magazine, number):
         self._magazine = magazine
         self._number = number
-        super().__init__([f'Magazine {self._number}'])
+        super().__init__(f'Magazine {self._number}')
         for n, p in sorted(self._magazine.pages.items()):
-            self.addChild(TreeItemPage(p, (0x100 * self._number) + n))
+            self.appendRow(StdPage(p, (0x100 * self._number) + n))
 
-class TreeItemPage(QtWidgets.QTreeWidgetItem):
+
+class StdPage(QtGui.QStandardItem):
     def __init__(self, page, number):
         self._page = page
         self._number = number
-        super().__init__([f'Page {number:02x}'])
+        super().__init__(f'Page {number:02x}')
         for n, s in sorted(self._page.subpages.items()):
-            self.addChild(TreeItemSubpage(s, n))
+            self.appendRow(StdSubpage(s, n))
 
-class TreeItemSubpage(QtWidgets.QTreeWidgetItem):
+
+class StdSubpage(QtGui.QStandardItem):
     def __init__(self, subpage, number):
         self._subpage = subpage
         self._number = number
-        super().__init__([f'Subpage {self._number:04x}'])
+        super().__init__(f'Subpage {self._number:04x}')
 
 
 class EditorWindow(QtWidgets.QMainWindow):
@@ -59,7 +61,8 @@ class EditorWindow(QtWidgets.QMainWindow):
         self.ui.actionReveal.setProperty('checked', self._tt.reveal)
         self.ui.actionReveal.toggled.connect(lambda x: setattr(self._tt, 'reveal', x))
 
-        self.ui.ServiceTree.itemDoubleClicked.connect(self.showsubpage)
+        self.ui.ServiceTree.doubleClicked.connect(self.showsubpage)
+        self.ui.ServiceTree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
 
         try:
             self.importt42('/media/al/Teletext/test.t42')
@@ -68,8 +71,9 @@ class EditorWindow(QtWidgets.QMainWindow):
 
         self.ui.show()
 
-    def showsubpage(self, item, n):
-        if isinstance(item, TreeItemSubpage):
+    def showsubpage(self, index):
+        item = self.ui.ServiceTree.model().itemFromIndex(index)
+        if isinstance(item, StdSubpage):
             self._tt[1:] = item._subpage.displayable[:]
             self._tt[0, :8] = 0x20
             self._tt[0, 8:] = item._subpage.header.displayable[:]
@@ -84,15 +88,17 @@ class EditorWindow(QtWidgets.QMainWindow):
             packets = (Packet(data, number) for number, data in chunks)
             service = Service.from_packets(packets)
 
-            self.ui.ServiceTree.clear()
-            for mn, m in sorted(service.magazines.items()):
-                self.ui.ServiceTree.invisibleRootItem().addChild(TreeItemMagazine(m, mn))
+            service_model = QtGui.QStandardItemModel()
+            root = service_model.invisibleRootItem()
 
-            s = self.ui.ServiceTree.invisibleRootItem().child(0).child(0).child(0)
-            s.setSelected(True)
-            s.parent().setExpanded(True)
-            s.parent().parent().setExpanded(True)
-            self.showsubpage(s, 0)
+            for mn, m in sorted(service.magazines.items()):
+                root.appendRow(StdMagazine(m, mn))
+
+            self.ui.ServiceTree.setModel(service_model)
+
+            i = root.child(0).child(0).child(0).index()
+            self.ui.ServiceTree.scrollTo(i)
+            self.showsubpage(i)
 
 
 def main():
