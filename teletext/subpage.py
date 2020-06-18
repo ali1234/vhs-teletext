@@ -24,6 +24,8 @@ class Subpage(Element):
                 self._numbers[i] = -1
             self.displayable[:] = 0x20
 
+        self.duplicates = []
+
     @property
     def numbers(self):
         return self._numbers[:]
@@ -79,6 +81,10 @@ class Subpage(Element):
                     c = crc(b, c)
 
         return c
+
+    @property
+    def addr(self):
+        return f'{self.mrag.magazine}{self.header.page:02X}:{self.header.subpage:04X}'
 
     @classmethod
     def from_packets(cls, packets, ignore_empty=False):

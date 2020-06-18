@@ -96,10 +96,14 @@ class Service(object):
     @classmethod
     def from_packets(cls, packets):
         svc = cls(replace_headers=False)
-        subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets))
+        subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets, drop_empty=True))
 
         for s in subpages:
-            svc.magazines[s.mrag.magazine].pages[s.header.page].subpages[s.header.subpage] = s
+            page = svc.magazines[s.mrag.magazine].pages[s.header.page]
+            if s.header.subpage in page.subpages:
+                page.subpages[s.header.subpage].duplicates.append(s)
+            else:
+                page.subpages[s.header.subpage] = s
 
         return svc
 

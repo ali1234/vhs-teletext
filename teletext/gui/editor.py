@@ -2,7 +2,7 @@ import os
 
 from teletext.file import FileChunker
 from teletext.packet import Packet
-from teletext.service import Service
+
 
 try:
     from PyQt5 import QtCore, QtGui, QtWidgets, QtQuickWidgets, uic
@@ -10,31 +10,7 @@ except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
 from teletext.gui.decoder import Decoder
-
-
-class StdMagazine(QtGui.QStandardItem):
-    def __init__(self, magazine, number):
-        self._magazine = magazine
-        self._number = number
-        super().__init__(f'Magazine {self._number}')
-        for n, p in sorted(self._magazine.pages.items()):
-            self.appendRow(StdPage(p, (0x100 * self._number) + n))
-
-
-class StdPage(QtGui.QStandardItem):
-    def __init__(self, page, number):
-        self._page = page
-        self._number = number
-        super().__init__(f'Page {number:02x}')
-        for n, s in sorted(self._page.subpages.items()):
-            self.appendRow(StdSubpage(s, n))
-
-
-class StdSubpage(QtGui.QStandardItem):
-    def __init__(self, subpage, number):
-        self._subpage = subpage
-        self._number = number
-        super().__init__(f'Subpage {self._number:04x}')
+from teletext.gui.service import ServiceModel, StdSubpage, ServiceModelLoader
 
 
 class EditorWindow(QtWidgets.QMainWindow):
@@ -64,6 +40,12 @@ class EditorWindow(QtWidgets.QMainWindow):
         self.ui.ServiceTree.doubleClicked.connect(self.showsubpage)
         self.ui.ServiceTree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
 
+        self.progress = QtWidgets.QProgressBar()
+        self.progress.setVisible(False)
+        self.progress.setFixedWidth(200)
+        self.ui.statusBar().addPermanentWidget(self.progress)
+
+
         try:
             self.importt42('/media/al/Teletext/test.t42')
         except FileNotFoundError:
@@ -79,26 +61,32 @@ class EditorWindow(QtWidgets.QMainWindow):
             self._tt[0, 8:] = item._subpage.header.displayable[:]
 
     def importt42(self, filename=None):
+        self.ui.actionImport_T42.setEnabled(False)
+
         if not isinstance(filename, str):
             filename = QtWidgets.QFileDialog.getOpenFileName(self, "Open Teletext Page", "", "T42 Files (*.t42)")[0]
         if filename == '':
             return
-        with open(filename, 'rb') as f:
-            chunks = FileChunker(f, 42)
-            packets = (Packet(data, number) for number, data in chunks)
-            service = Service.from_packets(packets)
 
-            service_model = QtGui.QStandardItemModel()
-            root = service_model.invisibleRootItem()
+        self.service_thread = ServiceModelLoader(filename)
+        self.service_thread.total.connect(self.progress.setMaximum)
+        self.service_thread.update.connect(self.progress.setValue)
+        self.service_thread.finished.connect(self.importt42done)
 
-            for mn, m in sorted(service.magazines.items()):
-                root.appendRow(StdMagazine(m, mn))
+        self.ui.statusBar().addPermanentWidget(self.progress)
+        self.service_thread.start()
+        self.progress.setVisible(True)
 
-            self.ui.ServiceTree.setModel(service_model)
-
-            i = root.child(0).child(0).child(0).index()
-            self.ui.ServiceTree.scrollTo(i)
-            self.showsubpage(i)
+    def importt42done(self):
+        model = self.service_thread.model
+        del self.service_thread
+        self.ui.ServiceTree.setModel(model)
+        i = model.invisibleRootItem().child(0).child(0).child(0).index()
+        self.ui.ServiceTree.scrollTo(i)
+        self.showsubpage(i)
+        self.progress.reset()
+        self.progress.setVisible(False)
+        self.ui.actionImport_T42.setEnabled(True)
 
 
 def main():
