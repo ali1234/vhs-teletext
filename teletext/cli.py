@@ -346,8 +346,8 @@ def training():
 @click.argument('output', type=click.File('wb'), default='-')
 def generate(output):
     """Generate training samples for raspi-teletext."""
-    from teletext.vbi.training import generate_lines
-    generate_lines(output)
+    from teletext.vbi.training import PatternGenerator
+    PatternGenerator().to_file(output)
 
 
 @command(training)

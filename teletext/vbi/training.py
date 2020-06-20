@@ -24,8 +24,61 @@ from teletext.vbi.line import Line, normalise
 from .pattern import build_pattern
 
 
-# pattern_length is the number of bytes in the teletext data available for patterns.
-pattern_length = 27
+class PatternGenerator(object):
+    pattern = None
+
+    # pattern_length is the number of bytes in the teletext data available for patterns.
+    pattern_length = 27
+
+    def __init__(self):
+        if self.pattern is None:
+            self.load_pattern()
+
+    @classmethod
+    def load_pattern(cls):
+        with open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb') as db:
+            data = db.read()
+        cls.pattern = np.frombuffer(data + data[:cls.pattern_length], dtype=np.uint8)
+
+    def checksum(self, array):
+        return array[0] ^ array[1] ^ array[2] ^ 0xf0
+
+    def generate_line(self, offset):
+        line = np.zeros((42,), dtype=np.uint8)
+
+        # constant bytes. can be used for horizontal alignment.
+        line[0] = 0x18
+        line[1 + self.pattern_length] = 0x18
+        line[41] = 0x18
+
+        # insert pattern slice into line
+        line[1:1 + self.pattern_length] = self.pattern[offset:offset + self.pattern_length]
+
+        # encode the offset for maximum readability
+        offset_list = [(offset >> n) & 0xff for n in range(0, 24, 8)]
+        # add a checksum
+        offset_list.append(self.checksum(offset_list))
+        # convert to a list of bits, LSB first
+        offset_arr = np.array(offset_list, dtype=np.uint8)
+        # repeat each bit 3 times, then convert back in to t42 bytes
+        offset_arr = np.packbits(np.repeat(np.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
+
+        # insert encoded offset into line
+        line[2 + self.pattern_length:14 + self.pattern_length] = offset_arr
+
+        return line
+
+    def to_file(self, file):
+        offset = 0
+        while True:
+            line = self.generate_line(offset)
+
+            # calculate next offset for maximum distance
+            offset += 65521  # greatest prime less than 2097152/32
+            offset &= 0x1fffff  # mod 2097152
+
+            # write to stdout
+            file.write(line.tobytes())
 
 
 def de_bruijn(k, n):
@@ -49,24 +102,15 @@ def de_bruijn(k, n):
     return sequence
 
 
-def load_pattern():
-    with open(os.path.join(os.path.dirname(__file__), 'data', 'debruijn.dat'), 'rb') as db:
-        data = db.read()
-    pattern = np.frombuffer(data + data[:pattern_length], dtype=np.uint8)
-    return pattern
-
-
 def save_pattern(filename):
     pattern = np.packbits(np.array(de_bruijn(2, 24), dtype=np.uint8)[::-1])[::-1]
     with open(filename, 'wb') as data:
         pattern.tofile(data)
 
 
-def checksum(array):
-    return array[0] ^ array[1] ^ array[2] ^ 0xf0
-
-
 class TrainingLine(Line):
+
+    pgen = PatternGenerator()
 
     def tchop(self, start, stop):
         return self.chop(257+(start*24), 257+(stop*24))[::3]
@@ -82,12 +126,14 @@ class TrainingLine(Line):
         bits = self.tchop(0, 3)
         bits = np.clip(bits-127, 0, 1).astype(np.uint8)
         bytes = np.packbits(bits[::-1])[::-1]
-        if checksum(bytes) == self.checksum:
+        if self.pgen.checksum(bytes) == self.checksum:
             offset = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
             if offset < 0x1fffff:
                 return offset
             else:
                 sys.stderr.write(f'Warning: bad offset at line {self._number}\n')
+        else:
+            sys.stderr.write(f'Warning: bad checksum at line {self._number}\n')
 
 
 def process_training(chunks, config):
@@ -98,20 +144,20 @@ def process_training(chunks, config):
         if l.is_teletext:
             offset = l.offset
             if offset is not None:
-                yield (offset, normalise(l.chop(32, 32+(8*pattern_length))).astype(np.uint8))
+                yield (offset, normalise(l.chop(32, 32+(8*TrainingLine.pgen.pattern_length))).astype(np.uint8))
                 continue
         yield 'rejected'
 
 
 def split(data, files):
-    pattern = load_pattern()
+    pgen = PatternGenerator()
 
-    chopped_indexer = np.arange(24)[None, :] + np.arange((8 * pattern_length) - 23)[:, None]
+    chopped_indexer = np.arange(24)[None, :] + np.arange((8 * pgen.pattern_length) - 23)[:, None]
     pattern_indexer = chopped_indexer[::-1,:]
 
     for offset, chopped in data:
         # Fetch the pattern block corresponding to this line.
-        block = np.unpackbits(pattern[offset:offset + pattern_length][::-1])
+        block = np.unpackbits(pgen.pattern[offset:offset + pgen.pattern_length][::-1])
         # Sliding window through the pattern block.
         patterns = np.packbits(block[pattern_indexer], axis=1)[:, ::-1]
         # Sliding window through the chopped line.
@@ -132,39 +178,3 @@ def squash(output, indir):
                 b = np.frombuffer(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
                 b = np.mean(b, axis=0).astype(np.uint8)
                 output.write(b.tobytes())
-
-
-
-def generate_lines(file):
-    pattern = load_pattern()
-
-    line = np.zeros((42,), dtype=np.uint8)
-
-    # constant bytes. can be used for horizontal alignment.
-    line[0] = 0x18
-    line[1 + pattern_length] = 0x18
-    line[41] = 0x18
-
-    offset = 0
-    while True:
-        # insert pattern slice into line
-        line[1:1 + pattern_length] = pattern[offset:offset + pattern_length]
-
-        # encode the offset for maximum readability
-        offset_list = [(offset >> n) & 0xff for n in range(0, 24, 8)]
-        # add a checksum
-        offset_list.append(checksum(offset_list))
-        # convert to a list of bits, LSB first
-        offset_arr = np.array(offset_list, dtype=np.uint8)
-        # repeat each bit 3 times, then convert back in to t42 bytes
-        offset_arr = np.packbits(np.repeat(np.unpackbits(offset_arr[::-1])[::-1], 3)[::-1])[::-1]
-
-        # insert encoded offset into line
-        line[2 + pattern_length:14 + pattern_length] = offset_arr
-
-        # calculate next offset for maximum distance
-        offset += 65521  # greatest prime less than 2097152/32
-        offset &= 0x1fffff  # mod 2097152
-
-        # write to stdout
-        file.write(line.tobytes())
