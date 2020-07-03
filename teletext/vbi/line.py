@@ -89,6 +89,17 @@ class Line(object):
         """The raw, untouched line."""
         return self._original[:]
 
+    @property
+    def rolled(self):
+        if self.start is not None:
+            return np.roll(self._original, self.start+self.roll)
+        else:
+            return self._original[:]
+
+    @property
+    def gradient(self):
+        return np.gradient(self.rolled)*10
+
     def chop(self, start, stop):
         """Chop and average the samples associated with each bit."""
         # This should use self.start not self._start so that self._start
