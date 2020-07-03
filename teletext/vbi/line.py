@@ -8,10 +8,12 @@
 # * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # * GNU General Public License for more details.
 
+import math
 import os
 import sys
 import numpy as np
 from scipy.ndimage import gaussian_filter1d as gauss
+from scipy.signal import resample
 
 from teletext.packet import Packet
 from teletext.elements import Mrag, DesignationCode
@@ -59,6 +61,7 @@ class Line(object):
             cls.h = Pattern(h)
             cls.p = Pattern(p)
             cls.f = Pattern(f)
+        cls.resample_size = math.ceil(cls.config.line_length * 8 * cls.config.teletext_bitrate / cls.config.sample_rate)
         cls.configured = True
 
     def __init__(self, data, number=None):
@@ -69,6 +72,8 @@ class Line(object):
         self._original = np.frombuffer(data, dtype=Line.config.dtype).astype(np.float32)
         self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
         self._original_bytes = data
+
+        self._resampled = resample(self._original, self.resample_size) / 255.0
 
         self.reset()
 
