@@ -80,16 +80,17 @@ class Config(object):
         # width of a bit in samples (float)
         self.bit_width = self.sample_rate / self.teletext_bitrate
 
+        # length of resampled line
+        self.resample_size = math.ceil(self.line_length * 8 / self.bit_width)
+
         # region of the original line where the CRI begins, in samples
-        self.start_slice = slice(*self.line_start_range)
+        self.start_slice = slice(
+            math.floor(self.line_start_range[0] * 8 / self.bit_width),
+            math.ceil(self.line_start_range[1] * 8 / self.bit_width)
+        )
 
         # last sample of original line where teletext may occur
-        self.line_trim = self.start_slice.stop + math.ceil(self.bit_width * 45 * 8)
-
-        # first sample for each bit in the rolled arrays
-        self.bits = np.array([round(self.start_slice.start + (x * self.bit_width)) for x in range((45 * 8) + 9)])
-        # number of samples in each bit
-        self.bit_lengths = (self.bits[1:] - self.bits[:-1])
+        self.line_trim = self.start_slice.stop + math.ceil(8 * 45 * 8)
 
         # fft
         self.fftbins = [0, 47, 54, 97, 104, 147, 154, 197, 204]

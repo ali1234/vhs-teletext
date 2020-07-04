@@ -61,7 +61,6 @@ class Line(object):
             cls.h = Pattern(h)
             cls.p = Pattern(p)
             cls.f = Pattern(f)
-        cls.resample_size = math.ceil(cls.config.line_length * 8 * cls.config.teletext_bitrate / cls.config.sample_rate)
         cls.configured = True
 
     def __init__(self, data, number=None):
@@ -73,7 +72,7 @@ class Line(object):
         self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
         self._original_bytes = data
 
-        self._resampled = resample(self._original, self.resample_size) / 255.0
+        self._resampled = resample(self._original, self.config.resample_size) / 255.0
 
         self.reset()
 
@@ -90,6 +89,11 @@ class Line(object):
         self._reason = None
 
     @property
+    def resampled(self):
+        """The resampled line. 8 samples = 1 bit."""
+        return self._resampled[:]*255
+
+    @property
     def original(self):
         """The raw, untouched line."""
         return self._original[:]
@@ -97,20 +101,23 @@ class Line(object):
     @property
     def rolled(self):
         if self.start is not None:
-            return np.roll(self._original, self.start+self.roll)
+            return np.roll(self._resampled, 90-(self.start+self.roll))*255
         else:
-            return self._original[:]
+            return self._resampled[:]*255
 
     @property
     def gradient(self):
-        return np.gradient(self.rolled)*10
+        return (np.gradient(gauss(self.rolled, 12))[20:300]>0)*255
 
     def chop(self, start, stop):
         """Chop and average the samples associated with each bit."""
         # This should use self.start not self._start so that self._start
         # is calculated if it hasn't been already.
-        r = self.start + self.roll
-        return np.add.reduceat(self._original, Line.config.bits[start:stop+1] - r)[:-1] / Line.config.bit_lengths[start:stop]
+        r = (self.start + self.roll)
+        d = self._resampled[r+(start*8):r+(stop*8)].reshape(-1, 8)
+        #sys.stderr.write(f'{r}, {start}, {stop}, {d.shape}\n')
+        return np.sum(d, 1)
+#        return np.add.reduceat(self._original, Line.config.bits[start:stop+1] - r)[:-1] / Line.config.bit_lengths[start:stop]
 
     @property
     def chopped(self):
@@ -121,9 +128,9 @@ class Line(object):
     def noisefloor(self):
         if self._noisefloor is None:
             if self.config.start_slice.start == 0:
-                self._noisefloor = np.max(gauss(self._original[self.config.line_trim:-4], self.config.gauss))
+                self._noisefloor = np.max(gauss(self._resampled[self.config.line_trim:-4], self.config.gauss))
             else:
-                self._noisefloor = np.max(gauss(self._original[:self.config.start_slice.start], self.config.gauss))
+                self._noisefloor = np.max(gauss(self._resampled[:self.config.start_slice.start], self.config.gauss))
         return self._noisefloor
 
     @property
@@ -135,49 +142,59 @@ class Line(object):
             self._fft = normalise(gauss(np.abs(np.fft.fft(np.diff(self._original, n=1))[:256]), 4))
         return self._fft
 
+    def find_start(self):
+        # First try to detect by comparing pre-start noise floor to post-start levels.
+        # Store self._gstart so that self.start can re-use it.
+        self._gstart = gauss(self._resampled[self.config.start_slice], Line.config.gauss)
+        smax = np.max(self._gstart)
+        if smax < 0.25:
+            self._is_teletext = False
+            self._reason = f'Signal max is {smax}'
+        elif self.noisefloor > 80:
+            self._is_teletext = False
+            self._reason = f'Noise is {self.noisefloor}'
+        elif smax < (self.noisefloor + 0.1):
+            # There is no interesting signal in the start_slice.
+            self._is_teletext = False
+            self._reason = f'Noise is higher than signal {smax} {self.noisefloor}'
+        else:
+            # There is some kind of signal in the line. Check if
+            # it is teletext by looking for harmonics of teletext
+            # symbol rate.
+            fftchop = np.add.reduceat(self.fft, self.config.fftbins)
+            self._is_teletext = np.sum(fftchop[1:-1:2]) > 1000
+        if not self._is_teletext:
+            return
+
+        # Find the steepest part of the line within start_slice.
+        # This gives a rough location of the start.
+        self._start = np.argmax(np.gradient(np.maximum.accumulate(self._gstart))) + self.config.start_slice.start + 6
+        # Now find the extra roll needed to lock in the clock run-in and framing code.
+        confidence = []
+
+        for roll in range(-10, 20):
+            self.roll = roll
+            # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
+            # This is the most distinctive part of the CRI/FC to look for.
+            confidence.append((np.sum(self.chop(15, 20) * self.config.crifc[15:20]), roll))
+
+        self._start += max(confidence)[1]
+        self.roll = 0
+
     @property
     def is_teletext(self):
         """Determine whether the VBI data in this line contains a teletext signal."""
         if self._is_teletext is None:
-            # First try to detect by comparing pre-start noise floor to post-start levels.
-            # Store self._gstart so that self.start can re-use it.
-            self._gstart = gauss(self._original[Line.config.start_slice], Line.config.gauss)
-            smax = np.max(self._gstart)
-            if smax < 64:
-                self._is_teletext = False
-                self._reason = f'Signal max is {smax}'
-            elif self.noisefloor > 80:
-                self._is_teletext = False
-                self._reason = f'Noise is {self.noisefloor}'
-            elif smax < (self.noisefloor + 16):
-                # There is no interesting signal in the start_slice.
-                self._is_teletext = False
-                self._reason = f'Noise is higher than signal {smax} {self.noisefloor}'
-            else:
-                # There is some kind of signal in the line. Check if
-                # it is teletext by looking for harmonics of teletext
-                # symbol rate.
-                fftchop = np.add.reduceat(self.fft, self.config.fftbins)
-                self._is_teletext = np.sum(fftchop[1:-1:2]) > 1000
+            self.find_start()
         return self._is_teletext
 
     @property
     def start(self):
         """Find the offset in samples where teletext data begins in the line."""
-        if self._start is None and self.is_teletext:
-            # Find the steepest part of the line within start_slice.
-            # This gives a rough location of the start.
-            self._start = -np.argmax(np.gradient(np.maximum.accumulate(self._gstart)))
-            # Now find the extra roll needed to lock in the clock run-in and framing code.
-            confidence = []
-            for roll in range(-10, 20):
-                self.roll = roll
-                # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
-                # This is the most distinctive part of the CRI/FC to look for.
-                confidence.append((np.sum(self.chop(15, 20) * self.config.crifc[15:20]), roll))
-            self._start += max(confidence)[1]
-            self.roll = 0
-        return self._start
+        if self.is_teletext:
+            return self._start
+        else:
+            return None
 
     def deconvolve(self, mags=range(9), rows=range(32)):
         """Recover original teletext packet by pattern recognition."""

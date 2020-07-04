@@ -17,7 +17,7 @@ class VBIViewer(object):
         self.single_step = False
         self.name = name
 
-        self.line_attr = 'original'
+        self.line_attr = 'resampled'
 
         self.nlines = nlines
 
@@ -36,7 +36,7 @@ class VBIViewer(object):
         glutMouseFunc(self.mouse)
 
         glMatrixMode(GL_PROJECTION)
-        glOrtho(0, config.line_length, 0, self.nlines, -1, 1)
+        glOrtho(0, config.resample_size, 0, self.nlines, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
@@ -77,7 +77,7 @@ class VBIViewer(object):
         elif key == b'T':
             self.dumpall(teletext=True)
         elif key == b'1':
-            self.line_attr = 'original'
+            self.line_attr = 'resampled'
         elif key == b'2':
             self.line_attr = 'fft'
         elif key == b'3':
@@ -146,17 +146,17 @@ class VBIViewer(object):
     def draw_bits(self, r, g, b, a=1.0):
         glColor4f(r, g, b, a)
         glBegin(GL_LINES)
-        for x in self.config.bits[:-8:8]:
-            glVertex2f(x, 0)
-            glVertex2f(x, self.nlines)
+        for x in range(0, 368,8):
+            glVertex2f((x*8)+90, 0)
+            glVertex2f((x*8)+90, self.nlines)
         glEnd()
 
     def draw_freq_bins(self, n, r, g, b, a=1.0):
         glColor4f(r, g, b, a)
         glBegin(GL_LINES)
         for x in self.config.fftbins:
-            glVertex2f(self.config.line_length*x/256, 0)
-            glVertex2f(self.config.line_length*x/256, self.nlines)
+            glVertex2f(self.config.resample_size*x/256, 0)
+            glVertex2f(self.config.resample_size*x/256, self.nlines)
         glEnd()
 
     def draw_lines(self):
@@ -182,10 +182,10 @@ class VBIViewer(object):
             glVertex2f(0, (n+1))
 
             glTexCoord2f(1, 0)
-            glVertex2f(self.config.line_length, (n+1))
+            glVertex2f(self.config.resample_size, (n+1))
 
             glTexCoord2f(1, 1)
-            glVertex2f(self.config.line_length, n)
+            glVertex2f(self.config.resample_size, n)
 
             glEnd()
 
@@ -203,7 +203,7 @@ class VBIViewer(object):
                 self.draw_freq_bins(256, 1, 1, 1, 0.5)
             elif self.line_attr == 'rolled' and self.width / 42 > 5:
                 self.draw_bits(1, 1, 1, 0.5)
-            elif self.line_attr == 'original':
+            elif self.line_attr == 'resampled':
                 self.draw_slice(self.config.start_slice, 0, 1, 0, 0.5)
 
         glutSwapBuffers()
