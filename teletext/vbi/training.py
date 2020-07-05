@@ -187,9 +187,9 @@ def split(data, files):
 def squash(output, indir):
     for n in tqdm(range(256), unit='File'):
         with open(os.path.join(indir, f'training.{n:02x}.dat'), 'rb') as f:
-            chunks = tqdm(FileChunker(f, 27), unit='P', desc='Loading')
+            chunks = FileChunker(f, 27)
             chunks = sorted(chunk for n, chunk in chunks)
-            for k, g in itertools.groupby(tqdm(chunks, unit='P', desc='Grouping'), lambda x: x[:3]):
+            for k, g in itertools.groupby(chunks, lambda x: x[:3]):
                 a = list(g)
                 b = np.frombuffer(b''.join(a), dtype=np.uint8).reshape((len(a), 27))
                 b = np.mean(b, axis=0).astype(np.uint8)
