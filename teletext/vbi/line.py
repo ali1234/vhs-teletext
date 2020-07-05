@@ -168,7 +168,7 @@ class Line(object):
 
         # Find the steepest part of the line within start_slice.
         # This gives a rough location of the start.
-        self._start = np.argmax(np.gradient(np.maximum.accumulate(self._gstart))) + self.config.start_slice.start + 6
+        self._start = np.argmax(np.gradient(np.maximum.accumulate(self._gstart))) + self.config.start_slice.start
         # Now find the extra roll needed to lock in the clock run-in and framing code.
         confidence = []
 
