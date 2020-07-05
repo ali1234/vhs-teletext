@@ -42,7 +42,7 @@ class Config(object):
             'field_range': range(1, 17),
         },
         'ddd-tbc': { # domesday duplicator tbc (full fields)
-            'sample_rate': 17712500.0,
+            'sample_rate': 17730000.0,
             'line_length': 1135,
             'line_start_range': (160, 190),
             'dtype': np.uint16,
@@ -50,7 +50,7 @@ class Config(object):
             'field_range': range(6, 22),
         },
         'ddd-vbi': {  # domesday duplicator vbi (pre-sliced)
-            'sample_rate': 17712500.0,
+            'sample_rate': 17730000.0,
             'line_length': 1135,
             'line_start_range': (160, 190),
             'dtype': np.uint16,
