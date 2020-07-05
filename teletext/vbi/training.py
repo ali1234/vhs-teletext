@@ -113,27 +113,43 @@ class TrainingLine(Line):
     pgen = PatternGenerator()
 
     def tchop(self, start, stop):
-        return self.chop(257+(start*24), 257+(stop*24))[::3]
+        s = np.sum(self.chop(256+(start*24), 256+(stop*24)).reshape(-1, 3), 1)
+        s = (s > 384).astype(np.uint8)
+        return np.packbits(s[::-1])[::-1]
+
+    def lock(self, offset):
+        orig = np.empty((45*8), dtype=np.float)
+        orig[:24] = self.config.crifc * 255
+        orig[24:] = np.unpackbits(self.pgen.generate_line(offset)[::-1])[::-1] * 255
+        x = []
+        for roll in range(-10, 10):
+            self.roll = roll
+            t = np.sum(np.square(self.chop(0, 360)-orig))
+            x.append((t, roll))
+
+        roll = min(x)[1]
+        self.roll = 0
+        self._start += roll
+        #print(roll)
+
 
     @property
     def checksum(self):
-        bits = self.tchop(3, 4)
-        bits = np.clip(bits-127, 0, 1).astype(np.uint8)
-        return np.packbits(bits[::-1])[::-1][0]
+        return self.tchop(3, 4)[0]
 
     @property
     def offset(self):
-        bits = self.tchop(0, 3)
-        bits = np.clip(bits-127, 0, 1).astype(np.uint8)
-        bytes = np.packbits(bits[::-1])[::-1]
-        if self.pgen.checksum(bytes) == self.checksum:
-            offset = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
-            if offset < 0x1fffff:
-                return offset
-            else:
-                sys.stderr.write(f'Warning: bad offset at line {self._number}\n')
-        else:
-            sys.stderr.write(f'Warning: bad checksum at line {self._number}\n')
+        for roll in range(-8, 8):
+            self.roll = roll
+            bytes = self.tchop(0, 3)
+            if self.pgen.checksum(bytes) == self.checksum:
+                offset = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16)
+                if offset < 0x1fffff:
+                    self._start += roll
+                    self.roll = 0
+                    self.lock(offset)
+                    return offset
+        sys.stderr.write(f'Warning: bad line {self._number}\n')
 
 
 def process_training(chunks, config):

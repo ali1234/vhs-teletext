@@ -72,7 +72,7 @@ class Line(object):
         self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
         self._original_bytes = data
 
-        self._resampled = resample(self._original, self.config.resample_size) / 255.0
+        self._resampled = resample(self._original, self.config.resample_size)
 
         self.reset()
 
@@ -91,7 +91,7 @@ class Line(object):
     @property
     def resampled(self):
         """The resampled line. 8 samples = 1 bit."""
-        return self._resampled[:]*255
+        return self._resampled[:]
 
     @property
     def original(self):
@@ -101,9 +101,9 @@ class Line(object):
     @property
     def rolled(self):
         if self.start is not None:
-            return np.roll(self._resampled, 90-(self.start+self.roll))*255
+            return np.roll(self._resampled, 90-(self.start+self.roll))
         else:
-            return self._resampled[:]*255
+            return self._resampled[:]
 
     @property
     def gradient(self):
@@ -116,7 +116,7 @@ class Line(object):
         r = (self.start + self.roll)
         d = self._resampled[r+(start*8):r+(stop*8)].reshape(-1, 8)
         #sys.stderr.write(f'{r}, {start}, {stop}, {d.shape}\n')
-        return np.sum(d, 1)
+        return np.sum(d, 1)/8.0
 #        return np.add.reduceat(self._original, Line.config.bits[start:stop+1] - r)[:-1] / Line.config.bit_lengths[start:stop]
 
     @property
