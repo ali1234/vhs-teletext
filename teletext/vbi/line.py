@@ -172,11 +172,13 @@ class Line(object):
         # Now find the extra roll needed to lock in the clock run-in and framing code.
         confidence = []
 
-        for roll in range(-10, 20):
+        for roll in range(-30, 20):
             self.roll = roll
             # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
             # This is the most distinctive part of the CRI/FC to look for.
-            confidence.append((np.sum(self.chop(15, 20) * self.config.crifc[15:20]), roll))
+            c = self.chop(15, 21)
+            confidence.append((c[1] + c[2] + c[3] - c[0] - c[4] - c[5], roll))
+            #confidence.append((np.sum(self.chop(15, 20) * self.config.crifc[15:20]), roll))
 
         self._start += max(confidence)[1]
         self.roll = 0
