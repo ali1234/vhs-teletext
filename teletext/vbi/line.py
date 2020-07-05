@@ -147,13 +147,13 @@ class Line(object):
         # Store self._gstart so that self.start can re-use it.
         self._gstart = gauss(self._resampled[self.config.start_slice], Line.config.gauss)
         smax = np.max(self._gstart)
-        if smax < 0.25:
+        if smax < 64:
             self._is_teletext = False
             self._reason = f'Signal max is {smax}'
         elif self.noisefloor > 80:
             self._is_teletext = False
             self._reason = f'Noise is {self.noisefloor}'
-        elif smax < (self.noisefloor + 0.1):
+        elif smax < (self.noisefloor + 16):
             # There is no interesting signal in the start_slice.
             self._is_teletext = False
             self._reason = f'Noise is higher than signal {smax} {self.noisefloor}'
