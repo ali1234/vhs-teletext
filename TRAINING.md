@@ -1,3 +1,31 @@
+Training
+--------
+
+1. Record the training signal to a tape:
+
+```
+teletext training | raspi-teletext -
+```
+
+2. Record it back to `training.vbi`.
+
+3. Run the following script to process the training file into patterns:
+
+```
+#!/bin/sh
+SPLITS=$(mktemp -d -p .)
+teletext training split $SPLITS training.vbi
+teletext training squash $SPLITS training.dat
+teletext training build -m full -b 4 20 training.dat full.dat
+teletext training build -m parity -b 6 20 training.dat parity.dat
+teletext training build -m hamming -b 1 20 training.dat hamming.dat
+cp full.dat parity.dat hamming.dat ~/Source/vhs-teletext/teletext/vbi/data/
+echo $SPLITS
+```
+
+Theory
+------
+
 The idea behind training is to record a known teletext signal on to
 tape and then play it back into the computer in the same way as you
 would when recovering a tape. Then the original and observed signal
@@ -53,4 +81,6 @@ To build the pattern data the intermediate data is processed and any
 pattern which matches the criteria is added into a list. Then the
 average for each list is taken. That is the final pattern we will 
 match against.
+
+
 
