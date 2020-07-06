@@ -119,7 +119,7 @@ class Line(object):
 
     def chop(self, start, stop):
         """Average the samples associated with each bit."""
-        return np.sum(self.fchop(start, stop).reshape(-1, 8), 1) / 8.0
+        return np.mean(self.fchop(start, stop).reshape(-1, 8), 1)
 
     @property
     def chopped(self):
