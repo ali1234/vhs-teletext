@@ -140,7 +140,7 @@ class VBIViewer(object):
         glBegin(GL_LINES)
         for x in range(self.nlines):
             glVertex2f(0, x)
-            glVertex2f(2048, x)
+            glVertex2f(self.config.resample_size, x)
         glEnd()
 
     def draw_bits(self, r, g, b, a=1.0):
