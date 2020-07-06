@@ -165,6 +165,25 @@ def process_training(chunks, config):
         yield 'rejected'
 
 
+def process_crifc(chunks, config):
+    TrainingLine.configure(config, force_cpu=True)
+    lines = (TrainingLine(chunk, n) for n, chunk in chunks)
+
+    n = 1000
+    crifc = np.empty((n, 192), dtype=np.float)
+
+    for l in lines:
+        if l.is_teletext:
+            offset = l.offset
+            if offset is not None:
+                crifc[n-1] = l.fchop(0, 24)
+                n -= 1
+                if n == 0:
+                    break
+
+    mean = np.mean(crifc, 0).reshape(-1, 8)
+    print(repr(mean.astype(np.uint8)))
+
 def split(data, files):
     pgen = PatternGenerator()
 

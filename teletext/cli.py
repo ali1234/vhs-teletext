@@ -437,3 +437,21 @@ def similarities():
     pattern = Pattern(os.path.dirname(__file__) + '/vbi/data/parity.dat')
 
     print(pattern.similarities())
+
+
+@command(training)
+@click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
+@carduser()
+@chunkreader
+@click.option('--progress/--no-progress', default=True, help='Display progress bar.')
+@click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
+def crifc(chunker, config, threads, progress, rejects):
+    """Split training recording into intermediate bins."""
+    from teletext.vbi.training import process_crifc
+
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+
+    if progress:
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
+
+    process_crifc(chunks, config=config)
