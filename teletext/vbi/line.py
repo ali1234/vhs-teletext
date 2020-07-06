@@ -109,15 +109,17 @@ class Line(object):
     def gradient(self):
         return (np.gradient(gauss(self.rolled, 12))[20:300]>0)*255
 
-    def chop(self, start, stop):
-        """Chop and average the samples associated with each bit."""
+    def fchop(self, start, stop):
+        """Chop the samples associated with each bit."""
         # This should use self.start not self._start so that self._start
         # is calculated if it hasn't been already.
         r = (self.start + self.roll)
-        d = self._resampled[r+(start*8):r+(stop*8)].reshape(-1, 8)
-        #sys.stderr.write(f'{r}, {start}, {stop}, {d.shape}\n')
-        return np.sum(d, 1)/8.0
-#        return np.add.reduceat(self._original, Line.config.bits[start:stop+1] - r)[:-1] / Line.config.bit_lengths[start:stop]
+        # sys.stderr.write(f'{r}, {start}, {stop}, {d.shape}\n')
+        return self._resampled[r + (start * 8):r + (stop * 8)]
+
+    def chop(self, start, stop):
+        """Average the samples associated with each bit."""
+        return np.sum(self.fchop(start, stop).reshape(-1, 8), 1) / 8.0
 
     @property
     def chopped(self):
