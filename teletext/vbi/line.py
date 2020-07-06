@@ -185,6 +185,16 @@ class Line(object):
         self._start += max(confidence)[1]
         self.roll = 0
 
+        confidence = []
+        for roll in range(-8, 8):
+            self.roll = roll
+            x = np.gradient(self.fchop(8, 24))
+            c = np.sum(np.square(x - self.config.observed_crifc_gradient))
+            confidence.append((c, roll))
+
+        self._start += min(confidence)[1]
+        self.roll = 0
+
     @property
     def is_teletext(self):
         """Determine whether the VBI data in this line contains a teletext signal."""

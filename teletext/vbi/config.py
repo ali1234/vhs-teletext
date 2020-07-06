@@ -49,6 +49,8 @@ class Config(object):
         [ 63,  60,  58,  57,  57,  57,  58,  58]
     ], dtype=np.uint8)
 
+    observed_crifc_gradient = np.gradient(observed_crifc[8:24,:].flatten())
+
     # Card specific default parameters:
 
     cards = {
