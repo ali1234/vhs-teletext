@@ -111,8 +111,6 @@ class Config(object):
 
         self.sample_rate += self.sample_rate_adjust
 
-        print(self.sample_rate, self.sample_rate_adjust)
-
         # width of a bit in samples (float)
         self.bit_width = self.sample_rate / self.teletext_bitrate
 
