@@ -185,8 +185,9 @@ class Line(object):
         self._start += max(confidence)[1]
         self.roll = 0
 
+        # Use the observed CRIFC to lock to the framing code
         confidence = []
-        for roll in range(-8, 8):
+        for roll in range(-4, 4):
             self.roll = roll
             x = np.gradient(self.fchop(8, 24))
             c = np.sum(np.square(x - self.config.observed_crifc_gradient))
