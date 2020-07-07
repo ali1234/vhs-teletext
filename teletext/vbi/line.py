@@ -196,6 +196,8 @@ class Line(object):
         self._start += min(confidence)[1]
         self.roll = 0
 
+        self._start += self.config.extra_roll
+
     @property
     def is_teletext(self):
         """Determine whether the VBI data in this line contains a teletext signal."""

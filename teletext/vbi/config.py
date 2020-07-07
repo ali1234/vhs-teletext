@@ -15,6 +15,9 @@ class Config(object):
     field_lines: int
     field_range: range
 
+    extra_roll: int = 0
+    sample_rate_adjust: float = 0
+
     # Clock run-in and framing code. These bits are set at the start of every teletext packet.
     crifc = np.array((
         1, -1, 1, -1, 1, -1, 1, -1,
@@ -105,6 +108,10 @@ class Config(object):
         for k, v in kwargs.items():
             if v is not None:
                 setattr(self, k, v)
+
+        self.sample_rate += self.sample_rate_adjust
+
+        print(self.sample_rate, self.sample_rate_adjust)
 
         # width of a bit in samples (float)
         self.bit_width = self.sample_rate / self.teletext_bitrate
