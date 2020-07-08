@@ -72,7 +72,11 @@ class Line(object):
         self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
         self._original_bytes = data
 
-        self._resampled = resample(self._original, self.config.resample_size)
+        resample_tmp = np.empty((self.config.line_length+self.config.resample_pad,), dtype=np.float)
+        resample_tmp[:self.config.line_length] = self._original
+        resample_tmp[self.config.line_length:] = 0
+
+        self._resampled = resample(resample_tmp, self.config.resample_tgt)[:self.config.resample_size]
 
         self.reset()
 
