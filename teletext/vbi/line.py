@@ -147,7 +147,7 @@ class Line(object):
             self._fft = normalise(gauss(np.abs(np.fft.fft(np.diff(self._original, n=1))[:256]), 4))
         return self._fft
 
-    def find_start(self):
+    def check_teletext(self):
         # First try to detect by comparing pre-start noise floor to post-start levels.
         # Store self._gstart so that self.start can re-use it.
         self._gstart = gauss(self._resampled[self.config.start_slice], self.config.gauss)
@@ -168,9 +168,10 @@ class Line(object):
             # symbol rate.
             fftchop = np.add.reduceat(self.fft, self.config.fftbins)
             self._is_teletext = np.sum(fftchop[1:-1:2]) > 1000
-        if not self._is_teletext:
-            return
+            if not self._is_teletext:
+                self._reason = 'FFT check failed'
 
+    def check_start(self):
         # Find the steepest part of the line within start_slice.
         # This gives a rough location of the start.
         self._start = np.argmax(np.gradient(np.maximum.accumulate(self._gstart))) + self.config.start_slice.start
@@ -205,13 +206,15 @@ class Line(object):
     def is_teletext(self):
         """Determine whether the VBI data in this line contains a teletext signal."""
         if self._is_teletext is None:
-            self.find_start()
+            self.check_teletext()
         return self._is_teletext
 
     @property
     def start(self):
         """Find the offset in samples where teletext data begins in the line."""
         if self.is_teletext:
+            if self._start is None:
+                self.check_start()
             return self._start
         else:
             return None
