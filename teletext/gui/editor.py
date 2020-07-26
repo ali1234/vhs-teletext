@@ -43,7 +43,7 @@ class EditorWindow(QtWidgets.QMainWindow):
         self.progress = QtWidgets.QProgressBar()
         self.progress.setVisible(False)
         self.progress.setFixedWidth(200)
-        self.ui.statusBar().addPermanentWidget(self.progress)
+        self.ui.statusBar.addPermanentWidget(self.progress)
 
 
         try:
@@ -73,7 +73,6 @@ class EditorWindow(QtWidgets.QMainWindow):
         self.service_thread.update.connect(self.progress.setValue)
         self.service_thread.finished.connect(self.importt42done)
 
-        self.ui.statusBar().addPermanentWidget(self.progress)
         self.service_thread.start()
         self.progress.setVisible(True)
 

@@ -55,7 +55,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>855</width>
+         <width>786</width>
          <height>608</height>
         </rect>
        </property>
@@ -196,7 +196,7 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionImport_T42">
    <property name="text">
     <string>Import T42</string>
