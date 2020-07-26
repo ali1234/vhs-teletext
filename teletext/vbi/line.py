@@ -42,11 +42,10 @@ class Line(object):
     cuda_ready = False
 
     @classmethod
-    def configure(cls, config, force_cpu=False):
+    def configure(cls, force_cpu=False):
         h = os.path.dirname(__file__) + '/data/hamming.dat'
         p = os.path.dirname(__file__) + '/data/parity.dat'
         f = os.path.dirname(__file__) + '/data/full.dat'
-        cls.config = config
         if not force_cpu:
             try:
                 from .patterncuda import PatternCUDA
@@ -64,12 +63,12 @@ class Line(object):
         cls.configured = True
 
     def __init__(self, data, number=None):
-        if not Line.configured:
-            Line.configure(Config())
+        if not self.configured:
+            self.configure()
 
         self._number = number
-        self._original = np.frombuffer(data, dtype=Line.config.dtype).astype(np.float32)
-        self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
+        self._original = np.frombuffer(data, dtype=self.config.dtype).astype(np.float32)
+        self._original /= 256 ** (np.dtype(self.config.dtype).itemsize-1)
         self._original_bytes = data
 
         resample_tmp = np.empty((self.config.line_length+self.config.resample_pad,), dtype=np.float)
@@ -151,7 +150,7 @@ class Line(object):
     def find_start(self):
         # First try to detect by comparing pre-start noise floor to post-start levels.
         # Store self._gstart so that self.start can re-use it.
-        self._gstart = gauss(self._resampled[self.config.start_slice], Line.config.gauss)
+        self._gstart = gauss(self._resampled[self.config.start_slice], self.config.gauss)
         smax = np.max(self._gstart)
         if smax < 64:
             self._is_teletext = False
@@ -231,32 +230,32 @@ class Line(object):
         bits_array = normalise(self.chop(0, 368))
 
         # First match just the mrag and dc for the line.
-        bytes_array[:3] = Line.h.match(bits_array[16:56])
+        bytes_array[:3] = self.h.match(bits_array[16:56])
         m = Mrag(bytes_array[:2])
         d = DesignationCode((1, ), bytes_array[2:3])
         if m.magazine in mags and m.row in rows:
             if m.row == 0:
-                bytes_array[3:10] = Line.h.match(bits_array[40:112])
-                bytes_array[10:] = Line.p.match(bits_array[96:368])
+                bytes_array[3:10] = self.h.match(bits_array[40:112])
+                bytes_array[10:] = self.p.match(bits_array[96:368])
             elif m.row < 26:
-                bytes_array[2:] = Line.p.match(bits_array[32:368])
+                bytes_array[2:] = self.p.match(bits_array[32:368])
             elif m.row == 27:
                 if d.dc < 4:
-                    bytes_array[3:40] = Line.h.match(bits_array[40:352])
-                    bytes_array[40:] = Line.f.match(bits_array[336:368])
+                    bytes_array[3:40] = self.h.match(bits_array[40:352])
+                    bytes_array[40:] = self.f.match(bits_array[336:368])
                 else:
-                    bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
+                    bytes_array[3:] = self.f.match(bits_array[40:368]) # TODO: proper codings
             elif m.row < 30:
-                bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
+                bytes_array[3:] = self.f.match(bits_array[40:368]) # TODO: proper codings
             elif m.row == 30 and m.magazine == 8: # BDSP
-                bytes_array[3:9] = Line.h.match(bits_array[40:104]) # initial page
+                bytes_array[3:9] = self.h.match(bits_array[40:104]) # initial page
                 if d.dc in [2, 3]:
-                    bytes_array[9:22] = Line.h.match(bits_array[88:208]) # 8-bit data
+                    bytes_array[9:22] = self.h.match(bits_array[88:208]) # 8-bit data
                 else:
-                    bytes_array[9:22] = Line.f.match(bits_array[88:208])  # 8-bit data
-                bytes_array[22:] = Line.p.match(bits_array[192:368]) # status display
+                    bytes_array[9:22] = self.f.match(bits_array[88:208])  # 8-bit data
+                bytes_array[22:] = self.p.match(bits_array[192:368]) # status display
             else:
-                bytes_array[3:] = Line.f.match(bits_array[40:368]) # TODO: proper codings
+                bytes_array[3:] = self.f.match(bits_array[40:368]) # TODO: proper codings
             return Packet(bytes_array, number=self._number, original=self._original_bytes)
         else:
             return 'filtered'
@@ -286,6 +285,7 @@ class Line(object):
 def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
     if mode == 'slice':
         force_cpu = True
-    Line.configure(config, force_cpu)
+    Line.configure(force_cpu)
+    cls = type("Line", (Line, ), {'config': config})
     for number, chunk in chunks:
-        yield getattr(Line(chunk, number), mode)(mags, rows)
+        yield getattr(cls(chunk, number), mode)(mags, rows)

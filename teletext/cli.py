@@ -280,11 +280,12 @@ def vbiview(chunker, config, pause):
     else:
         from teletext.vbi.line import Line
 
-        Line.configure(config, force_cpu=True)
+        Line.configure(force_cpu=True)
+        cls = type("Line", (Line, ), {'config': config})
 
         chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
-        lines = (Line(chunk, number) for number, chunk in chunks)
+        lines = (cls(chunk, number) for number, chunk in chunks)
 
         VBIViewer(lines, config, pause=pause)
 
