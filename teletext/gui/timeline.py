@@ -15,17 +15,18 @@ class TimeLineModel(QAbstractItemModel):
 
     def __init__(self, filename):
         super().__init__()
+        self.blocksize = 250
         self.vbi = VBIFile(filename, Config())
 
     def rowCount(self, parent: QModelIndex = ...):
         return 32
 
     def columnCount(self, parent: QModelIndex = ...):
-        return self.vbi.frames // 32
+        return self.vbi.frames // self.blocksize
 
     def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
         c = index.column()
-        m = self.vbi.meta[c*32:(c+1)*32, index.row()]
+        m = self.vbi.meta[c*self.blocksize:(c+1)*self.blocksize, index.row()]
         if np.all(m == m[0]):
             return QVariant(self.colours[m[0]])
         else:
@@ -45,16 +46,16 @@ class TimeLineModelLoader(QtCore.QThread):
 
     def run(self):
         self.total.emit(self.model.vbi.frames)
-        for block in range(0, self.model.vbi.frames-32, 32):
+        for block in range(0, self.model.vbi.frames-self.model.blocksize, self.model.blocksize):
             changed = False
-            for frame in range(block, block+32):
+            for frame in range(block, block+self.model.blocksize):
                 for line in range(32):
                     if self.model.vbi.meta[frame, line] == 0:
                         l = self.model.vbi.getline(frame, line)
                         self.model.vbi.meta[frame, line] = 2 if l.is_teletext else 1
                         changed = True
             if changed:
-                self.model.dataChanged.emit(self.model.createIndex(0, block//32), self.model.createIndex(31, block//32))
+                self.model.dataChanged.emit(self.model.createIndex(0, block//self.model.blocksize), self.model.createIndex(31, block//self.model.blocksize))
                 self.model.vbi.savemeta()
             self.update.emit(block)
 
