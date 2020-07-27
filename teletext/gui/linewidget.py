@@ -20,17 +20,15 @@ class LineWidget(object):
 
         self.line_attr = 'resampled'
 
-        self.nlines = 100
         self.config = Config()
         self.lines = []
 
     def setlines(self, lines):
         self.lines = lines
+
         self._glw.update()
 
     def initializeGL(self):
-        glMatrixMode(GL_PROJECTION)
-        glOrtho(0, self.config.resample_size, 0, self.nlines, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
@@ -55,15 +53,15 @@ class LineWidget(object):
         glColor4f(r, g, b, a)
         glBegin(GL_LINES)
         glVertex2f(slice.start, 0)
-        glVertex2f(slice.start, self.nlines)
+        glVertex2f(slice.start, len(self.lines))
         glVertex2f(slice.stop, 0)
-        glVertex2f(slice.stop, self.nlines)
+        glVertex2f(slice.stop, len(self.lines))
         glEnd()
 
     def draw_h_grid(self, r, g, b, a=1.0):
         glColor4f(r, g, b, a)
         glBegin(GL_LINES)
-        for x in range(self.nlines):
+        for x in range(len(self.lines)):
             glVertex2f(0, x)
             glVertex2f(self.config.resample_size, x)
         glEnd()
@@ -73,7 +71,7 @@ class LineWidget(object):
         glBegin(GL_LINES)
         for x in range(0, 368,8):
             glVertex2f((x*8)+90, 0)
-            glVertex2f((x*8)+90, self.nlines)
+            glVertex2f((x*8)+90, len(self.lines))
         glEnd()
 
     def draw_freq_bins(self, n, r, g, b, a=1.0):
@@ -81,7 +79,7 @@ class LineWidget(object):
         glBegin(GL_LINES)
         for x in self.config.fftbins:
             glVertex2f(self.config.resample_size*x/256, 0)
-            glVertex2f(self.config.resample_size*x/256, self.nlines)
+            glVertex2f(self.config.resample_size*x/256, len(self.lines))
         glEnd()
 
     def draw_lines(self):
@@ -117,16 +115,21 @@ class LineWidget(object):
         glDisable(GL_TEXTURE_2D)
 
     def paintGL(self):
+        if len(self.lines):
+            glMatrixMode(GL_PROJECTION)
+            glLoadIdentity()
+            glOrtho(0, self.config.resample_size, 0, len(self.lines), -1, 1)
+            glMatrixMode(GL_MODELVIEW)
 
-        self.draw_lines()
+            self.draw_lines()
 
-        if self.height / self.nlines > 3:
-            self.draw_h_grid(0, 0, 0, 0.25)
+            if self.height / len(self.lines) > 3:
+                self.draw_h_grid(0, 0, 0, 0.25)
 
-        if self.show_grid:
-            if self.line_attr == 'fft':
-                self.draw_freq_bins(256, 1, 1, 1, 0.5)
-            elif self.line_attr == 'rolled' and self.width / 42 > 5:
-                self.draw_bits(1, 1, 1, 0.5)
-            elif self.line_attr == 'resampled':
-                self.draw_slice(self.config.start_slice, 0, 1, 0, 0.5)
+            if self.show_grid:
+                if self.line_attr == 'fft':
+                    self.draw_freq_bins(256, 1, 1, 1, 0.5)
+                elif self.line_attr == 'rolled' and self.width / 42 > 5:
+                    self.draw_bits(1, 1, 1, 0.5)
+                elif self.line_attr == 'resampled':
+                    self.draw_slice(self.config.start_slice, 0, 1, 0, 0.5)

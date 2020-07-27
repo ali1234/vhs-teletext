@@ -2,7 +2,7 @@ import random
 import typing
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QModelIndex, QVariant, QAbstractItemModel
+from PyQt5.QtCore import QModelIndex, QVariant, QAbstractItemModel, pyqtSignal, pyqtSlot
 
 import numpy as np
 
@@ -13,9 +13,11 @@ class TimeLineModel(QAbstractItemModel):
 
     colours = ['grey', 'red', 'green']
 
+    selectionChanged = pyqtSignal(int, int)
+
     def __init__(self, filename):
         super().__init__()
-        self.blocksize = 250
+        self.blocksize = 100
         self.vbi = VBIFile(filename, Config())
 
     def rowCount(self, parent: QModelIndex = ...):
@@ -35,6 +37,9 @@ class TimeLineModel(QAbstractItemModel):
     def index(self, row: int, column: int, parent: QModelIndex = ...) -> QModelIndex:
         return self.createIndex(row, column, (column * self.rowCount()) + row)
 
+    @pyqtSlot(int, int)
+    def onClick(self, block, line):
+        self.selectionChanged.emit(block * self.blocksize, line)
 
 class TimeLineModelLoader(QtCore.QThread):
     total = QtCore.pyqtSignal(int)

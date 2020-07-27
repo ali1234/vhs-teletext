@@ -30,7 +30,7 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: timeLine.selected = index
+                onClicked: pyModel.onClick(index/32, index%32)
                 //onEntered: parent.border.color = "transparent"
                 //onExited: parent.border.color = "white"
             }

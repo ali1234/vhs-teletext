@@ -44,6 +44,8 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         self.service_thread = TimeLineModelLoader(filename)
         self.model = self.service_thread.model
 
+        self.model.selectionChanged.connect(self.loadlines)
+
         rc = self.ui.TimeLine.rootContext()
         rc.setContextProperty('pyModel', self.model)
 
@@ -60,7 +62,8 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         self.progress.setVisible(False)
         self.ui.actionOpen.setEnabled(True)
 
-        self.linewidget.setlines([self.model.vbi.getline(frame, 0) for frame in range(100)])
+    def loadlines(self, frame, line):
+        self.linewidget.setlines([self.model.vbi.getline(f, line) for f in range(frame, frame+self.model.blocksize)])
 
 def main():
     import sys
