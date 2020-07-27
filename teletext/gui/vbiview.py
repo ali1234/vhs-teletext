@@ -7,7 +7,8 @@ try:
 except ImportError:
     print('PyQt5 is not installed. Qt VBI Viewer not available.')
 
-from teletext.gui.timeline import TimeLineModel, TimeLineModelLoader
+from teletext.gui.timeline import TimeLineModelLoader
+from teletext.gui.linewidget import LineWidget
 
 
 class VbiViewWindow(QtWidgets.QMainWindow):
@@ -16,9 +17,12 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         ui_file = os.path.join(os.path.dirname(__file__), 'vbiview.ui')
         self.ui = uic.loadUi(ui_file)
 
-        qml_file = os.path.join(os.path.dirname(__file__), 'timeline.qml')
-
         self.ui.splitter.closestLegalPosition = lambda a, b: a&0xffff0
+
+        self.linewidget = LineWidget(self.ui.VbiView)
+
+        qml_file = os.path.join(os.path.dirname(__file__), 'timeline.qml')
+        self.ui.TimeLine.setSource(QUrl.fromLocalFile(qml_file))
 
         self.ui.actionOpen.triggered.connect(self.open)
 
@@ -27,9 +31,6 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         self.progress.setFixedWidth(200)
         self.ui.statusBar.addPermanentWidget(self.progress)
 
-        #rc = self.ui.TimeLine.rootContext()
-        #rc.setContextProperty('pyModel', self.model)
-        self.ui.TimeLine.setSource(QUrl.fromLocalFile(qml_file))
         self.ui.show()
 
     def open(self, filename=None):
@@ -59,6 +60,7 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         self.progress.setVisible(False)
         self.ui.actionOpen.setEnabled(True)
 
+        self.linewidget.setlines([self.model.vbi.getline(frame, 0) for frame in range(100)])
 
 def main():
     import sys

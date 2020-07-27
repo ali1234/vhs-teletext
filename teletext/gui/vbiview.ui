@@ -44,7 +44,7 @@
       <property name="childrenCollapsible">
        <bool>false</bool>
       </property>
-      <widget class="QFrame" name="frame">
+      <widget class="QFrame" name="TimeLineFrame">
        <property name="frameShape">
         <enum>QFrame::Panel</enum>
        </property>
@@ -103,7 +103,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QFrame" name="frame_2">
+      <widget class="QFrame" name="VbiViewFrame">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
