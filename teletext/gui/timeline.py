@@ -2,7 +2,7 @@ import random
 import typing
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QModelIndex, QVariant, QAbstractItemModel, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QModelIndex, QVariant, QAbstractItemModel, pyqtSignal, pyqtSlot, pyqtProperty
 
 import numpy as np
 
@@ -17,8 +17,20 @@ class TimeLineModel(QAbstractItemModel):
 
     def __init__(self, filename):
         super().__init__()
-        self.blocksize = 100
         self.vbi = VBIFile(filename, Config())
+        self._blocksize = 128
+
+    @pyqtProperty(int)
+    def blocksize(self):
+        return self._blocksize
+
+    @blocksize.setter
+    def blocksize(self, s):
+        if s < 1 or s > 400:
+            return
+        self.beginResetModel()
+        self._blocksize = s
+        self.endResetModel()
 
     def rowCount(self, parent: QModelIndex = ...):
         return 32
@@ -54,11 +66,10 @@ class TimeLineModelLoader(QtCore.QThread):
         for block in range(0, self.model.vbi.frames-self.model.blocksize, self.model.blocksize):
             changed = False
             for frame in range(block, block+self.model.blocksize):
-                for line in range(32):
-                    if self.model.vbi.meta[frame, line] == 0:
-                        l = self.model.vbi.getline(frame, line)
-                        self.model.vbi.meta[frame, line] = 2 if l.is_teletext else 1
-                        changed = True
+                for line in np.where(self.model.vbi.meta[frame] == 0)[0]:
+                    l = self.model.vbi.getline(frame, line)
+                    self.model.vbi.meta[frame, line] = 2 if l.is_teletext else 1
+                    changed = True
             if changed:
                 self.model.dataChanged.emit(self.model.createIndex(0, block//self.model.blocksize), self.model.createIndex(31, block//self.model.blocksize))
                 self.model.vbi.savemeta()

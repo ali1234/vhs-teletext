@@ -33,6 +33,8 @@ class VbiViewWindow(QtWidgets.QMainWindow):
 
         self.ui.show()
 
+        self.open('/media/al/Teletext/secam.vbi')
+
     def open(self, filename=None):
         self.ui.actionOpen.setEnabled(False)
 
@@ -41,7 +43,11 @@ class VbiViewWindow(QtWidgets.QMainWindow):
         if filename == '':
             return
 
-        self.service_thread = TimeLineModelLoader(filename)
+        try:
+            self.service_thread = TimeLineModelLoader(filename)
+        except (FileNotFoundError, PermissionError):
+            return
+
         self.model = self.service_thread.model
 
         self.model.selectionChanged.connect(self.loadlines)
