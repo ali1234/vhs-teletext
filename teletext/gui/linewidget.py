@@ -37,12 +37,15 @@ class LineWidget(object):
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        self.texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+
+        glClearColor(0, 0, 0, 0)
 
     def resizeGL(self, width, height):
         self.width = width
@@ -85,9 +88,11 @@ class LineWidget(object):
     def draw_lines(self):
 
         glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.texture)
         for n,l in enumerate(self.lines[::-1]):
             array = getattr(l, self.line_attr)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, array.size, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, np.clip(array, 0, 255).astype(np.uint8).tostring())
+            array = np.clip(array, 0, 255).astype(np.uint8)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, array.size, 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, array.tostring())
             if self.tint:
                 if l.is_teletext:
                     glColor4f(0.5, 1.0, 0.7, 1.0)
@@ -115,6 +120,7 @@ class LineWidget(object):
         glDisable(GL_TEXTURE_2D)
 
     def paintGL(self):
+        glClear(GL_COLOR_BUFFER_BIT)
         if len(self.lines):
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
