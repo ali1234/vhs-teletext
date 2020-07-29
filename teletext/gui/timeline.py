@@ -18,7 +18,7 @@ class TimeLineModel(QAbstractItemModel):
     def __init__(self, filename):
         super().__init__()
         self.vbi = VBIFile(filename, Config())
-        self._blocksize = 128
+        self._blocksize = 50
 
     @pyqtProperty(int)
     def blocksize(self):

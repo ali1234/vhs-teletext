@@ -31,7 +31,7 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 onClicked: pyModel.onClick(index/32, index%32)
-                onWheel: wheel.angleDelta.y > 0 ? pyModel.blocksize *= 2 : pyModel.blocksize /= 2
+                //onWheel: wheel.angleDelta.y > 0 ? pyModel.blocksize *= 2 : pyModel.blocksize /= 2
                 //onEntered: parent.border.color = "transparent"
                 //onExited: parent.border.color = "white"
             }
