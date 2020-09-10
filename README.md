@@ -26,7 +26,7 @@ In order to use CUDA decoding you need to use the Nvidia proprietary driver.
 
 To install with optional dependencies run:
 
-    pip3 install .[CUDA,spellcheck,viewer]
+    pip3 install -e .[CUDA,spellcheck,viewer]
 
 If CUDA or pyenchant are not available for your platform simply omit them
 from the install command.
