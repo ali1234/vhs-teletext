@@ -76,7 +76,7 @@ class Line(object):
         resample_tmp[:self.config.line_length] = self._original
         resample_tmp[self.config.line_length:] = 0
 
-        self._resampled = resample(resample_tmp, self.config.resample_tgt)[:self.config.resample_size]
+        self._resampled = np.pad(resample(resample_tmp, self.config.resample_tgt)[:self.config.resample_size], (0, 64), 'edge')
 
         self.reset()
 
@@ -178,7 +178,7 @@ class Line(object):
         # Now find the extra roll needed to lock in the clock run-in and framing code.
         confidence = []
 
-        for roll in range(-30, 20):
+        for roll in range(max(-30, 8-self._start), 20):
             self.roll = roll
             # 15:20 is the last bit of CRI and first 4 bits of FC - 01110.
             # This is the most distinctive part of the CRI/FC to look for.
