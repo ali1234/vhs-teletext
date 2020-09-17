@@ -108,7 +108,7 @@ g0_cyr2 = {
     0x23: chr(0x00A3), # POUND SIGN
     0x24: chr(0x0024), # DOLLAR SIGN
     0x25: chr(0x0025), # PERCENT SIGN
-    0x26: chr(0x0026), # AMPERSAND
+    0x26: chr(0x044B), # CYRILLIC SMALL LETTER YERU
     0x27: chr(0x0027), # APOSTROPHE
     0x28: chr(0x0028), # LEFT PARENTHESIS
     0x29: chr(0x0029), # RIGHT PARENTHESIS
