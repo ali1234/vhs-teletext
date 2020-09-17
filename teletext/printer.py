@@ -34,7 +34,7 @@ class PrinterANSI(Parser):
 
 class PrinterHTML(Parser):
 
-    def __init__(self, tt, fastext=None, pages_set=range(0x100)):
+    def __init__(self, tt, fastext=None, pages_set=range(0x100), codepage=0):
         self.flinkopen = False
         self.fastext = fastext
         self.pages_set = pages_set
@@ -42,7 +42,7 @@ class PrinterHTML(Parser):
         # anchor for header links so we can bookmark a subpage
         self.anchor = ""
 
-        super().__init__(tt)
+        super().__init__(tt, codepage)
 
     def ttchar(self, c):
         # Use the unicode characters produced by the base parser

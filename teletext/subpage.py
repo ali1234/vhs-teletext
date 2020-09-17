@@ -54,6 +54,10 @@ class Subpage(Element):
         return self.packet(0).header
 
     @property
+    def codepage(self):
+        return self.packet(0).header.codepage
+
+    @property
     def fastext(self):
         return self.packet(27, 0).fastext
 
@@ -144,15 +148,15 @@ class Subpage(Element):
         lines = []
 
         lines.append(f'<div class="subpage" id="{self.header.subpage:04x}">')
-        p = PrinterHTML(self.header.displayable[:])
+        p = PrinterHTML(self.header.displayable[:], codepage=self.codepage)
         p.anchor = f'#{self.header.subpage:04x}'
-        lines.append(f'    <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x}{str(p)}')
+        lines.append(f'   <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x} {str(p)}')
 
         for i in range(0,24):
             # only draw the line if previous line does not contain double height code
             if i == 0 or np.all(self.displayable[i-1,:] != 0x0d):
                 fastext = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links] if i == 23 else None
-                p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set)
+                p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set, codepage=self.codepage)
                 lines.append(str(p))
 
         lines.append('</div>')
