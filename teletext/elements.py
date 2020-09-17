@@ -144,6 +144,11 @@ class Header(Page):
     def displayable(self):
         return Displayable((32,), self._array[8:])
 
+    @property
+    def codepage(self):
+        control = self.control
+        return (control >> 8) & 0x7
+
     @subpage.setter
     def subpage(self, subpage):
         if subpage < 0 or subpage > 0x3f7f:
@@ -164,6 +169,7 @@ class Header(Page):
         self._array[6:8] = hamming16_encode(control >> 3)
 
     def to_ansi(self, colour=True):
+
         return f'{self.page:02x} {self.displayable.to_ansi(colour)}'
 
     def apply_finders(self):

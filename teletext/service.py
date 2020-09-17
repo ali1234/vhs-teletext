@@ -136,7 +136,7 @@ class Service(object):
         for magazineno, magazine in tqdm(self.magazines.items(), desc='Magazines', unit='M'):
             for pageno, page in tqdm(magazine.pages.items(), desc='Pages', unit='P'):
                 pagestr = f'{magazineno}{pageno:02x}'
-                outfile = open(os.path.join(outdir, f'{pagestr}.html'), 'w')
+                outfile = open(os.path.join(outdir, f'{pagestr}.html'), 'w', encoding='utf-8')
                 body = '\n'.join(
                     subpage.to_html(pages_set) for n, subpage in sorted(page.subpages.items())
                 )
