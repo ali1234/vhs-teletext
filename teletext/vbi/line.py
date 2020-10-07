@@ -9,7 +9,7 @@
 # * GNU General Public License for more details.
 
 import math
-import os
+import pathlib
 import sys
 import numpy as np
 from scipy.ndimage import gaussian_filter1d as gauss
@@ -43,9 +43,10 @@ class Line(object):
 
     @classmethod
     def configure(cls, config, force_cpu=False, tape_format='vhs'):
-        h = os.path.dirname(__file__) + '/data/' + tape_format + '/hamming.dat'
-        p = os.path.dirname(__file__) + '/data/' + tape_format + '/parity.dat'
-        f = os.path.dirname(__file__) + '/data/' + tape_format + '/full.dat'
+        datadir = pathlib.Path(__file__).parent / 'data'
+        h = datadir / tape_format / 'hamming.dat'
+        p = datadir / tape_format / 'parity.dat'
+        f = datadir / tape_format / 'full.dat'
         cls.config = config
         if not force_cpu:
             try:
