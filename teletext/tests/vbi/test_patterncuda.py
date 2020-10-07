@@ -1,5 +1,4 @@
-import io
-import os
+import pathlib
 import unittest
 
 import numpy as np
@@ -12,7 +11,7 @@ try:
     class PatternCUDATestCase(unittest.TestCase):
 
         def setUp(self):
-            p = os.path.dirname(__file__) + '/../../vbi/data/parity.dat'
+            p = pathlib.Path(__file__).parent.parent.parent / 'vbi' / 'data' / 'vhs' / 'parity.dat'
             self.pattern = Pattern(p)
             self.patterncuda = PatternCUDA(p)
 
