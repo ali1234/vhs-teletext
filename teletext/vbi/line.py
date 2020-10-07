@@ -43,9 +43,9 @@ class Line(object):
 
     @classmethod
     def configure(cls, config, force_cpu=False, tape_format='vhs'):
-        h = os.path.dirname(__file__) + '/data-' + tape_format + '/hamming.dat'
-        p = os.path.dirname(__file__) + '/data-' + tape_format + '/parity.dat'
-        f = os.path.dirname(__file__) + '/data-' + tape_format + '/full.dat'
+        h = os.path.dirname(__file__) + '/data/' + tape_format + '/hamming.dat'
+        p = os.path.dirname(__file__) + '/data/' + tape_format + '/parity.dat'
+        f = os.path.dirname(__file__) + '/data/' + tape_format + '/full.dat'
         cls.config = config
         if not force_cpu:
             try:

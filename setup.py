@@ -9,14 +9,13 @@ setup(
     packages=['teletext', 'teletext.vbi'],
     package_data={
         'teletext.vbi': [
-            'data-vhs/debruijn.dat',
-            'data-vhs/parity.dat',
-            'data-vhs/hamming.dat',
-            'data-vhs/full.dat',
-            'data-betamax/debruijn.dat',
-            'data-betamax/parity.dat',
-            'data-betamax/hamming.dat',
-            'data-betamax/full.dat'
+            'data/debruijn.dat',
+            'data/vhs/parity.dat',
+            'data/vhs/hamming.dat',
+            'data/vhs/full.dat',
+            'data/betamax/parity.dat',
+            'data/betamax/hamming.dat',
+            'data/betamax/full.dat'
         ],
         'teletext.gui': [
             'decoder.qml',
