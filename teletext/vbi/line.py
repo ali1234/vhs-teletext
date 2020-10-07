@@ -42,10 +42,10 @@ class Line(object):
     cuda_ready = False
 
     @classmethod
-    def configure(cls, config, force_cpu=False):
-        h = os.path.dirname(__file__) + '/data/hamming.dat'
-        p = os.path.dirname(__file__) + '/data/parity.dat'
-        f = os.path.dirname(__file__) + '/data/full.dat'
+    def configure(cls, config, force_cpu=False, tape_format='vhs'):
+        h = os.path.dirname(__file__) + '/data-' + tape_format + '/hamming.dat'
+        p = os.path.dirname(__file__) + '/data-' + tape_format + '/parity.dat'
+        f = os.path.dirname(__file__) + '/data-' + tape_format + '/full.dat'
         cls.config = config
         if not force_cpu:
             try:
@@ -283,9 +283,9 @@ class Line(object):
         else:
             return 'filtered'
 
-def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32)):
+def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32), tape_format='vhs'):
     if mode == 'slice':
         force_cpu = True
-    Line.configure(config, force_cpu)
+    Line.configure(config, force_cpu, tape_format)
     for number, chunk in chunks:
         yield getattr(Line(chunk, number), mode)(mags, rows)
