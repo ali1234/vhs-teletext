@@ -43,10 +43,10 @@ class Line(object):
 
     @classmethod
     def configure(cls, config, force_cpu=False, tape_format='vhs'):
-        datadir = pathlib.Path(__file__).parent / 'data'
-        h = datadir / tape_format / 'hamming.dat'
-        p = datadir / tape_format / 'parity.dat'
-        f = datadir / tape_format / 'full.dat'
+        datadir = pathlib.Path(__file__).parent / 'data' / tape_format
+        h = datadir / 'hamming.dat'
+        p = datadir / 'parity.dat'
+        f = datadir / 'full.dat'
         cls.config = config
         if not force_cpu:
             try:
