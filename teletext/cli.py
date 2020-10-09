@@ -5,6 +5,7 @@ import pathlib
 import platform
 
 import sys
+from collections import defaultdict
 
 import click
 from tqdm import tqdm
@@ -90,9 +91,16 @@ def split(packets, pattern, pages, subpages):
 
     """Split a t42 stream in to multiple files."""
 
+    counts = defaultdict(int)
+
     for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
-        s = Subpage.from_packets(pl)
-        f = pathlib.Path(pattern.format(m=s.mrag.magazine, p=f'{s.header.page:02x}', s=f'{s.header.subpage:04x}'))
+        subpage = Subpage.from_packets(pl)
+        m = subpage.mrag.magazine
+        p = subpage.header.page
+        s = subpage.header.subpage
+        c = counts[(m,p,s)]
+        counts[(m,p,s)] += 1
+        f = pathlib.Path(pattern.format(m=m, p=f'{p:02x}', s=f'{s:04x}', c=f'{c:04d}'))
         f.parent.mkdir(parents=True, exist_ok=True)
         with f.open('ab') as ff:
             ff.write(b''.join(p.bytes for p in pl))
