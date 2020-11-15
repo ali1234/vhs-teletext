@@ -221,9 +221,10 @@ def urls(packets, editor, pages, subpages):
 @command(teletext)
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
+@click.option('--cyrillic', is_flag=True, help='Enable cyrillic encoding support')
 @paginated(always=True, filtered=False)
 @packetreader
-def html(packets, outdir, template):
+def html(packets, outdir, template, cyrillic):
 
     """Generate HTML files from the input stream."""
 
@@ -233,7 +234,7 @@ def html(packets, outdir, template):
         template = template.read()
 
     svc = Service.from_packets(packets)
-    svc.to_html(outdir, template)
+    svc.to_html(outdir, template, cyrillic)
 
 
 @command(teletext)

@@ -113,7 +113,7 @@ class Service(object):
         packets = (Packet(data, number) for number, data in chunks)
         return cls.from_packets(packets)
 
-    def to_html(self, outdir, template=None):
+    def to_html(self, outdir, template=None, cyrillic=False):
 
         pages_set = self.pages_set
 
@@ -138,7 +138,7 @@ class Service(object):
                 pagestr = f'{magazineno}{pageno:02x}'
                 outfile = open(os.path.join(outdir, f'{pagestr}.html'), 'w', encoding='utf-8')
                 body = '\n'.join(
-                    subpage.to_html(pages_set) for n, subpage in sorted(page.subpages.items())
+                    subpage.to_html(pages_set, cyrillic) for n, subpage in sorted(page.subpages.items())
                 )
                 outfile.write(template.format(page=pagestr, body=body))
 
