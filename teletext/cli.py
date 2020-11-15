@@ -299,7 +299,7 @@ def vbiview(chunker, config, pause):
 
 @command(teletext)
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser(extended=True)
