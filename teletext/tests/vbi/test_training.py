@@ -12,15 +12,16 @@ class TrainingTestCase(unittest.TestCase):
     def setUp(self):
         pass
 
+    @unittest.skip
     def test_split(self):
         files = [io.BytesIO() for _ in range(256)]
-        pattern = load_pattern()
+        pattern = PatternGenerator.load_pattern()
         max_n = 10
 
-        data = [(n, np.unpackbits(pattern[n:n+pattern_length][::-1])[::-1]) for n in range(max_n)]
+        data = [(n, np.unpackbits(pattern[n:n+PatternGenerator.pattern_length][::-1])[::-1]) for n in range(max_n)]
         split(data, files)
 
-        pattern_bits = np.unpackbits(pattern[:max_n+pattern_length][::-1])[::-1]
+        pattern_bits = np.unpackbits(pattern[:max_n+PatternGenerator.pattern_length][::-1])[::-1]
         patterns_present = set()
         for x in range(len(pattern_bits) - 23):
             patterns_present.add(

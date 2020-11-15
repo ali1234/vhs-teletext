@@ -5,6 +5,7 @@ import pathlib
 import platform
 
 import sys
+from collections import defaultdict
 
 import click
 from tqdm import tqdm
@@ -90,9 +91,16 @@ def split(packets, pattern, pages, subpages):
 
     """Split a t42 stream in to multiple files."""
 
+    counts = defaultdict(int)
+
     for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
-        s = Subpage.from_packets(pl)
-        f = pathlib.Path(pattern.format(m=s.mrag.magazine, p=f'{s.header.page:02x}', s=f'{s.header.subpage:04x}'))
+        subpage = Subpage.from_packets(pl)
+        m = subpage.mrag.magazine
+        p = subpage.header.page
+        s = subpage.header.subpage
+        c = counts[(m,p,s)]
+        counts[(m,p,s)] += 1
+        f = pathlib.Path(pattern.format(m=m, p=f'{p:02x}', s=f'{s:04x}', c=f'{c:04d}'))
         f.parent.mkdir(parents=True, exist_ok=True)
         with f.open('ab') as ff:
             ff.write(b''.join(p.bytes for p in pl))
@@ -291,6 +299,7 @@ def vbiview(chunker, config, pause):
 
 @command(teletext)
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser(extended=True)
@@ -299,7 +308,7 @@ def vbiview(chunker, config, pause):
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, mag_hist, row_hist, err_hist, rejects):
+def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -315,7 +324,7 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
-    packets = itermap(process_lines, chunks, threads, mode=mode, config=config, force_cpu=force_cpu, mags=mags, rows=rows)
+    packets = itermap(process_lines, chunks, threads, mode=mode, config=config, force_cpu=force_cpu, mags=mags, rows=rows, tape_format=tape_format)
 
     if progress and rejects:
         packets = Rejects(packets)
@@ -434,7 +443,7 @@ def build(input, output, mode, bits):
 def similarities():
     from teletext.vbi.pattern import Pattern
 
-    pattern = Pattern(os.path.dirname(__file__) + '/vbi/data/parity.dat')
+    pattern = Pattern(os.path.dirname(__file__) + '/vbi/data-' + tape_format + '/parity.dat')
 
     print(pattern.similarities())
 
