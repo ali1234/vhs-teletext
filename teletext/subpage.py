@@ -144,11 +144,11 @@ class Subpage(Element):
         return ':'.join(parts)
 
 
-    def to_html(self, pages_set, cyrillic=False):
+    def to_html(self, pages_set, localcodepage=None):
         lines = []
 
         lines.append(f'<div class="subpage" id="{self.header.subpage:04x}">')
-        p = PrinterHTML(self.header.displayable[:], codepage=self.codepage)
+        p = PrinterHTML(self.header.displayable[:], localcodepage=localcodepage, codepage=self.codepage)
         p.anchor = f'#{self.header.subpage:04x}'
         lines.append(f'   <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x} {str(p)}')
 
@@ -156,10 +156,7 @@ class Subpage(Element):
             # only draw the line if previous line does not contain double height code
             if i == 0 or np.all(self.displayable[i-1,:] != 0x0d):
                 fastext = [f'{l.magazine}{l.page:02x}' for l in self.fastext.links] if i == 23 else None
-                if cyrillic:
-                    p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set, codepage=self.codepage)
-                else:
-                    p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set, codepage=0)
+                p = PrinterHTML(self.displayable[i,:], fastext=fastext, pages_set=pages_set, localcodepage=localcodepage, codepage=self.codepage)
                 lines.append(str(p))
 
         lines.append('</div>')

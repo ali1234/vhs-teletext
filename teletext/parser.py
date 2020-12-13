@@ -9,10 +9,11 @@ class Parser(object):
 
     "Abstract base class for parsers"
 
-    def __init__(self, tt, codepage=0):
+    def __init__(self, tt, localcodepage=None, codepage=0):
         self.tt = tt
         self._state = {}
         self.codepage = codepage
+        self.localcodepage = localcodepage
         self.parse()
 
     def reset(self):
@@ -52,10 +53,13 @@ class Parser(object):
             else:
                 return chr(c+0xee00) if self._state['solid'] else chr(c+0xede0)
         else:
-            if not self._esc and self.codepage == 1:
-                return charset.g0_cyr2[c]
+            if not self.localcodepage:
+                return charset.g0["default"][c]
             else:
-                return charset.g0[c]
+                if not self._esc and self.codepage:
+                    return charset.g0[self.localcodepage][c]
+                else:
+                    return charset.g0["default"][c]
 
     def _emitcharacter(self, c):
         getattr(self, 'emitcharacter', lambda x: None)(c)
