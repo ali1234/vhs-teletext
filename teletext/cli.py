@@ -10,6 +10,7 @@ from collections import defaultdict
 import click
 from tqdm import tqdm
 
+from .charset import g0
 from .clihelpers import packetreader, packetwriter, paginated, progressparams, filterparams, carduser, chunkreader, \
     command, profileopts
 from .file import FileChunker
@@ -221,7 +222,7 @@ def urls(packets, editor, pages, subpages):
 @command(teletext)
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
-@click.option('--localcodepage', type=click.Choice(['cyr']), default=None, help='Select codepage for Local Code of Practice')
+@click.option('--localcodepage', type=click.Choice(g0.keys()), default=None, help='Select codepage for Local Code of Practice')
 @paginated(always=True, filtered=False)
 @packetreader
 def html(packets, outdir, template, localcodepage):
