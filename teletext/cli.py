@@ -304,13 +304,14 @@ def vbiview(chunker, config, pause):
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
+@click.option('-k', '--keep-empty', is_flag=True, help='Insert empty packets in the output when line could not be deconvolved.')
 @carduser(extended=True)
 @packetwriter
 @chunkreader
 @filterparams
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
+def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -332,7 +333,10 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, progress, 
         packets = Rejects(packets)
         chunks.postfix.append(packets)
 
-    packets = (p for p in packets if isinstance(p, Packet))
+    if keep_empty:
+        packets = (p if isinstance(p, Packet) else Packet() for p in packets)
+    else:
+        packets = (p for p in packets if isinstance(p, Packet))
 
     if progress and mag_hist:
         packets = MagHistogram(packets)
