@@ -7,19 +7,15 @@ a:hover {color: orange;} a:active {color: red;}
 @font-face {font-family:teletext4; src:url('teletext4.ttf')}
 
 .subpage {
-        position:relative; top:0; left:0;
-        float:left; white-space: pre; color:white;background:black;
+    position:relative; top:0; left:0;
+    float:left; white-space: pre; color:white;background:black;
 	font-family: teletext2;	font-size:30px; line-height:30px;
-//        letter-spacing: -0.25px;
 	border: solid black 10px;
-        border-bottom: solid black 20px;
-        text-shadow: 0 0 1.5px;
+    border-bottom: solid black 20px;
+    text-shadow: 0 0 1.5px;
+    //letter-spacing: -0.25px;
+    //filter:blur(0.5px) brightness(120%);
 }
-
-.subpage{
-        //filter:blur(0.5px) brightness(120%);
-}
-
 
 .subpage:after{
     content: "";
@@ -31,20 +27,17 @@ a:hover {color: orange;} a:active {color: red;}
     width: 100%;
     z-index:10;
 
-  background: -webkit-repeating-linear-gradient(
-    top,
-    rgba(0,0,0,0.60) 0px,
-    transparent 1px,
-    transparent 2px,
-    rgba(0,0,0,0.60) 3px
+    background: -webkit-repeating-linear-gradient(
+        top,
+        rgba(0,0,0,0.60) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0,0,0,0.60) 3px
+    );
 
-  );
-
-  background-size: 100% 100%;
-  pointer-events:none;
+    background-size: 100% 100%;
+    pointer-events:none;
 }
-
-
 
 .f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;}
 .f4{color:blue;} .f5{color:magenta;} .f6{color:cyan;} .f7{color:white;}
