@@ -67,7 +67,8 @@ g0 = {'default': {
     0x5D: chr(0x2192),  # RIGHTWARDS ARROW
     0x5E: chr(0x2191),  # UPWARDS ARROW
     0x5F: chr(0x0023),  # NUMBER SIGN
-    0x60: chr(0x2500),  # BOX DRAWINGS LIGHT HORIZONTAL
+    #0x60: chr(0x2500),  # BOX DRAWINGS LIGHT HORIZONTAL
+    0x60: chr(0x2014),  # EM DASH
     0x61: chr(0x0061),  # LATIN SMALL LETTER A
     0x62: chr(0x0062),  # LATIN SMALL LETTER B
     0x63: chr(0x0063),  # LATIN SMALL LETTER C
