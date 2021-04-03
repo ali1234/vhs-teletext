@@ -39,6 +39,10 @@ a:hover {color: orange;} a:active {color: red;}
     pointer-events:none;
 }
 
+.row {
+    display: flex;
+}
+
 .f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;}
 .f4{color:blue;} .f5{color:magenta;} .f6{color:cyan;} .f7{color:white;}
 

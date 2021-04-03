@@ -91,9 +91,9 @@ class PrinterHTML(Parser):
         return p.sub(repl, html)
 
     def parse(self):
-        self._results = ['<span class="f7 b0 nx">']
+        self._results = ['<span class="row"><span class="f7 b0 nx">']
         super().parse()
-        self._results.append('</span>')
+        self._results.append('</span></span>')
         if self.flinkopen:
             self._results.append('</a>')
         self._string = ''.join(self._results)

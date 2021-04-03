@@ -148,9 +148,12 @@ class Subpage(Element):
         lines = []
 
         lines.append(f'<div class="subpage" id="{self.header.subpage:04x}">')
-        p = PrinterHTML(self.header.displayable[:], localcodepage=localcodepage, codepage=self.codepage)
+        buf = np.full((40,), fill_value=0x20, dtype=np.uint8)
+        buf[3:7] = np.fromstring(f'P{self.mrag.magazine}{self.header.page:02x}', dtype=np.uint8)
+        buf[8:] = self.header.displayable[:]
+        p = PrinterHTML(buf, localcodepage=localcodepage, codepage=self.codepage)
         p.anchor = f'#{self.header.subpage:04x}'
-        lines.append(f'   <span class="pgnum">P{self.mrag.magazine}{self.header.page:02x} {str(p)}')
+        lines.append(str(p))
 
         for i in range(0,24):
             # only draw the line if previous line does not contain double height code
@@ -161,5 +164,5 @@ class Subpage(Element):
 
         lines.append('</div>')
 
-        return '\n'.join(lines)
+        return ''.join(lines)
 
