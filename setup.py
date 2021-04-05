@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'teletext = teletext.cli:teletext',
+            'teletext = teletext.__main__:teletext',
         ],
         'gui_scripts': [
             'ttviewer = teletext.gui.editor:main',

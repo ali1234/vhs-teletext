@@ -6,11 +6,11 @@ from functools import wraps
 import click
 from tqdm import tqdm
 
-from . import pipeline
-from .packet import Packet
-from .stats import StatsList, MagHistogram, RowHistogram, ErrorHistogram
-from .file import FileChunker
-from .vbi.config import Config
+from teletext import pipeline
+from teletext.packet import Packet
+from teletext.stats import StatsList, MagHistogram, RowHistogram, ErrorHistogram
+from teletext.file import FileChunker
+from teletext.vbi.config import Config
 
 try:
     import plop.collector as plop
