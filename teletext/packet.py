@@ -14,6 +14,9 @@ class Packet(Element):
     def __setitem__(self, item, value):
         self._array[item] = value
 
+    def is_padding(self):
+        return not np.any(self._array)
+
     @property
     def number(self):
         return self._number
