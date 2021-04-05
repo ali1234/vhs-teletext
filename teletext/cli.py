@@ -42,13 +42,17 @@ def teletext(unicode):
 @packetwriter
 @paginated()
 @click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
+@click.option('-k', '--keep-empty', is_flag=True, help='Keep empty packets in the output.')
 @packetreader
-def filter(packets, pages, subpages, paginate, n):
+def filter(packets, pages, subpages, paginate, n, keep_empty):
 
     """Demultiplex and display t42 packet streams."""
 
     if n:
         paginate = True
+
+    if not keep_empty:
+        packets = (p for p in packets if np.any(p))
 
     if paginate:
         for pn, pl in enumerate(pipeline.paginate(packets, pages=pages, subpages=subpages), start=1):
@@ -69,6 +73,8 @@ def _list(packets, subpages):
     """List pages present in a t42 stream."""
 
     import textwrap
+
+    packets = (p for p in packets if np.any(p))
 
     seen = set()
     try:
@@ -92,6 +98,7 @@ def split(packets, pattern, pages, subpages):
 
     """Split a t42 stream in to multiple files."""
 
+    packets = (p for p in packets if np.any(p))
     counts = defaultdict(int)
 
     for pl in pipeline.paginate(packets, pages=pages, subpages=subpages):
@@ -144,6 +151,7 @@ def squash(packets, min_duplicates, pages, subpages, ignore_empty):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
+    packets = (p for p in packets if np.any(p))
     for sp in pipeline.subpage_squash(
             pipeline.paginate(packets, pages=pages, subpages=subpages),
             min_duplicates=min_duplicates, ignore_empty=ignore_empty
@@ -191,7 +199,7 @@ def service(packets):
     """Build a service carousel from a t42 stream."""
 
     from teletext.service import Service
-    return Service.from_packets(packets)
+    return Service.from_packets(p for p in packets if np.any(p))
 
 
 @command(teletext)
@@ -213,6 +221,7 @@ def urls(packets, editor, pages, subpages):
 
     """Paginate a t42 stream and print edit.tf URLs."""
 
+    packets = (p for p in packets if np.any(p))
     subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets, pages=pages, subpages=subpages))
 
     for s in subpages:
@@ -234,7 +243,7 @@ def html(packets, outdir, template, localcodepage):
     if template is not None:
         template = template.read()
 
-    svc = Service.from_packets(packets)
+    svc = Service.from_packets(p for p in packets if np.any(p))
     svc.to_html(outdir, template, localcodepage)
 
 

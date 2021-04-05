@@ -16,6 +16,10 @@ def check_buffer(mb, pages, subpages, min_rows=0):
                 yield sorted(mb, key=lambda p: p.mrag.row)
 
 
+def filter_empty(packets):
+    return (p for p in packets if np.any(p))
+
+
 def paginate(packets, pages=range(0x900), subpages=range(0x3f80), drop_empty=False):
 
     """Yields packet lists containing contiguous rows."""
