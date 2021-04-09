@@ -406,9 +406,9 @@ class BroadcastData(DesignationCode):
 
     def to_ansi(self, colour=True):
         if self.dc in [0, 1]:
-            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.format1.to_ansi(colour)}'
+            return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} {self.format1.to_ansi(colour)}'
         elif self.dc in [2, 3]:
-            return f'{self.displayable.to_ansi(colour)} IP={self.initial_page} {self.format2.to_ansi(colour)}'
+            return f'{self.displayable.to_ansi(colour)} DC={self.dc} IP={self.initial_page} {self.format2.to_ansi(colour)}'
         else:
             return f'DC={self.dc}'
 

@@ -142,6 +142,54 @@ def finders(packets):
 
 
 @command(teletext)
+@packetreader
+@click.option('-l', '--lines', type=int, default=32, help='Number of recorded lines per frame.')
+@click.option('-f', '--frames', type=int, default=250, help='Number of frames to squash.')
+def scan(packets, lines, frames):
+    from teletext.pipeline import packet_squash, bsdp_squash_format1, bsdp_squash_format2
+    bars = '_:|I'
+
+    while True:
+        actives = np.zeros((lines,), dtype=np.uint32)
+        headers = [[], [], [], [], [], [], [], [], []]
+        service = [[], []]
+        start = None
+        try:
+            for i in range(frames):
+                for n, p in enumerate(itertools.islice(packets, lines)):
+                    if start is None:
+                        start = p._number
+                    if not p.is_padding():
+                        if p.type == 'header':
+                            p.header.apply_finders()
+                        actives[n] += 1
+                        if p.mrag.row == 0:
+                            headers[p.mrag.magazine].append(p)
+                        elif p.mrag.row == 30 and p.mrag.magazine == 8:
+                            if p.broadcast.dc in [0, 1]:
+                                service[0].append(p)
+                            elif p.broadcast.dc in [2, 3]:
+                                service[1].append(p)
+
+        except StopIteration:
+            pass
+        active_group = 1*(actives>0) + 1*(actives>(frames/2)) + 1*(actives==frames)
+        print(f'{start:8d}', '['+''.join(bars[a] for a in active_group)+']', end=' ')
+        for h in headers:
+            if h:
+                print(packet_squash(h).header.displayable.to_ansi(), end=' ')
+                break
+        for s in service:
+            if s:
+                print(packet_squash(s).broadcast.displayable.to_ansi(), end=' ')
+                break
+        if service[0]:
+            print(bsdp_squash_format1(service[0]), end=' ')
+        if service[1]:
+            print(bsdp_squash_format2(service[1]), end=' ')
+        print()
+
+@command(teletext)
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter

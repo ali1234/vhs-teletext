@@ -1,4 +1,5 @@
 from collections import defaultdict
+from statistics import mode as pymode
 
 import numpy as np
 
@@ -6,6 +7,7 @@ from scipy.stats.mstats import mode
 from tqdm import tqdm
 
 from .subpage import Subpage
+from .packet import Packet
 
 
 def check_buffer(mb, pages, subpages, min_rows=0):
@@ -16,9 +18,24 @@ def check_buffer(mb, pages, subpages, min_rows=0):
                 yield sorted(mb, key=lambda p: p.mrag.row)
 
 
-def filter_empty(packets):
-    return (p for p in packets if np.any(p))
+def packet_squash(packets):
+    return Packet(mode(np.stack([p._array for p in packets]), axis=0)[0][0].astype(np.uint8))
 
+
+def bsdp_squash_format1(packets):
+    date = pymode([p.broadcast.format1.date for p in packets])
+    hour = min(pymode([p.broadcast.format1.hour for p in packets]), 99)
+    minute = min(pymode([p.broadcast.format1.minute for p in packets]), 99)
+    second = min(pymode([p.broadcast.format1.second for p in packets]), 99)
+    return f'{date} {hour:02d}:{minute:02d}:{second:02d}'
+
+
+def bsdp_squash_format2(packets):
+    day = min(pymode([p.broadcast.format2.day for p in packets]), 99)
+    month = min(pymode([p.broadcast.format2.month for p in packets]), 99)
+    hour = min(pymode([p.broadcast.format1.hour for p in packets]), 99)
+    minute = min(pymode([p.broadcast.format1.minute for p in packets]), 99)
+    return f'{month:02d}-{day:02d} {hour:02d}:{minute:02d}'
 
 def paginate(packets, pages=range(0x900), subpages=range(0x3f80), drop_empty=False):
 
