@@ -102,7 +102,7 @@ def packetreader(f):
             chunks = chunker(43)
             chunks = ((c[0],c[1][:42]) for c in chunks if c[1][0] != 0)
         elif ts is not None:
-            from .ts import pidextract
+            from teletext.ts import pidextract
             chunks = chunker(188)
             chunks = pidextract(chunks, ts)
         else:
