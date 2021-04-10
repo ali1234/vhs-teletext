@@ -117,6 +117,10 @@ class TestMPMulti(TestMPSingle):
         with self.assertRaises(AttributeError):
             list(itermap(null, ([None]*10) + [lambda x: x], self.procs, None))
 
+    def test_empty_iter(self):
+        result = list(itermap(callcount, [], processes=self.procs))
+        self.assertListEqual(result, [])
+
 
 class TestMPMultiSigInt(unittest.TestCase):
 

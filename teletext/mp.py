@@ -174,6 +174,9 @@ class _PureGeneratorPoolMP(object):
                         poller.unregister(self._work)
                 except StopIteration:
                     done = True
+                    if sent_count == 0:
+                        # we didn't send any work, so we will wait forever unless we exit now
+                        return
 
     def __exit__(self, *args):
         self._control.send_string("DIE")
