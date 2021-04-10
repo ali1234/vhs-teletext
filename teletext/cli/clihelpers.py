@@ -18,14 +18,16 @@ except ImportError:
     plop = None
 
 
-def filterparams(f):
-    for d in [
-        click.option('-m', '--mag', 'mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines. Can be specified multiple times.'),
-        click.option('-r', '--row', 'rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows. Can be specified multiple times.'),
-    ][::-1]:
-        f = d(f)
-    return f
-
+def filterparams(enabled=True):
+    def fp(f):
+        if enabled:
+            for d in [
+                click.option('-m', '--mag', 'mags', type=int, multiple=True, default=range(9), help='Limit output to specific magazines. Can be specified multiple times.'),
+                click.option('-r', '--row', 'rows', type=int, multiple=True, default=range(32), help='Limit output to specific rows. Can be specified multiple times.'),
+            ][::-1]:
+                f = d(f)
+        return f
+    return fp
 
 def progressparams(progress=None, mag_hist=None, row_hist=None, err_hist=None):
 
@@ -85,53 +87,55 @@ def chunkreader(f):
         return f(chunker=chunker, *args, **kwargs)
     return wrapper
 
+def packetreader(filtered=True):
+    def pr(f):
+        @chunkreader
+        @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
+        @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
+        @filterparams(filtered)
+        @progressparams()
+        @wraps(f)
+        def wrapper(chunker, wst, ts, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
 
-def packetreader(f):
-    @chunkreader
-    @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
-    @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
-    @filterparams
-    @progressparams()
-    @wraps(f)
-    def wrapper(chunker, wst, ts, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
+            if wst and (ts is not None):
+                raise click.UsageError('--wst and --ts can not be specified at the same time.')
 
-        if wst and (ts is not None):
-            raise click.UsageError('--wst and --ts can not be specified at the same time.')
+            if wst:
+                chunks = chunker(43)
+                chunks = ((c[0],c[1][:42]) for c in chunks if c[1][0] != 0)
+            elif ts is not None:
+                from teletext.ts import pidextract
+                chunks = chunker(188)
+                chunks = pidextract(chunks, ts)
+            else:
+                chunks = chunker(42)
 
-        if wst:
-            chunks = chunker(43)
-            chunks = ((c[0],c[1][:42]) for c in chunks if c[1][0] != 0)
-        elif ts is not None:
-            from teletext.ts import pidextract
-            chunks = chunker(188)
-            chunks = pidextract(chunks, ts)
-        else:
-            chunks = chunker(42)
+            if progress is None:
+                progress = True
 
-        if progress is None:
-            progress = True
+            if progress:
+                chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
+                if any((mag_hist, row_hist)):
+                    chunks.postfix = StatsList()
 
-        if progress:
-            chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
-            if any((mag_hist, row_hist)):
-                chunks.postfix = StatsList()
+            packets = (Packet(data, number) for number, data in chunks)
+            packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
 
-        packets = (Packet(data, number) for number, data in chunks)
-        packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+            if progress and mag_hist:
+                packets = MagHistogram(packets)
+                chunks.postfix.append(packets)
+            if progress and row_hist:
+                packets = RowHistogram(packets)
+                chunks.postfix.append(packets)
+            if progress and err_hist:
+                packets = ErrorHistogram(packets)
+                chunks.postfix.append(packets)
 
-        if progress and mag_hist:
-            packets = MagHistogram(packets)
-            chunks.postfix.append(packets)
-        if progress and row_hist:
-            packets = RowHistogram(packets)
-            chunks.postfix.append(packets)
-        if progress and err_hist:
-            packets = ErrorHistogram(packets)
-            chunks.postfix.append(packets)
+            return f(packets=packets, *args, **kwargs)
 
-        return f(packets=packets, *args, **kwargs)
+        return wrapper
 
-    return wrapper
+    return pr
 
 
 def paginated(always=False, filtered=True):

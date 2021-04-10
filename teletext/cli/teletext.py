@@ -43,7 +43,7 @@ def teletext(unicode):
 @paginated()
 @click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
 @click.option('-k', '--keep-empty', is_flag=True, help='Keep empty packets in the output.')
-@packetreader
+@packetreader()
 def filter(packets, pages, subpages, paginate, n, keep_empty):
 
     """Demultiplex and display t42 packet streams."""
@@ -66,7 +66,7 @@ def filter(packets, pages, subpages, paginate, n, keep_empty):
 @command(teletext, name='list')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
 @paginated(always=True, filtered=False)
-@packetreader
+@packetreader()
 @progressparams(progress=True, mag_hist=True)
 def _list(packets, subpages):
 
@@ -93,7 +93,7 @@ def _list(packets, subpages):
 @command(teletext)
 @click.argument('pattern')
 @paginated(always=True)
-@packetreader
+@packetreader()
 def split(packets, pattern, pages, subpages):
 
     """Split a t42 stream in to multiple files."""
@@ -117,7 +117,7 @@ def split(packets, pattern, pages, subpages):
 @command(teletext)
 @click.argument('a', type=click.File('rb'))
 @click.argument('b', type=click.File('rb'))
-@filterparams
+@filterparams()
 def diff(a, b, mags, rows):
     """Show side by side difference of two t42 streams."""
     for chunka, chunkb in zip(FileChunker(a, 42), FileChunker(b, 42)):
@@ -130,7 +130,7 @@ def diff(a, b, mags, rows):
 
 @command(teletext)
 @packetwriter
-@packetreader
+@packetreader()
 def finders(packets):
 
     """Apply finders to fix up common packets."""
@@ -142,7 +142,7 @@ def finders(packets):
 
 
 @command(teletext)
-@packetreader
+@packetreader(filtered=False)
 @click.option('-l', '--lines', type=int, default=32, help='Number of recorded lines per frame.')
 @click.option('-f', '--frames', type=int, default=250, help='Number of frames to squash.')
 def scan(packets, lines, frames):
@@ -196,7 +196,7 @@ def scan(packets, lines, frames):
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter
 @paginated(always=True)
-@packetreader
+@packetreader()
 def squash(packets, min_duplicates, pages, subpages, ignore_empty):
 
     """Reduce errors in t42 stream by using frequency analysis."""
@@ -214,7 +214,7 @@ def squash(packets, min_duplicates, pages, subpages, ignore_empty):
 @click.option('-b', '--both', is_flag=True, help='Show packet before and after corrections.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @packetwriter
-@packetreader
+@packetreader()
 def spellcheck(packets, language, both, threads):
 
     """Spell check a t42 stream."""
@@ -243,7 +243,7 @@ def spellcheck(packets, language, both, threads):
 @command(teletext)
 @packetwriter
 @paginated(always=True, filtered=False)
-@packetreader
+@packetreader()
 def service(packets):
 
     """Build a service carousel from a t42 stream."""
@@ -266,7 +266,7 @@ def interactive(input):
 @click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
               show_default=True, help='Teletext editor URL.')
 @paginated(always=True)
-@packetreader
+@packetreader()
 def urls(packets, editor, pages, subpages):
 
     """Paginate a t42 stream and print edit.tf URLs."""
@@ -283,7 +283,7 @@ def urls(packets, editor, pages, subpages):
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
 @click.option('--localcodepage', type=click.Choice(g0.keys()), default=None, help='Select codepage for Local Code of Practice')
 @paginated(always=True, filtered=False)
-@packetreader
+@packetreader()
 def html(packets, outdir, template, localcodepage):
 
     """Generate HTML files from the input stream."""
@@ -367,7 +367,7 @@ def vbiview(chunker, config, pause):
 @carduser(extended=True)
 @packetwriter
 @chunkreader
-@filterparams
+@filterparams()
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
 def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
