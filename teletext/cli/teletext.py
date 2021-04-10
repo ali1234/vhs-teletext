@@ -173,6 +173,8 @@ def scan(packets, lines, frames):
 
         except StopIteration:
             pass
+        if start is None:
+            return
         active_group = 1*(actives>0) + 1*(actives>(frames/2)) + 1*(actives==frames)
         print(f'{start:8d}', '['+''.join(bars[a] for a in active_group)+']', end=' ')
         for h in headers:
