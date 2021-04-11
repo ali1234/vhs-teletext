@@ -95,7 +95,7 @@ def packetreader(filtered=True):
         @filterparams(filtered)
         @progressparams()
         @wraps(f)
-        def wrapper(chunker, wst, ts, mags, rows, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
+        def wrapper(chunker, wst, ts, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
 
             if wst and (ts is not None):
                 raise click.UsageError('--wst and --ts can not be specified at the same time.')
@@ -119,7 +119,10 @@ def packetreader(filtered=True):
                     chunks.postfix = StatsList()
 
             packets = (Packet(data, number) for number, data in chunks)
-            packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+            if 'mags' in kwargs and 'rows' in kwargs:
+                mags = kwargs.pop('mags')
+                rows = kwargs.pop('rows')
+                packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
 
             if progress and mag_hist:
                 packets = MagHistogram(packets)
