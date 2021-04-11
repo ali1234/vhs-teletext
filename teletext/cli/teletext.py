@@ -18,8 +18,9 @@ from teletext.mp import itermap
 from teletext.packet import Packet, np
 from teletext.stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
 from teletext.subpage import Subpage
-
 from teletext import pipeline
+from teletext.cli.training import training
+
 
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
@@ -31,11 +32,15 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
 @click.group()
 @profileopts
 @click.option('-u', '--unicode', is_flag=True, help='Use experimental Unicode 13.0 Terminal graphics.')
+@click.version_option()
 def teletext(unicode):
     """Teletext stream processing toolkit."""
     if unicode:
         from . import printer
         printer._unicode13 = True
+
+
+teletext.add_command(training)
 
 
 @command(teletext)
