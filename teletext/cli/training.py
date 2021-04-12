@@ -1,25 +1,16 @@
-import itertools
 import multiprocessing
 import os
-import pathlib
-import platform
-
-import sys
-from collections import defaultdict
 
 import click
 from tqdm import tqdm
 
-from teletext.charset import g0
-from teletext.cli.clihelpers import packetreader, packetwriter, paginated, progressparams, filterparams, carduser, chunkreader, \
-    command, profileopts
+from teletext.cli.clihelpers import carduser, chunkreader, \
+    command
 from teletext.file import FileChunker
 from teletext.mp import itermap
 from teletext.packet import Packet, np
-from teletext.stats import StatsList, MagHistogram, RowHistogram, Rejects, ErrorHistogram
-from teletext.subpage import Subpage
+from teletext.stats import StatsList, Rejects
 
-from teletext import pipeline
 
 @click.group()
 def training():
