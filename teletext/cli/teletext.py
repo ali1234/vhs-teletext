@@ -355,9 +355,10 @@ def record(output, device, config):
 
 @command(teletext)
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @carduser(extended=True)
 @chunkreader
-def vbiview(chunker, config, pause):
+def vbiview(chunker, config, pause, tape_format):
 
     """Display raw VBI samples with OpenGL."""
 
@@ -371,7 +372,7 @@ def vbiview(chunker, config, pause):
     else:
         from teletext.vbi.line import Line
 
-        Line.configure(config, force_cpu=True)
+        Line.configure(config, force_cpu=True, tape_format=tape_format)
 
         chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
