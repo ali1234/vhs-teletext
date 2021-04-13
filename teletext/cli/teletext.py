@@ -20,7 +20,7 @@ from teletext.stats import StatsList, MagHistogram, RowHistogram, Rejects, Error
 from teletext.subpage import Subpage
 from teletext import pipeline
 from teletext.cli.training import training
-
+from teletext.cli.vbi import vbi
 
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
@@ -41,6 +41,7 @@ def teletext(unicode):
 
 
 teletext.add_command(training)
+teletext.add_command(vbi)
 
 
 @command(teletext)
