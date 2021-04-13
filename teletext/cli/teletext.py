@@ -197,6 +197,22 @@ def scan(packets, lines, frames):
             print(bsdp_squash_format2(service[1]), end=' ')
         print()
 
+
+@command(teletext)
+@packetreader(filtered=False)
+def celp(packets):
+    """Dump CELP packets from t42 stream. We don't know how to decode them."""
+    for p in packets:
+        if p.mrag.magazine == 4 and p.mrag.row in [30, 31]:
+            control = p._array[2]
+            service = p._array[3]
+            frame0 = p._array[4:23]
+            frame1 = p._array[23:42]
+            print("Service:" if p.mrag.row == 30 else "Control:", control)
+            print("Fade:" if p.mrag.row == 30 else "Service:", service)
+            print(frame0.tobytes().hex())
+            print(frame1.tobytes().hex())
+
 @command(teletext)
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
