@@ -356,9 +356,10 @@ def record(output, device, config):
 @command(teletext)
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
 @chunkreader
-def vbiview(chunker, config, pause, tape_format):
+def vbiview(chunker, config, pause, tape_format, n_lines):
 
     """Display raw VBI samples with OpenGL."""
 
@@ -374,11 +375,14 @@ def vbiview(chunker, config, pause, tape_format):
 
         Line.configure(config, force_cpu=True, tape_format=tape_format)
 
-        chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+        if n_lines is not None:
+            chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, n_lines, range(n_lines))
+        else:
+            chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
         lines = (Line(chunk, number) for number, chunk in chunks)
 
-        VBIViewer(lines, config, pause=pause)
+        VBIViewer(lines, config, pause=pause, nlines=n_lines)
 
 
 @command(teletext)
@@ -391,11 +395,15 @@ def vbiview(chunker, config, pause, tape_format):
 @packetwriter
 @chunkreader
 @filterparams()
+@paginated()
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
+def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
+
+    if keep_empty and paginate:
+        raise click.UsageError("Can't keep empty packets when paginating.")
 
     from teletext.vbi.line import process_lines
 
@@ -430,6 +438,10 @@ def deconvolve(chunker, mags, rows, config, mode, force_cpu, threads, keep_empty
         packets = ErrorHistogram(packets)
         chunks.postfix.append(packets)
 
-    return packets
+    if paginate:
+        for p in pipeline.paginate(packets, pages=pages, subpages=subpages):
+            yield from p
+    else:
+        yield from packets
 
 
