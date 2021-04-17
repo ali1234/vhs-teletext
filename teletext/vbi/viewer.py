@@ -19,7 +19,10 @@ class VBIViewer(object):
 
         self.line_attr = 'resampled'
 
-        self.nlines = nlines
+        if nlines is None:
+            self.nlines = 32
+        else:
+            self.nlines = nlines
 
         self.lines_src = lines
         self.lines = list(islice(self.lines_src, 0, self.nlines))
