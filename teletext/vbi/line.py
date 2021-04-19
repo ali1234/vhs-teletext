@@ -289,4 +289,8 @@ def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=ran
         force_cpu = True
     Line.configure(config, force_cpu, tape_format)
     for number, chunk in chunks:
-        yield getattr(Line(chunk, number), mode)(mags, rows)
+        try:
+            yield getattr(Line(chunk, number), mode)(mags, rows)
+        except Exception:
+            sys.stderr.write(str(number) + '\n')
+            raise
