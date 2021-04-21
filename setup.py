@@ -39,6 +39,6 @@ setup(
         'CUDA': ['pycuda', 'scikit-cuda'],
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
-        'qt': ['PyQt5'],
+        'qt': ['PyQt5', 'matplotlib'],
     }
 )
