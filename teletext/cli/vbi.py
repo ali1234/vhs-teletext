@@ -59,13 +59,6 @@ def histogram(output, diff, show, chunker, config):
 @carduser(extended=True)
 @chunkreader
 def plot(chunker, config):
-    import matplotlib.pyplot as plt
-    from teletext.vbi.line import Line
+    from teletext.gui.vbiplot import vbiplot
 
-    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
-    line = Line(next(iter(chunks))[1])
-    xaxis_scaled = np.arange(config.line_length) * 8 * config.teletext_bitrate/config.sample_rate
-    plt.plot(xaxis_scaled , line.original, linewidth=1)
-    plt.plot(line.resampled, linewidth=1)
-
-    plt.show()
+    vbiplot(chunker, config)
