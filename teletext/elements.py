@@ -105,6 +105,10 @@ class Displayable(ElementParity):
                 [str(PrinterANSI(a, colour)) for a in self._array]
             )
 
+    @property
+    def bytes_no_parity(self):
+        return (self._array & 0x7f).tobytes()
+
 
 class Page(Element):
 

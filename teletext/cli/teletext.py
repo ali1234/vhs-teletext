@@ -69,6 +69,42 @@ def filter(packets, pages, subpages, paginate, n, keep_empty):
         yield from packets
 
 
+@command(teletext)
+@packetwriter
+@paginated()
+@click.argument('regex', type=str)
+@click.option('-v', is_flag=True, help='Invert matches.')
+@click.option('-i', is_flag=True, help='Ignore case.')
+@click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
+@click.option('-k', '--keep-empty', is_flag=True, help='Keep empty packets in the output.')
+@packetreader()
+def grep(packets, pages, subpages, paginate, regex, v, i, n, keep_empty):
+
+    """Filter packets with a regular expression."""
+
+    import re
+
+    pattern = re.compile(regex.encode('ascii'), re.IGNORECASE if i else 0)
+
+    if n:
+        paginate = True
+
+    if not keep_empty:
+        packets = (p for p in packets if not p.is_padding())
+
+    if paginate:
+        for pn, pl in enumerate(pipeline.paginate(packets, pages=pages, subpages=subpages), start=1):
+            for p in packets:
+                if bool(v) != bool(re.search(pattern, p.to_bytes_no_parity())):
+                    yield from pl
+                    if pn == n:
+                        return
+    else:
+        for p in packets:
+            if bool(v) != bool(re.search(pattern, p.to_bytes_no_parity())):
+                yield p
+
+
 @command(teletext, name='list')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
 @paginated(always=True, filtered=False)

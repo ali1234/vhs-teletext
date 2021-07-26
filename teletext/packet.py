@@ -81,6 +81,18 @@ class Packet(Element):
         else:
             return f'{t}'
 
+    def to_bytes_no_parity(self):
+        t = self.type
+
+        if t == 'header':
+            return self.header.displayable.bytes_no_parity
+        elif t == 'display':
+            return self.displayable.bytes_no_parity
+        elif t == 'broadcast':
+            return self.broadcast.displayable.bytes_no_parity
+        else:
+            return b''
+
     def to_binary(self):
         b = np.unpackbits(self._array[::-1])[::-1]
         x = b[0::2] | (b[1::2]<<1)
