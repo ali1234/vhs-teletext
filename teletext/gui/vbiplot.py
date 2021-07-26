@@ -47,7 +47,7 @@ class Window(QMainWindow):
     def plot(self):
         fig = Figure()
         axs = fig.subplots(self.n_lines, 1, sharex=True, sharey=True)
-
+        smup = np.cos(np.linspace(0, 42*8*2*3.1415, num=42*8*8))*0.1 + np.cos(np.linspace(0, 42*2*3.1415, num=42*8*8))*0.1
         for n, (o, d) in enumerate(islice(self.chunks, self.n_lines)):
             ax = axs[n]
             # ax.set_xlabel(f'samples, resampled to 8x {config.teletext_bitrate} Hz')
@@ -73,6 +73,17 @@ class Window(QMainWindow):
             ax.plot(maxline, linewidth=0.5, color='orange')
             # plt.plot(diffline)
             ax.plot(meanline, linewidth=0.5, color='green' if line.is_teletext else 'red')
+
+            derp = np.abs(np.diff(line.resampled))
+
+            frob = np.correlate(derp, smup)
+            shaz = np.argmax(frob)
+            ax.plot(frob, linewidth=0.5)
+            ax.plot(derp, linewidth=0.5)
+
+            ax.plot(shaz, line.resampled[shaz], 'x')
+
+
             #ax.plot((maxline - minline) * (np.diff(meanline, append=0) ** 2) * 0.1, linewidth=0.5, color='blue')
 
             if line.start is not None:
