@@ -188,6 +188,9 @@ def finders(packets):
 @click.option('-l', '--lines', type=int, default=32, help='Number of recorded lines per frame.')
 @click.option('-f', '--frames', type=int, default=250, help='Number of frames to squash.')
 def scan(packets, lines, frames):
+
+    """Filter a t42 stream down to headers and bsdp, with squashing."""
+
     from teletext.pipeline import packet_squash, bsdp_squash_format1, bsdp_squash_format2
     bars = '_:|I'
 
