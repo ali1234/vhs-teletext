@@ -94,7 +94,7 @@ def grep(packets, pages, subpages, paginate, regex, v, i, n, keep_empty):
 
     if paginate:
         for pn, pl in enumerate(pipeline.paginate(packets, pages=pages, subpages=subpages), start=1):
-            for p in packets:
+            for p in pl:
                 if bool(v) != bool(re.search(pattern, p.to_bytes_no_parity())):
                     yield from pl
                     if pn == n:
