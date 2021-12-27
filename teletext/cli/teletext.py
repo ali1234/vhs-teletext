@@ -314,6 +314,17 @@ def service(packets):
 
 
 @command(teletext)
+@packetwriter
+@click.argument('directory', type=click.Path(exists=True, readable=True, file_okay=False, dir_okay=True))
+def servicedir(directory):
+    """Build a service from a directory of t42 files."""
+
+    from teletext.servicedir import ServiceDir
+    with ServiceDir(directory) as s:
+        yield from s
+
+
+@command(teletext)
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
 

@@ -1,0 +1,48 @@
+import pathlib
+
+from watchdog.events import FileModifiedEvent, FileDeletedEvent
+from watchdog.observers import Observer
+
+from .service import Service
+from .subpage import Subpage
+
+
+class ServiceDir(Service):
+    def __init__(self, directory):
+        super().__init__()
+        self._dir = directory
+
+    def file_changed(self, f, deleted=False):
+        m = int(f.parent.name[0])
+        p = int(f.parent.name[1:], 16)
+        s = int(f.stem, 16)
+        if deleted:
+            del self.magazines[m].pages[p].subpages[s]
+        else:
+            self.magazines[m].pages[p].subpages[s] = Subpage.from_file(f.open('rb'))
+
+    def __enter__(self):
+        self.observer = Observer()
+        self.observer.schedule(self, self._dir, recursive=True)
+        self.observer.start()
+
+        # perform initial scan of the pages
+        path = pathlib.Path(self._dir)
+        for f in path.rglob("*"):
+            if f.is_file():
+                self.file_changed(f)
+
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.observer.stop()
+        self.observer.join()
+
+    def dispatch(self, evt):
+        if isinstance(evt, FileModifiedEvent):
+            f = pathlib.Path(evt.src_path)
+            self.file_changed(f)
+        elif isinstance(evt, FileDeletedEvent):
+            f = pathlib.Path(evt.src_path)
+            self.file_changed(f, deleted=True)
+
