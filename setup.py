@@ -31,7 +31,7 @@ setup(
         ],
     },
     install_requires=[
-        'numpy', 'scipy', 'click', 'tqdm',  'pyzmq',
+        'numpy', 'scipy', 'click', 'tqdm',  'pyzmq', 'watchdog',
         'windows-curses;platform_system=="Windows"',
     ],
     extras_require={
