@@ -39,10 +39,9 @@ class ServiceDir(Service):
         self.observer.join()
 
     def dispatch(self, evt):
+        f = pathlib.Path(evt.src_path)
         if isinstance(evt, FileModifiedEvent):
-            f = pathlib.Path(evt.src_path)
             self.file_changed(f)
         elif isinstance(evt, FileDeletedEvent):
-            f = pathlib.Path(evt.src_path)
             self.file_changed(f, deleted=True)
 
