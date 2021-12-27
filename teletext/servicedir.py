@@ -8,6 +8,15 @@ from .subpage import Subpage
 
 
 class ServiceDir(Service):
+    """
+    Implements a service backed by a directory of t42 files.
+
+    The files should be organized by page number with one subpage
+    per file, like this: 100/0000.t42
+
+    Whenever a file is modified it will be reloaded into the
+    service for broadcast in the next loop of the magazine.
+    """
     def __init__(self, directory):
         super().__init__()
         self._dir = directory
