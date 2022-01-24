@@ -69,7 +69,7 @@ class Line(object):
             Line.configure(Config())
 
         self._number = number
-        self._original = np.frombuffer(data, dtype=Line.config.dtype).astype(np.float32)
+        self._original = np.frombuffer(data, dtype=self.config.dtype).astype(np.float32)
         self._original /= 256 ** (np.dtype(Line.config.dtype).itemsize-1)
         self._original_bytes = data
 
