@@ -149,7 +149,7 @@ class TrainingLine(Line):
                     self.roll = 0
                     self.lock(offset)
                     return offset
-        sys.stderr.write(f'Warning: bad line {self._number}\n')
+        #sys.stderr.write(f'Warning: bad line {self._number}\n')
 
 
 def process_training(chunks, config):
