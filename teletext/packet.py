@@ -114,6 +114,10 @@ class Packet(Element):
         return self.to_binary().encode('utf8') + b'\n'
 
     @property
+    def hex(self):
+        return self._array.tobytes().hex(' ').encode('utf8') + b'\n'
+
+    @property
     def debug(self):
         if self.number is None:
             return f'None     {self.mrag.magazine} {self.mrag.row:2d} {self.to_ansi(colour=True)} errors: {np.sum(self.errors)}\n'.encode('utf8')

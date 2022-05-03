@@ -186,7 +186,7 @@ def paginated(always=False, filtered=True):
 
 def packetwriter(f):
     @click.option(
-        '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes', 'vbi']), click.File('wb')),
+        '-o', '--output', type=(click.Choice(['auto', 'text', 'ansi', 'debug', 'bar', 'bytes', 'hex', 'vbi']), click.File('wb')),
         multiple=True, default=[('auto', '-')]
     )
     @wraps(f)
