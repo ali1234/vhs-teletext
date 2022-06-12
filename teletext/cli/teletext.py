@@ -405,7 +405,7 @@ def record(output, device, config):
 
 @command(teletext)
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4', 'betacamsp']), default='vhs', help='Source VCR format.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
 @chunkreader
@@ -437,7 +437,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 
 @command(teletext)
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4', 'betacamsp']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @click.option('-k', '--keep-empty', is_flag=True, help='Insert empty packets in the output when line could not be deconvolved.')
