@@ -239,7 +239,8 @@ def scan(packets, lines, frames):
 
 @command(teletext)
 @packetreader(filtered=False)
-def celp(packets):
+@click.option('-o', type=click.File('wb'), default=None, help='Write binary data to file.')
+def celp(packets, o):
     """Dump CELP packets from t42 stream. We don't know how to decode them."""
     for p in packets:
         if p.mrag.magazine == 4 and p.mrag.row in [30, 31]:
@@ -247,10 +248,15 @@ def celp(packets):
             service = p._array[3]
             frame0 = p._array[4:23]
             frame1 = p._array[23:42]
-            print("Service:" if p.mrag.row == 30 else "Control:", control)
-            print("Fade:" if p.mrag.row == 30 else "Service:", service)
-            print(frame0.tobytes().hex())
-            print(frame1.tobytes().hex())
+            if o is None:
+                print("Service:" if p.mrag.row == 30 else "Control:", control)
+                print("Fade:" if p.mrag.row == 30 else "Service:", service)
+                print(frame0.tobytes().hex())
+                print(frame1.tobytes().hex())
+            else:
+                o.write(frame0.tobytes())
+                o.write(frame1.tobytes())
+
 
 @command(teletext)
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
