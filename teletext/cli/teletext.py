@@ -239,23 +239,115 @@ def scan(packets, lines, frames):
 
 @command(teletext)
 @packetreader(filtered=False)
+@click.option('-c', '--channel', type=int, default=None, help='Data channel number.')
 @click.option('-o', type=click.File('wb'), default=None, help='Write binary data to file.')
-def celp(packets, o):
-    """Dump CELP packets from t42 stream. We don't know how to decode them."""
+def celp(packets, channel, o):
+    """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
+
+    from teletext.coding import hamming8_decode
+
+    dblevels = [0, 4, 8, 12, 18, 24, 30, 0]
+
+    servicetypes = [
+        'Single-channel mode using 1 VBI line per frame',
+        'Single-channel mode using 2 VBI lines per frame',
+        'Single-channel mode using 3 VBI lines per frame',
+        'Single-channel mode using 4 VBI lines per frame',
+        'Mute Channel 1',
+        'Two-channel Mode using 2 VBI lines per frame',
+        'Mute Channel 2',
+        'Two-channel Mode using 4 VBI lines per frame',
+    ]
+
+    if channel is None:
+        rows = [30, 31]
+    elif channel == 4:
+        rows = [30]
+    elif channel == 12:
+        rows = [31]
+    else:
+        raise click.UsageError('Data channel must be 4 or 12.')
+
     for p in packets:
-        if p.mrag.magazine == 4 and p.mrag.row in [30, 31]:
-            control = p._array[2]
-            service = p._array[3]
+        if p.mrag.magazine == 4 and p.mrag.row in rows:
+            dcn = p.mrag.magazine + ((p.mrag.row & 1) << 3)
+            control = hamming8_decode(p._array[2])
+            service = hamming8_decode(p._array[3])
+
             frame0 = p._array[4:23]
             frame1 = p._array[23:42]
             if o is None:
-                print("Service:" if p.mrag.row == 30 else "Control:", control)
-                print("Fade:" if p.mrag.row == 30 else "Service:", service)
-                print(frame0.tobytes().hex())
-                print(frame1.tobytes().hex())
+                print(f'DCN: {dcn} ({p.mrag.magazine}/{p.mrag.row})', end=' ')
+                if dcn == 4:
+                    print('Programme-related audio.', end=' ')
+                    print('Service:', 'AUDETEL' if service == 0 else hex(service), end=' ')
+                    print('Control:', hex(control), dblevels[control & 0x7], 'dB',
+                          '(muted)' if control & 0x8 else '')
+                elif dcn == 12:
+                    print('Programme-independant audio.', end=' ')
+                    if service & 0x8:
+                        print('User-defined service', hex(service & 0x7), hex(p._array[3]))
+                    else:
+                        print(servicetypes[service], f'Control: {hex(control)}' if control else '')
+                print(frame0.tobytes().hex(), frame1.tobytes().hex())
             else:
                 o.write(frame0.tobytes())
                 o.write(frame1.tobytes())
+
+
+@command(teletext)
+@click.argument('data', type=click.File('rb'))
+def celpplot(data):
+    """Plot data from CELP packets. Experimental code."""
+    data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19), bitorder='little').reshape(-1, 2, 152)
+    frame0 = data[:, 0, :]
+    frame1 = data[:, 1, :]
+    d1 = np.sum(data, axis=0)
+
+    import matplotlib.pyplot as plt
+
+    p = np.arange(152)
+    widths = np.array([
+        0,
+        3, 4, 4, 4, 4, 4, 4, 4, 3, 3, # 37 bytes - 10 x LPC params of (unknown?) variable size
+        5, 5, 5, 5,             # 4x5 = 20 bytes - pitch gain (LTP gain)
+        5, 5, 5, 5,             # 4x5 = 20 bytes - vector gain
+        7, 7, 7, 7,             # 4x7 = 28 bytes - pitch index (LTP lag)
+        8, 8, 8, 8,             # 4x8 = 32 bytes - vector index
+        3, 3, 3, 3,             # 4x3 = 12 bytes - error correction for vector gains?
+        3,                      # 3 bytes - always zero (except for recovery errors)
+    ])
+    g = np.cumsum(widths)
+    print(sum(widths))
+
+    fig, ax = plt.subplots(5, 2)
+    for n in range(g.shape[0]-1):
+        ax[0][0].bar(p[g[n]:g[n+1]], d1[0][g[n]:g[n+1]], 0.8)
+        ax[0][1].bar(p[g[n]:g[n + 1]], d1[1][g[n]:g[n + 1]], 0.8)
+
+    a = np.packbits(frame0[:,37:37+20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
+    b = np.packbits(frame0[:,37+20:37+20+20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
+    c = np.packbits(frame0[:,37+20+20:37+20+20+28].reshape(-1, 7), axis=-1, bitorder='little').flatten()
+    d = np.packbits(frame0[:,37+20+20+28:37+20+20+28+32].reshape(-1, 8), axis=-1, bitorder='little').flatten()
+
+    ax[1][0].plot(a[:10000], linewidth=0.5)
+    ax[2][0].plot(b[:10000], linewidth=0.5)
+    ax[3][0].plot(c[:10000], linewidth=0.5)
+    ax[4][0].plot(d[:10000], linewidth=0.5)
+
+    a = np.packbits(frame1[:,37:37+20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
+    b = np.packbits(frame1[:,37+20:37+20+20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
+    c = np.packbits(frame1[:,37+20+20:37+20+20+28].reshape(-1, 7), axis=-1, bitorder='little').flatten()
+    d = np.packbits(frame1[:,37+20+20+28:37+20+20+28+32].reshape(-1, 8), axis=-1, bitorder='little').flatten()
+
+    ax[1][1].plot(a[:10000], linewidth=0.5)
+    ax[2][1].plot(b[:10000], linewidth=0.5)
+    ax[3][1].plot(c[:10000], linewidth=0.5)
+    ax[4][1].plot(d[:10000], linewidth=0.5)
+
+    fig.tight_layout()
+
+    plt.show()
 
 
 @command(teletext)
