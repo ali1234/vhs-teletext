@@ -31,7 +31,7 @@ class Window(QMainWindow):
         self.button = QPushButton('Next')
         self.button.clicked.connect(self.plot)
 
-        self.n_lines = 4
+        self.n_lines = 16
 
         w = QtWidgets.QWidget(self)
         self.setCentralWidget(w)
@@ -46,11 +46,9 @@ class Window(QMainWindow):
 
     def plot(self):
         fig = Figure()
-        axs = fig.subplots(self.n_lines, 1, sharex=True, sharey=True)
-        smup = np.cos(np.linspace(0, 42*8*2*3.1415, num=42*8*8))*0.1 + np.cos(np.linspace(0, 42*2*3.1415, num=42*8*8))*0.1
+        axs = fig.subplots(self.n_lines, 3, sharex='col', sharey='col')
         for n, (o, d) in enumerate(islice(self.chunks, self.n_lines)):
-            ax = axs[n]
-            # ax.set_xlabel(f'samples, resampled to 8x {config.teletext_bitrate} Hz')
+            ax = axs[n][0]
             ax.set_ylabel(str(o))
 
             line = Line(d)
@@ -58,39 +56,41 @@ class Window(QMainWindow):
             xaxis_scaled = np.arange(self.config.line_length) * 8 * self.config.teletext_bitrate / self.config.sample_rate
             xaxis = np.arange(len(line.resampled))
 
-            ax.plot(xaxis_scaled, line.original, color='lightgrey', linewidth=0.5)
-            ax.plot(line.resampled, color='lightgrey', linewidth=0.5)
-
-            maxima, _ = signal.find_peaks(line.resampled)
-            minima, _ = signal.find_peaks(-line.resampled)
-
-            maxline = np.interp(xaxis, maxima, line.resampled[maxima])
-            minline = np.interp(xaxis, minima, line.resampled[minima])
-            diffline = maxline - minline
-            meanline = 0.5 * minline + 0.5 * maxline
-
-            ax.plot(minline, linewidth=0.5, color='orange')
-            ax.plot(maxline, linewidth=0.5, color='orange')
-            # plt.plot(diffline)
-            ax.plot(meanline, linewidth=0.5, color='green' if line.is_teletext else 'red')
-
-            derp = np.abs(np.diff(line.resampled))
-
-            frob = np.correlate(derp, smup)
-            shaz = np.argmax(frob)
-            ax.plot(frob, linewidth=0.5)
-            ax.plot(derp, linewidth=0.5)
-
-            ax.plot(shaz, line.resampled[shaz], 'x')
-
-
-            #ax.plot((maxline - minline) * (np.diff(meanline, append=0) ** 2) * 0.1, linewidth=0.5, color='blue')
+            ax.plot(xaxis_scaled, line.original, color='green' if line.is_teletext else 'red', linewidth=0.5)
 
             if line.start is not None:
                 ax.plot(line.start, line.resampled[line.start], 'x')
                 ax.plot(line.start + 128 + 12, line.resampled[line.start + 128 + 12], 'x')
 
-        axs[-1].set_xlabel(f'samples, resampled to 8x {self.config.teletext_bitrate} Hz')
+            ax = axs[n][1]
+            widths = np.array([8, 12, 16, 20, 24, 28, 32])
+            cwtmatr = signal.cwt(line.resampled, signal.morlet2, widths)
+            ll = np.sum(np.abs(cwtmatr), axis=0)
+
+            #ax.plot(ll)
+
+            ax.pcolormesh(np.abs(cwtmatr), cmap='viridis', shading='gouraud')
+            #ax.imshow(cwtmatr, extent=[-1, 1, 31, 1], cmap='PRGn', aspect='auto',
+            #           vmax=abs(cwtmatr).max(), vmin=-abs(cwtmatr).max())
+
+
+            ax = axs[n][2]
+
+            h = np.histogram(ll, np.arange(0, np.max(ll), 1))
+            c = np.cumsum(h[0])/len(ll)
+            t = np.array([np.argmax(c>m/10) for m in range(1,10)])
+            print(t)
+            l = 'green'
+            if t[-1] - t[0] < 200: # quiet line?
+                l = 'red'
+            elif t[1] < 75 and t[2] > 200:  # not teletext?
+                l = 'red'
+
+            ax.plot(h[1][:-1], c, color=l, linewidth=0.5)
+            ax.plot(t, c[t], 'x', color=l)
+
+
+        axs[-1][0].set_xlabel(f'samples, resampled to 8x {self.config.teletext_bitrate} Hz')
         self.canvas.figure = fig
         x, y = self.width(), self.height()
         self.resize(x+1, y+1)
