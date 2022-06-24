@@ -278,6 +278,17 @@ def celpplay(data):
 
 
 @command(teletext)
+@click.argument('data', type=click.File('rb'))
+@click.argument('output', type=click.File('wb'), default=None, required=False)
+def celp2raw(data, output):
+    """Play data from CELP packets. Warning: Will make a horrible noise."""
+
+    from teletext.celp import celp_to_raw
+
+    celp_to_raw(data, output)
+
+
+@command(teletext)
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter

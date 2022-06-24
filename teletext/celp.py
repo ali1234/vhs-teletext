@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 from teletext.coding import hamming8_decode
 
+from tqdm import tqdm
 
 def celp_print(packets, rows, o):
     """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
@@ -98,58 +99,67 @@ def celp_plot(data):
     plt.show()
 
 
-def celp_play(data):
-    import miniaudio
-    import time
-
-    sample_rate = 8000
-
-    def stream_pcm(data, device):
-        data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19),
-                             bitorder='little').reshape(-1, 2, 152)
-        #data = data[:, 0, :]
-        # data = data[:, 1, :]
+def celp_generate_audio(data, frame=None, sample_rate=8000):
+    data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19),
+                         bitorder='little').reshape(-1, 2, 152)
+    if frame == 0:
+        data = data[:, 0, :]
+    elif frame == 1:
+        data = data[:, 1, :]
+    else:
         data = data.reshape(-1, 152)
 
-        a = np.packbits(data[:, 37:37 + 20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
-        b = np.packbits(data[:, 37 + 20:37 + 20 + 20].reshape(-1, 5), axis=-1, bitorder='little').flatten().astype(np.int8)
-        b -= 16
-        c = np.packbits(data[:, 37 + 20 + 20:37 + 20 + 20 + 28].reshape(-1, 7), axis=-1, bitorder='little').flatten()
-        d = np.packbits(data[:, 37 + 20 + 20 + 28:37 + 20 + 20 + 28 + 32].reshape(-1, 8), axis=-1, bitorder='little').flatten()
+    widths = np.array([
+        0,
+        3, 4, 4, 4, 4, 4, 4, 4, 3, 3, # 37 bytes - 10 x LPC params of (unknown?) variable size
+        5, 5, 5, 5,             # 4x5 = 20 bytes - pitch gain (LTP gain)
+        5, 5, 5, 5,             # 4x5 = 20 bytes - vector gain
+        7, 7, 7, 7,             # 4x7 = 28 bytes - pitch index (LTP lag)
+        8, 8, 8, 8,             # 4x8 = 32 bytes - vector index
+        3, 3, 3, 3,             # 4x3 = 12 bytes - error correction for vector gains?
+        3,                      # 3 bytes - always zero (except for recovery errors)
+    ])
+    g = np.cumsum(widths)
 
-        subframes = a.shape[0]
-        samples = subframes * 40
+    sq = (((np.sin(np.linspace(0, 500*2*3.14159, 8000)) > 0) * 2) - 1) * 2
+    sn1 = np.sin(np.linspace(0, 200*2*3.14159, 8000))
+    sn2 = np.sin(np.linspace(0, 3800*2*3.14159, 8000))
+    wn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
+    wave = sq*0.25 + sn1*0.25 + sn2*0.25 + wn*0.25
 
-        sq = (((np.sin(np.linspace(0, 200*2*3.14159, 8000)) > 0) * 2) - 1) * 2
-        sn1 = np.sin(np.linspace(0, 55*2*3.14159, 8000))
-        sn2 = np.sin(np.linspace(0, 170*2*3.14159, 8000))
-        wn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
-        wave = (sq*0.5) + sn1 + sn2 + wn
+    pos = 0
 
-        pos = 0
-        required_frames = yield b""  # generator initialization
-        while pos < samples:
-            chunk = np.empty((required_frames, ), dtype=np.int16)
-            for n in range(required_frames):
-                pn = pos + n
-                sf = pn//40
-                s = wave[pn%wave.shape[0]] * (1.5**np.abs(b[sf])) * 4
-                if abs(s) > 32767:
-                    print("clip!")
-                chunk[n] = s
-            #print(np.max(chunk))
-            required_frames = yield chunk
-            pos += required_frames
+    for n in tqdm(range(data.shape[0])): # frames
+        raw_frame = data[n]
+        decoded_frame = np.empty((30, ), dtype=np.int16)
+        for n in range(len(g)-2):
+            slice = raw_frame[g[n]:g[n+1]]
+            width = widths[n+1]
+            decoded_frame[n] = np.packbits(slice, bitorder='little')
+        lsf = decoded_frame[:10]
+        pitch_gain = decoded_frame[10:14]
+        vector_gain = decoded_frame[14:18] - 16
+        pitch_idx = decoded_frame[18:22]
+        vector_idx = decoded_frame[22:26]
+        for subframe in range(4):
+            sf = np.empty((40, ), dtype=np.int16)
+            gain = vector_gain[subframe]
+            for n in range(40):
+                posn = pos + n
+                sfn = wave[posn % wave.shape[0]] * gain * abs(gain) * 32
+                if abs(sfn) > 32767:
+                    print("CLIPPED!")
+                sf[n] = sfn
+            yield sf
+            pos += 40
 
-        device.__running = False
+        #print(lsf, pitch_gain, vector_gain, pitch_idx, vector_idx)
 
 
-
-    with miniaudio.PlaybackDevice(output_format=miniaudio.SampleFormat.SIGNED16,
-                                  nchannels=1, sample_rate=sample_rate) as device:
-        device.__running = True
-        stream = stream_pcm(data, device)
-        next(stream)  # start the generator
-        device.start(stream)
-        while device.__running:
-            time.sleep(0.1)
+def celp_to_raw(data, output):
+    if output is None:
+        import subprocess
+        ps = subprocess.Popen(['play', '-t', 'raw', '-r', '8k', '-e', 'signed', '-b', '16', '-c', '1', '-', 'sinc', '200-3800'], stdin=subprocess.PIPE)
+        output = ps.stdin
+    for subframe in celp_generate_audio(data):
+        output.write(subframe.tobytes())
