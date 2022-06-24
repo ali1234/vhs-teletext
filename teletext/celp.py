@@ -120,10 +120,11 @@ def celp_play(data):
         subframes = a.shape[0]
         samples = subframes * 40
 
-        wave = (((np.sin(np.linspace(0, 200*2*3.14159, 8000)) > 0) * 2) - 1) * 2
-        #wave = np.sin(np.linspace(0, 55*2*3.14159, 8000))
-        wave = np.sin(np.linspace(0, 100*2*3.14159, 8000))
-        wave = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
+        sq = (((np.sin(np.linspace(0, 200*2*3.14159, 8000)) > 0) * 2) - 1) * 2
+        sn1 = np.sin(np.linspace(0, 55*2*3.14159, 8000))
+        sn2 = np.sin(np.linspace(0, 170*2*3.14159, 8000))
+        wn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
+        wave = (sq*0.5) + sn1 + sn2 + wn
 
         pos = 0
         required_frames = yield b""  # generator initialization
@@ -132,7 +133,7 @@ def celp_play(data):
             for n in range(required_frames):
                 pn = pos + n
                 sf = pn//40
-                s = wave[pn%wave.shape[0]] * (1.5**np.abs(b[sf])) * 8
+                s = wave[pn%wave.shape[0]] * (1.5**np.abs(b[sf])) * 4
                 if abs(s) > 32767:
                     print("clip!")
                 chunk[n] = s
