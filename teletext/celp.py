@@ -5,6 +5,9 @@ from teletext.coding import hamming8_decode
 
 from tqdm import tqdm
 
+from spectrum.linear_prediction import lsf2poly
+from scipy.signal import lfilter, filtfilt
+
 def celp_print(packets, rows, o):
     """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
 
@@ -121,39 +124,66 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
     ])
     g = np.cumsum(widths)
 
-    sq = (((np.sin(np.linspace(0, 500*2*3.14159, 8000)) > 0) * 2) - 1) * 2
-    sn1 = np.sin(np.linspace(0, 200*2*3.14159, 8000))
+    sq = (((np.sin(np.linspace(0, 500*2*3.14159, 8000)) > 0) * 2) - 1)
+    #sn1 = np.sin(np.linspace(0, 1000*2*3.14159, 8000))
     sn2 = np.sin(np.linspace(0, 3800*2*3.14159, 8000))
-    wn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
-    wave = sq*0.25 + sn1*0.25 + sn2*0.25 + wn*0.25
+    wn = np.random.uniform(-1, 1, size=(8000, ))
+    wave = wn * 1
 
     pos = 0
 
-    for n in tqdm(range(data.shape[0])): # frames
+    for n in tqdm(range(100000,data.shape[0])): # frames
         raw_frame = data[n]
-        decoded_frame = np.empty((30, ), dtype=np.int16)
+        decoded_frame = np.empty((30, ), dtype=np.int32)
         for n in range(len(g)-2):
             slice = raw_frame[g[n]:g[n+1]]
             width = widths[n+1]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
         lsf = decoded_frame[:10]
         pitch_gain = decoded_frame[10:14]
-        vector_gain = decoded_frame[14:18] - 16
+        vector_gain = (decoded_frame[14:18] - 16) / 16.0
         pitch_idx = decoded_frame[18:22]
         vector_idx = decoded_frame[22:26]
+        frame = np.empty((160,), dtype=np.float)
+        framex = np.empty((160,), dtype=np.float)
         for subframe in range(4):
-            sf = np.empty((40, ), dtype=np.int16)
             gain = vector_gain[subframe]
+            #gain = np.mean(np.abs(vector_gain))
             for n in range(40):
-                posn = pos + n
-                sfn = wave[posn % wave.shape[0]] * gain * abs(gain) * 32
-                if abs(sfn) > 32767:
-                    print("CLIPPED!")
-                sf[n] = sfn
-            yield sf
+                posn = pos + (subframe*40) + n
+                sfn = wave[posn % wave.shape[0]] * gain
+                frame[(subframe*40) + n] = wave[posn % wave.shape[0]] * gain
+                framex[(subframe*40) + n] = wave[posn % wave.shape[0]] * gain * abs(gain)
             pos += 40
 
-        #print(lsf, pitch_gain, vector_gain, pitch_idx, vector_idx)
+        #yield (frame * 32768).astype(np.int16)
+        #continue
+
+        # hmm
+        #lsf += 1
+        lsf <<= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
+        #lsf = lsf + 0.1
+        lsf = lsf + np.linspace(2.5, 60, 10)
+        lsf = np.array(sorted(lsf))
+        # lsf += 2
+        #if np.any(np.diff(lsf) < 0):
+        #    print(lsf)
+        #    continue
+        # lsf += np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) * 4
+
+        #print(lsf.min(), lsf.max())
+        a = lsf2poly(3.1 * lsf/(74))
+        #print(a)
+        #a = lsf2poly(np.linspace(0.12, 3.0, 10))
+        b = np.hstack([[0], -1 * a[1:]])
+
+        filt = filtfilt(b, [1], frame)
+
+        result = ((framex * 3000) + (filt * 1500))
+
+        if np.max(result) > 32767:
+            print("NOO", np.max(result))
+        yield result.astype(np.int16)
 
 
 def celp_to_raw(data, output):
