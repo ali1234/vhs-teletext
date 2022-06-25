@@ -132,7 +132,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
 
     pos = 0
 
-    for n in tqdm(range(100000,data.shape[0])): # frames
+    for n in tqdm(range(0,data.shape[0])): # frames
         raw_frame = data[n]
         decoded_frame = np.empty((30, ), dtype=np.int32)
         for n in range(len(g)-2):
