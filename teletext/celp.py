@@ -6,7 +6,8 @@ from teletext.coding import hamming8_decode
 from tqdm import tqdm
 
 from spectrum.linear_prediction import lsf2poly
-from scipy.signal import lfilter, filtfilt
+from scipy.signal import lfilter, filtfilt, sawtooth
+
 
 def celp_print(packets, rows, o):
     """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
@@ -103,6 +104,9 @@ def celp_plot(data):
 
 
 def celp_generate_audio(data, frame=None, sample_rate=8000):
+
+    subframe_length = sample_rate // 200
+
     data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19),
                          bitorder='little').reshape(-1, 2, 152)
     if frame == 0:
@@ -112,6 +116,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
     else:
         data = data.reshape(-1, 152)
 
+    # parameter positions in the frame data
     widths = np.array([
         0,
         3, 4, 4, 4, 4, 4, 4, 4, 3, 3, # 37 bytes - 10 x LPC params of (unknown?) variable size
@@ -124,62 +129,75 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
     ])
     g = np.cumsum(widths)
 
-    sq = (((np.sin(np.linspace(0, 500*2*3.14159, 8000)) > 0) * 2) - 1)
-    #sn1 = np.sin(np.linspace(0, 1000*2*3.14159, 8000))
-    sn2 = np.sin(np.linspace(0, 3800*2*3.14159, 8000))
-    wn = np.random.uniform(-1, 1, size=(8000, ))
-    wave = wn * 1
+    # Speech Coding in Private and Broadcast Networks, Suddle, p121, table 5.2
+    # note the transposition of first 8 values in column 7/8
+    lsf_vector_quantizers = np.array([
+        [ 143,  182,  214,  246,  284,  329,  389,  475,    0,    0,    0,    0,    0,    0,    0,    0,],
+        [ 211,  252,  285,  317,  349,  383,  419,  458,  503,  554,  608,  665,  731,  809,  912, 1072,],
+        [ 402,  470,  522,  571,  621,  671,  724,  778,  835,  902,  979, 1065, 1147, 1241, 1357, 1517,],
+        [ 617,  732,  819,  885,  944, 1001, 1060, 1121, 1186, 1260, 1342, 1425, 1514, 1613, 1723, 1885,],
+        [ 981, 1081, 1172, 1254, 1329, 1403, 1473, 1539, 1609, 1679, 1753, 1826, 1908, 1998, 2106, 2236,],
+        [1334, 1446, 1539, 1626, 1697, 1763, 1828, 1890, 1954, 2019, 2087, 2160, 2238, 2328, 2420, 2526,],
+        [1830, 1959, 2056, 2134, 2198, 2254, 2303, 2349, 2397, 2448, 2500, 2560, 2632, 2715, 2823, 2966,],
+        [2247, 2361, 2434, 2496, 2550, 2600, 2647, 2694, 2742, 2791, 2846, 2904, 2966, 3049, 3155, 3256,],
+        [2347, 2481, 2583, 2674, 2767, 2874, 3005, 3202,    0,    0,    0,    0,    0,    0,    0,    0,],
+        [3140, 3246, 3326, 3395, 3458, 3524, 3601, 3709,    0,    0,    0,    0,    0,    0,    0,    0,],
+    ]) * 2 * np.pi / 8000.0 # * 2 pi / sample rate of table
+
+
+    # wave we're going to play through the filter
+    #sq = (((np.sin(np.linspace(0, 1000*2*3.14159, 8000)) > 0) * 2) - 1)
+
+    #sn2 = np.sin(np.linspace(0, 273*2*3.14159, 8000))
+    wnu = np.random.uniform(-1, 1, size=(8000, ))
+    wnn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
+    sw1 = sawtooth(np.linspace(0, 100, 8000) * 2 * np.pi, width=0.9) * 5
+    sw2 = sawtooth(np.linspace(0, 172, 8000) * 2 * np.pi, width=0.8) * 5
+    sw3 = sawtooth(np.linspace(0, 238, 8000) * 2 * np.pi, width=0.5) * 5
+    wave = sw1 + sw2 + wnu * 0.01
 
     pos = 0
+    prev = None
 
     for n in tqdm(range(0,data.shape[0])): # frames
         raw_frame = data[n]
         decoded_frame = np.empty((30, ), dtype=np.int32)
         for n in range(len(g)-2):
             slice = raw_frame[g[n]:g[n+1]]
-            width = widths[n+1]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
-        lsf = decoded_frame[:10]
+        lsf_q = decoded_frame[:10]
         pitch_gain = decoded_frame[10:14]
-        vector_gain = (decoded_frame[14:18] - 16) / 16.0
+        vector_gain = (decoded_frame[14:18] - 15) / 16
         pitch_idx = decoded_frame[18:22]
         vector_idx = decoded_frame[22:26]
-        frame = np.empty((160,), dtype=np.float)
-        framex = np.empty((160,), dtype=np.float)
+        frame = np.empty((subframe_length*4,), dtype=np.float)
         for subframe in range(4):
-            gain = vector_gain[subframe]
-            #gain = np.mean(np.abs(vector_gain))
-            for n in range(40):
-                posn = pos + (subframe*40) + n
-                sfn = wave[posn % wave.shape[0]] * gain
-                frame[(subframe*40) + n] = wave[posn % wave.shape[0]] * gain
-                framex[(subframe*40) + n] = wave[posn % wave.shape[0]] * gain * abs(gain)
-            pos += 40
+            gain = np.mean(np.abs(vector_gain))
+            #gain = vector_gain[subframe]
+            for n in range(subframe_length):
+                pos += 1
+                frame[(subframe*subframe_length) + n] = wave[pos % wave.shape[0]] * gain * gain
+
 
         #yield (frame * 32768).astype(np.int16)
         #continue
 
-        # hmm
-        #lsf += 1
-        lsf <<= np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
-        #lsf = lsf + 0.1
-        lsf = lsf + np.linspace(2.5, 60, 10)
-        lsf = np.array(sorted(lsf))
-        # lsf += 2
-        #if np.any(np.diff(lsf) < 0):
-        #    print(lsf)
-        #    continue
-        # lsf += np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) * 4
+        lsf = lsf_vector_quantizers[np.arange(10), lsf_q]
+        #print(lsf)
+        if any(np.diff(lsf) < 0):
+            # if the parameters are not monotonic, use the ones from previous frame
+            if prev is None:
+                continue
+            else:
+                lsf = prev
+        else:
+            prev = lsf
 
-        #print(lsf.min(), lsf.max())
-        a = lsf2poly(3.1 * lsf/(74))
-        #print(a)
-        #a = lsf2poly(np.linspace(0.12, 3.0, 10))
-        b = np.hstack([[0], -1 * a[1:]])
+        a = lsf2poly(lsf)
 
-        filt = filtfilt(b, [1], frame)
+        filt = np.squeeze(filtfilt(a, [1],  frame))
 
-        result = ((framex * 3000) + (filt * 1500))
+        result = np.clip((filt * 32000), -32767, 32767)
 
         if np.max(result) > 32767:
             print("NOO", np.max(result))
@@ -189,7 +207,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
 def celp_to_raw(data, output):
     if output is None:
         import subprocess
-        ps = subprocess.Popen(['play', '-t', 'raw', '-r', '8k', '-e', 'signed', '-b', '16', '-c', '1', '-', 'sinc', '200-3800'], stdin=subprocess.PIPE)
+        ps = subprocess.Popen(['play', '-t', 'raw', '-r', '8k', '-e', 'signed', '-b', '16', '-c', '1', '-', 'sinc', '200-3800', 'band', '900', '300'], stdin=subprocess.PIPE)
         output = ps.stdin
     for subframe in celp_generate_audio(data):
         output.write(subframe.tobytes())
