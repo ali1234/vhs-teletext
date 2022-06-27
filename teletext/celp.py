@@ -6,7 +6,7 @@ from teletext.coding import hamming8_decode
 from tqdm import tqdm
 
 from spectrum.linear_prediction import lsf2poly
-from scipy.signal import lfilter, filtfilt, sawtooth
+from scipy.signal import lfilter, filtfilt, sawtooth, square
 
 
 def celp_print(packets, rows, o):
@@ -129,7 +129,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
     ])
     g = np.cumsum(widths)
 
-    # Speech Coding in Private and Broadcast Networks, Suddle, p121, table 5.2
+    # Speech Coding in Private and Broadcast Networks, Suddle, p121
     # note the transposition of first 8 values in column 7/8
     lsf_vector_quantizers = np.array([
         [ 143,  182,  214,  246,  284,  329,  389,  475,    0,    0,    0,    0,    0,    0,    0,    0,],
@@ -142,22 +142,38 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
         [2247, 2361, 2434, 2496, 2550, 2600, 2647, 2694, 2742, 2791, 2846, 2904, 2966, 3049, 3155, 3256,],
         [2347, 2481, 2583, 2674, 2767, 2874, 3005, 3202,    0,    0,    0,    0,    0,    0,    0,    0,],
         [3140, 3246, 3326, 3395, 3458, 3524, 3601, 3709,    0,    0,    0,    0,    0,    0,    0,    0,],
-    ]) * 2 * np.pi / 8000.0 # * 2 pi / sample rate of table
+    ]) * 2 * np.pi / sample_rate # convert to radians per sample
 
+    vec_gain_quantization = np.array([
+        -1100,  -850,  -650,  -510,  -415,  -335,  -275,  -220,
+         -175,  -135,   -98,   -65,   -35,   -12,    -3,    -1,
+            1,     3,    12,    35,    65,    98,   135,   175,
+          220,   275,   335,   415,   510,   650,   850,  1100,
+    ])
+
+    ltp_gain_quantization = np.array([
+        -0.993, -0.831, -0.693, -0.555, -0.414, -0.229, 0.0, 0.193,
+        0.255, 0.368, 0.457, 0.531, 0.601, 0.653, 0.702, 0.745,
+        0.780, 0.816, 0.850, 0.881, 0.915, 0.948, 0.983, 1.020,
+        1.062, 1.117, 1.193, 1.289, 1.394, 1.540, 1.765, 1.991,
+    ])
 
     # wave we're going to play through the filter
     #sq = (((np.sin(np.linspace(0, 1000*2*3.14159, 8000)) > 0) * 2) - 1)
 
     #sn2 = np.sin(np.linspace(0, 273*2*3.14159, 8000))
-    wnu = np.random.uniform(-1, 1, size=(8000, ))
-    wnn = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
-    sw1 = sawtooth(np.linspace(0, 100, 8000) * 2 * np.pi, width=0.9) * 5
-    sw2 = sawtooth(np.linspace(0, 172, 8000) * 2 * np.pi, width=0.8) * 5
-    sw3 = sawtooth(np.linspace(0, 238, 8000) * 2 * np.pi, width=0.5) * 5
-    wave = sw1 + sw2 + wnu * 0.01
+    wnu = np.random.uniform(-1, 1, size=(sample_rate, ))
+    wnn = np.random.normal(loc=0.0, scale=1.0, size=(sample_rate, ))
+    sw1 = sawtooth(np.linspace(0, 100, sample_rate) * 2 * np.pi, width=1) * 5
+    sw2 = sawtooth(np.linspace(0, 133, sample_rate) * 2 * np.pi, width=1) * 5
+    sw3 = sawtooth(np.linspace(0, 60, sample_rate) * 2 * np.pi, width=1) * 5
+    sq = square(np.linspace(0, 2000, sample_rate))
+    wave = (sq + (wnu*0.01)) * 0.00005
 
     pos = 0
     prev = None
+
+    count, err = 0, 0
 
     for n in tqdm(range(0,data.shape[0])): # frames
         raw_frame = data[n]
@@ -166,25 +182,29 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
             slice = raw_frame[g[n]:g[n+1]]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
         lsf_q = decoded_frame[:10]
-        pitch_gain = decoded_frame[10:14]
-        vector_gain = (decoded_frame[14:18] - 15) / 16
+        pitch_gain = ltp_gain_quantization[decoded_frame[10:14]]
+        vector_gain = vec_gain_quantization[decoded_frame[14:18]]
         pitch_idx = decoded_frame[18:22]
         vector_idx = decoded_frame[22:26]
-        frame = np.empty((subframe_length*4,), dtype=np.float)
+        frame = np.empty((subframe_length*4,), dtype=np.double)
         for subframe in range(4):
-            gain = np.mean(np.abs(vector_gain))
-            #gain = vector_gain[subframe]
+            gain = vector_gain[subframe]
+            #gain = np.mean(np.abs(vector_gain))
             for n in range(subframe_length):
                 pos += 1
-                frame[(subframe*subframe_length) + n] = wave[pos % wave.shape[0]] * gain * gain
+                frame[(subframe*subframe_length) + n] = wave[pos % wave.shape[0]] * gain
 
-
-        #yield (frame * 32768).astype(np.int16)
-        #continue
 
         lsf = lsf_vector_quantizers[np.arange(10), lsf_q]
         #print(lsf)
-        if any(np.diff(lsf) < 0):
+
+        #simple way to make sure the lsf is valid: just sort it
+        lsf = sorted(lsf)
+
+        count += 1
+        x = np.diff(lsf) <= 0
+        if any(x):
+            err += 1
             # if the parameters are not monotonic, use the ones from previous frame
             if prev is None:
                 continue
@@ -195,19 +215,20 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
 
         a = lsf2poly(lsf)
 
-        filt = np.squeeze(filtfilt(a, [1],  frame))
+        filt = filtfilt(a, [1], frame)
+
+        if np.max(filt) > 1:
+            print("NOO", np.max(filt))
 
         result = np.clip((filt * 32000), -32767, 32767)
 
-        if np.max(result) > 32767:
-            print("NOO", np.max(result))
         yield result.astype(np.int16)
 
 
 def celp_to_raw(data, output):
     if output is None:
         import subprocess
-        ps = subprocess.Popen(['play', '-t', 'raw', '-r', '8k', '-e', 'signed', '-b', '16', '-c', '1', '-', 'sinc', '200-3800', 'band', '900', '300'], stdin=subprocess.PIPE)
+        ps = subprocess.Popen(['play', '--buffer', '4000', '-t', 'raw', '-r', '8000', '-e', 'signed', '-b', '16', '-c', '1', '-'], stdin=subprocess.PIPE)
         output = ps.stdin
-    for subframe in celp_generate_audio(data):
+    for subframe in celp_generate_audio(data, sample_rate=8000):
         output.write(subframe.tobytes())
