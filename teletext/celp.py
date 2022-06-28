@@ -28,8 +28,8 @@ def celp_print(packets, rows, o):
     for p in packets:
         if p.mrag.magazine == 4 and p.mrag.row in rows:
             dcn = p.mrag.magazine + ((p.mrag.row & 1) << 3)
-            control = hamming8_decode(p._array[2])
-            service = hamming8_decode(p._array[3])
+            service = hamming8_decode(p._array[2])
+            control = hamming8_decode(p._array[3])
 
             frame0 = p._array[4:23]
             frame1 = p._array[23:42]
