@@ -1,12 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from teletext.coding import hamming8_decode
 
-
-def celp_plot(data):
+def plot(packets):
     """Plot data from CELP packets. Experimental code."""
-    data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19), bitorder='little').reshape(-1, 2, 152)
+
+    datas = []
+    for p in packets:
+        datas.append(p._array[4:])
+
+    datas = np.concatenate(datas)
+    data = np.unpackbits(datas.reshape(-1, 2, 19), bitorder='little').reshape(-1, 2, 152)
     frame0 = data[:, 0, :]
     frame1 = data[:, 1, :]
     d1 = np.sum(data, axis=0)
@@ -55,57 +59,6 @@ def celp_plot(data):
     plt.show()
 
 
-def celp_play(data):
-    import miniaudio
-    import time
-
-    sample_rate = 8000
-
-    def stream_pcm(data, device):
-        data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19),
-                             bitorder='little').reshape(-1, 2, 152)
-        #data = data[:, 0, :]
-        # data = data[:, 1, :]
-        data = data.reshape(-1, 152)
-
-        a = np.packbits(data[:, 37:37 + 20].reshape(-1, 5), axis=-1, bitorder='little').flatten()
-        b = np.packbits(data[:, 37 + 20:37 + 20 + 20].reshape(-1, 5), axis=-1, bitorder='little').flatten().astype(np.int8)
-        b -= 16
-        c = np.packbits(data[:, 37 + 20 + 20:37 + 20 + 20 + 28].reshape(-1, 7), axis=-1, bitorder='little').flatten()
-        d = np.packbits(data[:, 37 + 20 + 20 + 28:37 + 20 + 20 + 28 + 32].reshape(-1, 8), axis=-1, bitorder='little').flatten()
-
-        subframes = a.shape[0]
-        samples = subframes * 40
-
-        wave = (((np.sin(np.linspace(0, 200*2*3.14159, 8000)) > 0) * 2) - 1) * 2
-        #wave = np.sin(np.linspace(0, 55*2*3.14159, 8000))
-        wave = np.sin(np.linspace(0, 100*2*3.14159, 8000))
-        wave = np.random.normal(loc=0.0, scale=1.0, size=(8000, ))
-
-        pos = 0
-        required_frames = yield b""  # generator initialization
-        while pos < samples:
-            chunk = np.empty((required_frames, ), dtype=np.int16)
-            for n in range(required_frames):
-                pn = pos + n
-                sf = pn//40
-                s = wave[pn%wave.shape[0]] * (1.5**np.abs(b[sf])) * 8
-                if abs(s) > 32767:
-                    print("clip!")
-                chunk[n] = s
-            #print(np.max(chunk))
-            required_frames = yield chunk
-            pos += required_frames
-
-        device.__running = False
-
-
-
-    with miniaudio.PlaybackDevice(output_format=miniaudio.SampleFormat.SIGNED16,
-                                  nchannels=1, sample_rate=sample_rate) as device:
-        device.__running = True
-        stream = stream_pcm(data, device)
-        next(stream)  # start the generator
-        device.start(stream)
-        while device.__running:
-            time.sleep(0.1)
+def play(packets):
+    for p in packets:
+        pass

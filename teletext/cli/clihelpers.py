@@ -18,6 +18,10 @@ except ImportError:
     plop = None
 
 
+def dcnparams(f):
+    return click.option('-d', '--dcn', 'dcn', type=int, required=True, help='Data channel to read from.')(f)
+
+
 def filterparams(enabled=True):
     def fp(f):
         if enabled:
@@ -88,11 +92,16 @@ def chunkreader(f):
     return wrapper
 
 def packetreader(filtered=True):
+    if filtered == 'data':
+        filterdec = dcnparams
+    else:
+        filterdec = filterparams(filtered)
+
     def pr(f):
         @chunkreader
         @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
         @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
-        @filterparams(filtered)
+        @filterdec
         @progressparams()
         @wraps(f)
         def wrapper(chunker, wst, ts, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
@@ -122,6 +131,12 @@ def packetreader(filtered=True):
             if 'mags' in kwargs and 'rows' in kwargs:
                 mags = kwargs.pop('mags')
                 rows = kwargs.pop('rows')
+                packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
+
+            elif 'dcn' in kwargs:
+                dcn = kwargs.pop('dcn')
+                mags = (dcn & 0x7,)
+                rows = (30 + (dcn>>3),)
                 packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
 
             if progress and mag_hist:
