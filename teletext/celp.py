@@ -142,7 +142,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
         [2247, 2361, 2434, 2496, 2550, 2600, 2647, 2694, 2742, 2791, 2846, 2904, 2966, 3049, 3155, 3256,],
         [2347, 2481, 2583, 2674, 2767, 2874, 3005, 3202,    0,    0,    0,    0,    0,    0,    0,    0,],
         [3140, 3246, 3326, 3395, 3458, 3524, 3601, 3709,    0,    0,    0,    0,    0,    0,    0,    0,],
-    ]) * 2 * np.pi / sample_rate # convert to radians per sample
+    ]) #* 2 * np.pi / sample_rate # convert to radians per sample
 
     vec_gain_quantization = np.array([
         -1100,  -850,  -650,  -510,  -415,  -335,  -275,  -220,
@@ -158,6 +158,16 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
         1.062, 1.117, 1.193, 1.289, 1.394, 1.540, 1.765, 1.991,
     ])
 
+    waves = {
+        n: np.sin(np.linspace(0, n * 2 * np.pi, sample_rate)) for n in lsf_vector_quantizers.flatten()
+    }
+
+    #waves = {
+    #    n: square(np.linspace(0, n * 2 * np.pi, sample_rate)) for n in lsf_vector_quantizers.flatten()
+    #}
+
+    print(waves[211])
+
     # wave we're going to play through the filter
     #sq = (((np.sin(np.linspace(0, 1000*2*3.14159, 8000)) > 0) * 2) - 1)
 
@@ -168,7 +178,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
     sw2 = sawtooth(np.linspace(0, 133, sample_rate) * 2 * np.pi, width=1) * 5
     sw3 = sawtooth(np.linspace(0, 60, sample_rate) * 2 * np.pi, width=1) * 5
     sq = square(np.linspace(0, 2000, sample_rate))
-    wave = (sq + (wnu*0.01)) * 0.00005
+    wave = wnu
 
     pos = 0
     prev = None
@@ -181,7 +191,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
         for n in range(len(g)-2):
             slice = raw_frame[g[n]:g[n+1]]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
-        lsf_q = decoded_frame[:10]
+        lsf = lsf_vector_quantizers[np.arange(10), decoded_frame[:10]]
         pitch_gain = ltp_gain_quantization[decoded_frame[10:14]]
         vector_gain = vec_gain_quantization[decoded_frame[14:18]]
         pitch_idx = decoded_frame[18:22]
@@ -192,30 +202,28 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
             #gain = np.mean(np.abs(vector_gain))
             for n in range(subframe_length):
                 pos += 1
-                frame[(subframe*subframe_length) + n] = wave[pos % wave.shape[0]] * gain
+                frame[(subframe*subframe_length) + n] = wave[pos % sample_rate] * gain
+                #frame[(subframe*subframe_length) + n] = sum(waves[n][pos % sample_rate] for n in lsf) * 0.1 * gain
 
 
-        lsf = lsf_vector_quantizers[np.arange(10), lsf_q]
-        #print(lsf)
+        #yield np.clip((frame * 10), -32767, 32767).astype(np.int16)
+        #continue
+
+        if 0:
+            if any(np.diff(lsf) <= 0):
+                err += 1
+                # if the parameters are not monotonic, use the ones from previous frame
+                if prev is None:
+                    continue
+                else:
+                    lsf = prev
+            else:
+                prev = lsf
 
         #simple way to make sure the lsf is valid: just sort it
-        lsf = sorted(lsf)
+        a = lsf2poly(sorted(lsf * 2 * np.pi / sample_rate))
 
-        count += 1
-        x = np.diff(lsf) <= 0
-        if any(x):
-            err += 1
-            # if the parameters are not monotonic, use the ones from previous frame
-            if prev is None:
-                continue
-            else:
-                lsf = prev
-        else:
-            prev = lsf
-
-        a = lsf2poly(lsf)
-
-        filt = filtfilt(a, [1], frame)
+        filt = lfilter([1], a, frame * 0.0002)
 
         if np.max(filt) > 1:
             print("NOO", np.max(filt))
