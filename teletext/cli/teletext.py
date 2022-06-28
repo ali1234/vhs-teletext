@@ -21,6 +21,7 @@ from teletext.subpage import Subpage
 from teletext import pipeline
 from teletext.cli.training import training
 from teletext.cli.vbi import vbi
+from teletext.cli.celp import celp
 
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
@@ -42,9 +43,10 @@ def teletext(unicode):
 
 teletext.add_command(training)
 teletext.add_command(vbi)
+teletext.add_command(celp)
 
 
-@command(teletext)
+@teletext.command()
 @packetwriter
 @paginated()
 @click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
@@ -69,7 +71,7 @@ def filter(packets, pages, subpages, paginate, n, keep_empty):
         yield from packets
 
 
-@command(teletext)
+@teletext.command()
 @packetwriter
 @paginated()
 @click.argument('regex', type=str)
@@ -105,7 +107,7 @@ def grep(packets, pages, subpages, paginate, regex, v, i, n, keep_empty):
                 yield p
 
 
-@command(teletext, name='list')
+@teletext.command(name='list')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
 @paginated(always=True, filtered=False)
 @packetreader()
@@ -132,7 +134,7 @@ def _list(packets, subpages):
         print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
 
 
-@command(teletext)
+@teletext.command()
 @click.argument('pattern')
 @paginated(always=True)
 @packetreader()
@@ -156,7 +158,7 @@ def split(packets, pattern, pages, subpages):
             ff.write(b''.join(p.bytes for p in pl))
 
 
-@command(teletext)
+@teletext.command()
 @click.argument('a', type=click.File('rb'))
 @click.argument('b', type=click.File('rb'))
 @filterparams()
@@ -170,7 +172,7 @@ def diff(a, b, mags, rows):
                 print(pa.to_ansi(), pb.to_ansi())
 
 
-@command(teletext)
+@teletext.command()
 @packetwriter
 @packetreader()
 def finders(packets):
@@ -183,7 +185,7 @@ def finders(packets):
         yield p
 
 
-@command(teletext)
+@teletext.command()
 @packetreader(filtered=False)
 @click.option('-l', '--lines', type=int, default=32, help='Number of recorded lines per frame.')
 @click.option('-f', '--frames', type=int, default=250, help='Number of frames to squash.')
@@ -237,47 +239,7 @@ def scan(packets, lines, frames):
         print()
 
 
-@command(teletext)
-@packetreader(filtered=False)
-@click.option('-c', '--channel', type=int, default=None, help='Data channel number.')
-@click.option('-o', type=click.File('wb'), default=None, help='Write binary data to file.')
-def celp(packets, channel, o):
-    """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
-    from teletext.celp import celp_print
-
-    if channel is None:
-        rows = [30, 31]
-    elif channel == 4:
-        rows = [30]
-    elif channel == 12:
-        rows = [31]
-    else:
-        raise click.UsageError('Data channel must be 4 or 12.')
-
-    celp_print(packets, rows, o)
-
-
-@command(teletext)
-@click.argument('data', type=click.File('rb'))
-def celpplot(data):
-    """Plot data from CELP packets. Experimental code."""
-
-    from teletext.celp import celp_plot
-
-    celp_plot(data)
-
-
-@command(teletext)
-@click.argument('data', type=click.File('rb'))
-def celpplay(data):
-    """Play data from CELP packets. Warning: Will make a horrible noise."""
-
-    from teletext.celp import celp_play
-
-    celp_play(data)
-
-
-@command(teletext)
+@teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter
@@ -295,7 +257,7 @@ def squash(packets, min_duplicates, pages, subpages, ignore_empty):
         yield from sp.packets
 
 
-@command(teletext)
+@teletext.command()
 @click.option('-l', '--language', default='en_GB', help='Language. Default: en_GB')
 @click.option('-b', '--both', is_flag=True, help='Show packet before and after corrections.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
@@ -326,7 +288,7 @@ def spellcheck(packets, language, both, threads):
             yield from itermap(spellcheck_packets, packets, threads, language=language)
 
 
-@command(teletext)
+@teletext.command()
 @packetwriter
 @paginated(always=True, filtered=False)
 @packetreader()
@@ -338,7 +300,7 @@ def service(packets):
     return Service.from_packets(p for p in packets if  not p.is_padding())
 
 
-@command(teletext)
+@teletext.command()
 @packetwriter
 @click.argument('directory', type=click.Path(exists=True, readable=True, file_okay=False, dir_okay=True))
 def servicedir(directory):
@@ -349,7 +311,7 @@ def servicedir(directory):
         yield from s
 
 
-@command(teletext)
+@teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
 def interactive(input):
 
@@ -359,7 +321,7 @@ def interactive(input):
     interactive.main(input)
 
 
-@command(teletext)
+@teletext.command()
 @click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
               show_default=True, help='Teletext editor URL.')
 @paginated(always=True)
@@ -375,7 +337,7 @@ def urls(packets, editor, pages, subpages):
         print(f'{editor}{s.url}')
 
 
-@command(teletext)
+@teletext.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--template', type=click.File('r'), default=None, help='HTML template.')
 @click.option('--localcodepage', type=click.Choice(g0.keys()), default=None, help='Select codepage for Local Code of Practice')
@@ -394,7 +356,7 @@ def html(packets, outdir, template, localcodepage):
     svc.to_html(outdir, template, localcodepage)
 
 
-@command(teletext)
+@teletext.command()
 @click.argument('output', type=click.File('wb'), default='-')
 @click.option('-d', '--device', type=click.File('rb'), default='/dev/vbi0', help='Capture device.')
 @carduser()
@@ -428,7 +390,7 @@ def record(output, device, config):
         pass
 
 
-@command(teletext)
+@teletext.command()
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
@@ -460,7 +422,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
         VBIViewer(lines, config, pause=pause, nlines=n_lines)
 
 
-@command(teletext)
+@teletext.command()
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')

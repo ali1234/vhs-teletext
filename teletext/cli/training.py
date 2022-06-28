@@ -18,7 +18,7 @@ def training():
     pass
 
 
-@command(training)
+@training.command()
 @click.argument('output', type=click.File('wb'), default='-')
 def generate(output):
     """Generate training samples for raspi-teletext."""
@@ -26,7 +26,7 @@ def generate(output):
     PatternGenerator().to_file(output)
 
 
-@command(training)
+@training.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser()
@@ -56,7 +56,7 @@ def split(chunker, outdir, config, threads, progress, rejects):
     split(results, files)
 
 
-@command(training, name='squash')
+@training.command(name='squash')
 @click.argument('indir', type=click.Path(exists=True, file_okay=False, dir_okay=True), required=True)
 @click.argument('output', type=click.File('wb'), default='-')
 def training_squash(output, indir):
@@ -65,7 +65,7 @@ def training_squash(output, indir):
     squash(output, indir)
 
 
-@command(training)
+@training.command()
 @chunkreader
 def showbin(chunker):
     """Visually display an intermediate training bin."""
@@ -83,7 +83,7 @@ def showbin(chunker):
         print(f'[{bi}] [{by}]')
 
 
-@command(training)
+@training.command()
 @click.argument('input', type=click.File('rb'), required=True)
 @click.argument('output', type=click.File('wb'), required=True)
 @click.option('-m', '--mode', type=click.Choice(['full', 'parity', 'hamming']), default='full')
@@ -106,7 +106,7 @@ def build(input, output, mode, bits):
     build_pattern(chunks, output, *bits, pattern_set)
 
 
-@command(training)
+@training.command()
 def similarities():
     from teletext.vbi.pattern import Pattern
 
@@ -115,7 +115,7 @@ def similarities():
     print(pattern.similarities())
 
 
-@command(training)
+@training.command()
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser()
 @chunkreader

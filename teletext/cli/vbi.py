@@ -11,7 +11,7 @@ def vbi():
 
 
 
-@command(vbi)
+@vbi.command()
 @click.argument('output', type=click.Path(writable=True))
 @click.option('-d', '--diff', is_flag=True, help='User first differential of samples.')
 @click.option('-s', '--show', is_flag=True, help='Show image when complete.')
@@ -55,7 +55,7 @@ def histogram(output, diff, show, chunker, config):
     i.convert('RGB').save(output)
 
 
-@command(vbi)
+@vbi.command()
 @carduser(extended=True)
 @chunkreader
 def plot(chunker, config):
