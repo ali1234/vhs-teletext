@@ -223,7 +223,7 @@ def celp_generate_audio(data, frame=None, sample_rate=8000):
         #simple way to make sure the lsf is valid: just sort it
         a = lsf2poly(sorted(lsf * 2 * np.pi / sample_rate))
 
-        filt = lfilter([1], a, frame * 0.0002)
+        filt = lfilter([1], a, frame * 0.0001)
 
         if np.max(filt) > 1:
             print("NOO", np.max(filt))
