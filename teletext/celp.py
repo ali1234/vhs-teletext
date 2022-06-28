@@ -4,49 +4,6 @@ import matplotlib.pyplot as plt
 from teletext.coding import hamming8_decode
 
 
-def celp_print(packets, rows, o):
-    """Dump CELP packets from data channels 4 and 12. We don't know how to decode all of these."""
-
-    dblevels = [0, 4, 8, 12, 18, 24, 30, 0]
-
-    servicetypes = [
-        'Single-channel mode using 1 VBI line per frame',
-        'Single-channel mode using 2 VBI lines per frame',
-        'Single-channel mode using 3 VBI lines per frame',
-        'Single-channel mode using 4 VBI lines per frame',
-        'Mute Channel 1',
-        'Two-channel Mode using 2 VBI lines per frame',
-        'Mute Channel 2',
-        'Two-channel Mode using 4 VBI lines per frame',
-    ]
-
-    for p in packets:
-        if p.mrag.magazine == 4 and p.mrag.row in rows:
-            dcn = p.mrag.magazine + ((p.mrag.row & 1) << 3)
-            control = hamming8_decode(p._array[2])
-            service = hamming8_decode(p._array[3])
-
-            frame0 = p._array[4:23]
-            frame1 = p._array[23:42]
-            if o is None:
-                print(f'DCN: {dcn} ({p.mrag.magazine}/{p.mrag.row})', end=' ')
-                if dcn == 4:
-                    print('Programme-related audio.', end=' ')
-                    print('Service:', 'AUDETEL' if service == 0 else hex(service), end=' ')
-                    print('Control:', hex(control), dblevels[control & 0x7], 'dB',
-                          '(muted)' if control & 0x8 else '')
-                elif dcn == 12:
-                    print('Programme-independant audio.', end=' ')
-                    if service & 0x8:
-                        print('User-defined service', hex(service & 0x7), hex(p._array[3]))
-                    else:
-                        print(servicetypes[service], f'Control: {hex(control)}' if control else '')
-                print(frame0.tobytes().hex(), frame1.tobytes().hex())
-            else:
-                o.write(frame0.tobytes())
-                o.write(frame1.tobytes())
-
-
 def celp_plot(data):
     """Plot data from CELP packets. Experimental code."""
     data = np.unpackbits(np.fromfile(data, dtype=np.uint8).reshape(-1, 2, 19), bitorder='little').reshape(-1, 2, 152)
