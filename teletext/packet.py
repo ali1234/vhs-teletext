@@ -36,7 +36,9 @@ class Packet(Element):
             return 'page enhancement'
         elif row == 29:
             return 'magazine enhancement'
-        elif row == 31:
+        elif row in [30, 31] and self.mrag.magazine == 4:
+            return 'celp'
+        elif row in [30, 31]:
             return 'independent data'
         else:
             return 'unknown'
@@ -65,6 +67,10 @@ class Packet(Element):
     def broadcast(self):
         return BroadcastData(self._array[2:], self.mrag)
 
+    @property
+    def celp(self):
+        return Celp(self._array[2:], self.mrag)
+
     def to_ansi(self, colour=True):
         t = self.type
 
@@ -76,6 +82,8 @@ class Packet(Element):
             return self.fastext.to_ansi(colour)
         elif t == 'broadcast':
             return self.broadcast.to_ansi(colour)
+        elif t == 'celp':
+            return self.celp.to_ansi(colour)
         elif t.endswith('enhancement'):
             return f'{t} DC={self.dc.dc}'
         else:
@@ -144,5 +152,7 @@ class Packet(Element):
             e[2:] = self.fastext.errors
         elif t == 'broadcast':
             e[2:] = self.broadcast.errors
+        elif t == 'celp':
+            e[2:] = self.celp.errors
 
         return e

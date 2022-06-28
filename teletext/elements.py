@@ -422,3 +422,86 @@ class BroadcastData(DesignationCode):
         e[1:7] = self.initial_page.errors
         e[20:] = self.displayable.errors
         return e
+
+
+class Celp(Element):
+
+    dblevels = [0, 4, 8, 12, 18, 24, 30, 0]
+
+    servicetypes = [
+        'Single-channel mode using 1 VBI line per frame',
+        'Single-channel mode using 2 VBI lines per frame',
+        'Single-channel mode using 3 VBI lines per frame',
+        'Single-channel mode using 4 VBI lines per frame',
+        'Mute Channel 1',
+        'Two-channel Mode using 2 VBI lines per frame',
+        'Mute Channel 2',
+        'Two-channel Mode using 4 VBI lines per frame',
+    ]
+
+    fmt = 'DCN: {dcn}, {rel}, S: {svc:>7s}, C: {ctl} {frame0} {frame1}'
+
+    def __init__(self, array, mrag):
+        super().__init__((40,), array)
+        self._mrag = mrag
+
+    @property
+    def dcn(self):
+        return self._mrag.magazine + ((self._mrag.row & 1) << 3)
+
+    @property
+    def service(self):
+        return hamming8_decode(self._array[0])
+
+    @service.setter
+    def service(self, service):
+        self._array[0] = hamming8_encode(service)
+
+    @property
+    def control(self):
+        return hamming8_decode(self._array[1])
+
+    @control.setter
+    def control(self, service):
+        self._array[0] = hamming8_encode(service)
+
+    def to_ansi(self, colour=True):
+        frame0 = self._array[2:21].tobytes().hex()
+        frame1 = self._array[21:40].tobytes().hex()
+
+        if self.dcn == 4:
+            return self.fmt.format(
+                dcn = self.dcn,
+                rel = 'Programme-related audio',
+                svc = 'AUDETEL' if self.service == 0 else hex(self.service),
+                ctl = f'{hex(self.control)} {self.dblevels[self.control & 0x7]:2d} dB {"muted" if self.control & 0x8 else ""}',
+                frame0 = frame0,
+                frame1 = frame1,
+            )
+        elif self.dcn == 12:
+            if self.service & 0x8:
+                return self.fmt.format(
+                    dcn=self.dcn,
+                    rel='Programme-independent audio',
+                    svc=f'User-defined {hex(self.service&0x7)}',
+                    ctl=hex(self._array[1]),
+                    frame0=frame0,
+                    frame1=frame1,
+                )
+            else:
+                return self.fmt.format(
+                    dcn=self.dcn,
+                    rel='Programme-independent audio',
+                    svc=self.servicetypes[self.service],
+                    ctl=hex(self.control),
+                    frame0=frame0,
+                    frame1=frame1,
+                )
+        else:
+            raise ValueError("Unexpected data channel for CELP.")
+
+    @property
+    def errors(self):
+        e = np.zeros_like(self._array)
+        e[0:2] = hamming8_errors(self._array[0:2])
+        return e
