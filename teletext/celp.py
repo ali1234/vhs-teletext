@@ -96,14 +96,30 @@ class CELPDecoder:
             if frame is None or frame == 1:
                 yield self.generate_audio(p._array[23:42])
 
-    def play(self, packets, output=None):
+    def play(self, packets, frame=None, output=None):
         """Play a packet stream."""
         if output is None:
-            import subprocess
-            ps = subprocess.Popen(['play', '--buffer', '4000', '-t', 'raw', '-r', '8000', '-e', 'signed', '-b', '16', '-c', '1', '-'], stdin=subprocess.PIPE)
-            output = ps.stdin
-        for subframe in self.decode_packet_stream(packets):
-            output.write(subframe.tobytes())
+            from teletext.redirect import DropStderr
+            import pyaudio
+
+            with DropStderr():
+                p = pyaudio.PyAudio()
+
+            stream = p.open(format=pyaudio.paInt16, channels=1, rate=8000, output=True)
+            for subframe in self.decode_packet_stream(packets, frame):
+                stream.write(subframe.tobytes())
+            stream.close()
+            p.terminate()
+        else:
+            import wave
+            wf = wave.open(output, 'wb')
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(8000)
+            for subframe in self.decode_packet_stream(packets, frame):
+                wf.writeframes(subframe.tobytes())
+            wf.close()
+
 
     @classmethod
     def plot(cls, packets):

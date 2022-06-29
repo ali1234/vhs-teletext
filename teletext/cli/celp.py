@@ -10,10 +10,12 @@ def celp():
 
 
 @celp.command()
+@click.option('-f', '--frame', type=int, default=None, help='Frame selection.')
+@click.option('-o', '--output', type=click.File('wb'), help='Write audio to WAV file.')
 @packetreader(filtered='data')
-def play(packets):
+def play(frame, output, packets):
     """Play data from CELP packets. Warning: Will make a horrible noise."""
-    CELPDecoder().play(packets)
+    CELPDecoder().play(packets, output=output, frame=frame)
 
 
 @celp.command()

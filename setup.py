@@ -31,7 +31,7 @@ setup(
         ],
     },
     install_requires=[
-        'numpy', 'scipy', 'click', 'tqdm',  'pyzmq', 'watchdog',
+        'numpy', 'scipy', 'matplotlib', 'click', 'tqdm',  'pyzmq', 'watchdog', 'spectrum', 'pyaudio'
         'windows-curses;platform_system=="Windows"',
     ],
     extras_require={
@@ -39,6 +39,6 @@ setup(
         'CUDA': ['pycuda', 'scikit-cuda'],
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
-        'qt': ['PyQt5', 'matplotlib'],
+        'qt': ['PyQt5'],
     }
 )
