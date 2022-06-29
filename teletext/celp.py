@@ -40,10 +40,10 @@ class CELPDecoder:
     ])
 
     ltp_gain_quantization = np.array([
-        -0.993, -0.831, -0.693, -0.555, -0.414, -0.229, 0.0, 0.193,
-        0.255, 0.368, 0.457, 0.531, 0.601, 0.653, 0.702, 0.745,
-        0.780, 0.816, 0.850, 0.881, 0.915, 0.948, 0.983, 1.020,
-        1.062, 1.117, 1.193, 1.289, 1.394, 1.540, 1.765, 1.991,
+        -0.993, -0.831, -0.693, -0.555, -0.414, -0.229,    0.0,  0.193,
+         0.255,  0.368,  0.457,  0.531,  0.601,  0.653,  0.702,  0.745,
+         0.780,  0.816,  0.850,  0.881,  0.915,  0.948,  0.983,  1.020,
+         1.062,  1.117,  1.193,  1.289,  1.394,  1.540,  1.765,  1.991,
     ])
 
     def __init__(self, sample_rate=8000):
@@ -53,6 +53,7 @@ class CELPDecoder:
 
     @classmethod
     def decode_params(cls, raw_frame):
+        """Extracts the parameters from the raw packet according to offsets and widths."""
         bits = np.unpackbits(raw_frame, bitorder='little')
         decoded_frame = np.empty((30, ), dtype=np.int32)
         for n in range(len(cls.offsets)-2):
@@ -69,10 +70,12 @@ class CELPDecoder:
     wave = np.random.uniform(-1, 1, size=(8000, ))
 
     def apply_lpc_filter(self, lsf, signal):
+        """Convert line spectrum frequencies to a filter and apply to the signal."""
         a = lsf2poly(sorted(lsf * 2 * np.pi / self.sample_rate))
         return lfilter([1], a, signal)
 
     def generate_audio(self, raw_frame):
+        """Generate an audio frame from a raw frame."""
         lsf, pitch_gain, vector_gain, pitch_idx, vector_idx = self.decode_params(raw_frame)
 
         frame = np.empty((self.subframe_length*4,), dtype=np.double)
@@ -86,6 +89,7 @@ class CELPDecoder:
         return np.clip((filtered * 32767), -32767, 32767).astype(np.int16)
 
     def decode_packet_stream(self, packets, frame=None):
+        """Decode an entire packet stream, yielding audio frames."""
         for p in packets:
             if frame is None or frame == 0:
                 yield self.generate_audio(p._array[4:23])
@@ -93,6 +97,7 @@ class CELPDecoder:
                 yield self.generate_audio(p._array[23:42])
 
     def play(self, packets, output=None):
+        """Play a packet stream."""
         if output is None:
             import subprocess
             ps = subprocess.Popen(['play', '--buffer', '4000', '-t', 'raw', '-r', '8000', '-e', 'signed', '-b', '16', '-c', '1', '-'], stdin=subprocess.PIPE)
@@ -102,6 +107,7 @@ class CELPDecoder:
 
     @classmethod
     def plot(cls, packets):
+        """Plot statistics of the raw packets."""
         datas = []
         for p in packets:
             datas.append(p._array[4:])
