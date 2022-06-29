@@ -108,23 +108,24 @@ class CELPDecoder:
         datas = np.concatenate(datas)
 
         data = np.unpackbits(datas.reshape(-1, 2, 19), bitorder='little').reshape(-1, 2, 152)
-        frame0 = data[:, 0, :]
-        frame1 = data[:, 1, :]
         d1 = np.sum(data, axis=0)
-
         p = np.arange(152)
 
         fig, ax = plt.subplots(5, 2)
-        for n in range(cls.offsets.shape[0]-1):
-            ax[0][0].bar(p[cls.offsets[n]:cls.offsets[n+1]], d1[0][cls.offsets[n]:cls.offsets[n+1]], 0.8)
-            ax[0][1].bar(p[cls.offsets[n]:cls.offsets[n + 1]], d1[1][cls.offsets[n]:cls.offsets[n + 1]], 0.8)
 
-        for x, frame in enumerate([frame0, frame1]):
+        # plot the bit counts (top plots)
+        for n in range(cls.offsets.shape[0]-1):
+            s = slice(cls.offsets[n], cls.offsets[n + 1])
+            ax[0][0].bar(p[s], d1[0][s], 0.8)
+            ax[0][1].bar(p[s], d1[1][s], 0.8)
+
+        # plot vector and pitch parameters over time
+        for x in range(2):
+            frame = data[:, x, :]
             for y, o in enumerate([10, 14, 18, 22], start=1):
                 bits = frame[:,cls.offsets[o]:cls.offsets[o+4]].reshape(-1, cls.widths[o+1])
                 a = np.packbits(bits, axis=-1, bitorder='little').flatten()
-                ax[y][x].plot(a[:10000], linewidth=0.5)
+                ax[y][x].plot(a[:10000], linewidth=0.1)
 
         fig.tight_layout()
-
         plt.show()
