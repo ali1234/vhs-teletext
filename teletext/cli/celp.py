@@ -15,7 +15,10 @@ def celp():
 @packetreader(filtered='data')
 def play(frame, output, packets):
     """Play data from CELP packets. Warning: Will make a horrible noise."""
-    CELPDecoder().play(packets, output=output, frame=frame)
+    if output is not None:
+        CELPDecoder().convert(output, packets, frame=frame)
+    else:
+        CELPDecoder().play(packets, frame=frame)
 
 
 @celp.command()

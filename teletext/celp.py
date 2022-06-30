@@ -96,30 +96,45 @@ class CELPDecoder:
             if frame is None or frame == 1:
                 yield self.generate_audio(p._array[23:42])
 
-    def play(self, packets, frame=None, output=None):
+    def stream_pcm(self, packets, frame, device):
+        src = self.decode_packet_stream(packets, frame)
+        buf = []
+        buflen = 0
+        required_samples = yield b""  # generator initialization
+        for frame in src:
+            buf.append(frame)
+            buflen += frame.shape[0]
+            if buflen >= required_samples:
+                tmp = np.concatenate(buf)
+                buf = [tmp[required_samples:]]
+                buflen = buf[0].shape[0]
+                required_samples = yield tmp[:required_samples].tobytes()
+        device.__running = False
+
+    def play(self, packets, frame=None):
         """Play a packet stream."""
-        if output is None:
-            from teletext.redirect import DropStderr
-            import pyaudio
+        import miniaudio
+        import time
 
-            with DropStderr():
-                p = pyaudio.PyAudio()
+        with miniaudio.PlaybackDevice(output_format=miniaudio.SampleFormat.SIGNED16,
+                                      nchannels=1, sample_rate=self.sample_rate,
+                                      buffersize_msec=500) as device:
+            device.__running = True
+            stream = self.stream_pcm(packets, frame, device)
+            next(stream)  # start the generator
+            device.start(stream)
+            while device.__running:
+                time.sleep(0.1)
 
-            stream = p.open(format=pyaudio.paInt16, channels=1, rate=8000, output=True)
-            for subframe in self.decode_packet_stream(packets, frame):
-                stream.write(subframe.tobytes())
-            stream.close()
-            p.terminate()
-        else:
-            import wave
-            wf = wave.open(output, 'wb')
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(8000)
-            for subframe in self.decode_packet_stream(packets, frame):
-                wf.writeframes(subframe.tobytes())
-            wf.close()
-
+    def convert(self, output, packets, frame=None):
+        import wave
+        wf = wave.open(output, 'wb')
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(8000)
+        for frame in self.decode_packet_stream(packets, frame):
+            wf.writeframes(frame.tobytes())
+        wf.close()
 
     @classmethod
     def plot(cls, packets):
