@@ -17,20 +17,37 @@ class CELPDecoder:
     ])
     offsets = np.cumsum(widths)
 
-    # Speech Coding in Private and Broadcast Networks, Suddle, p121
-    # note the transposition of first 8 values in column 7/8
-    lsf_vector_quantizers = np.array([
-        [ 143,  182,  214,  246,  284,  329,  389,  475,    0,    0,    0,    0,    0,    0,    0,    0,],
-        [ 211,  252,  285,  317,  349,  383,  419,  458,  503,  554,  608,  665,  731,  809,  912, 1072,],
-        [ 402,  470,  522,  571,  621,  671,  724,  778,  835,  902,  979, 1065, 1147, 1241, 1357, 1517,],
-        [ 617,  732,  819,  885,  944, 1001, 1060, 1121, 1186, 1260, 1342, 1425, 1514, 1613, 1723, 1885,],
-        [ 981, 1081, 1172, 1254, 1329, 1403, 1473, 1539, 1609, 1679, 1753, 1826, 1908, 1998, 2106, 2236,],
-        [1334, 1446, 1539, 1626, 1697, 1763, 1828, 1890, 1954, 2019, 2087, 2160, 2238, 2328, 2420, 2526,],
-        [1830, 1959, 2056, 2134, 2198, 2254, 2303, 2349, 2397, 2448, 2500, 2560, 2632, 2715, 2823, 2966,],
-        [2247, 2361, 2434, 2496, 2550, 2600, 2647, 2694, 2742, 2791, 2846, 2904, 2966, 3049, 3155, 3256,],
-        [2347, 2481, 2583, 2674, 2767, 2874, 3005, 3202,    0,    0,    0,    0,    0,    0,    0,    0,],
-        [3140, 3246, 3326, 3395, 3458, 3524, 3601, 3709,    0,    0,    0,    0,    0,    0,    0,    0,],
-    ]) #* 2 * np.pi / sample_rate # convert to radians per sample
+
+    lsf_vector_quantizers = {
+        # Source Reliant Error Control For Low Bit Rate Speech Communications, Ong, p103
+        'ong': np.array([
+            [ 178,  218,  236,  267,  293,  332,  378,  420,    0,    0,    0,    0,    0,    0,    0,    0,],
+            [ 210,  235,  265,  295,  325,  360,  400,  440,  480,  520,  560,  610,  670,  740,  810,  880,],
+            [ 420,  460,  500,  540,  585,  640,  705,  775,  850,  950, 1050, 1150, 1250, 1350, 1450, 1550,],
+            [ 752,  844,  910,  968, 1016, 1064, 1110, 1155, 1202, 1249, 1295, 1349, 1409, 1498, 1616, 1808,],
+            [1041, 1174, 1274, 1340, 1407, 1466, 1514, 1559, 1611, 1658, 1714, 1773, 1834, 1906, 2008, 2166,],
+            [1438, 1583, 1671, 1740, 1804, 1855, 1905, 1947, 1988, 2034, 2081, 2135, 2193, 2267, 2369, 2476,],
+            [2005, 2115, 2176, 2222, 2260, 2297, 2333, 2365, 2394, 2427, 2463, 2501, 2551, 2625, 2728, 2851,],
+            [2286, 2410, 2480, 2528, 2574, 2613, 2650, 2689, 2723, 2758, 2790, 2830, 2879, 2957, 3049, 3197,],
+            [2775, 2908, 3000, 3086, 3159, 3234, 3331, 3453,    0,    0,    0,    0,    0,    0,    0,    0,],
+            [3150, 3272, 3354, 3415, 3473, 3531, 3580, 3676,    0,    0,    0,    0,    0,    0,    0,    0,],
+        ]),
+
+        # Speech Coding in Private and Broadcast Networks, Suddle, p121
+        # note the transposition of first 8 values in column 7/8
+        'suddle': np.array([
+            [ 143,  182,  214,  246,  284,  329,  389,  475,    0,    0,    0,    0,    0,    0,    0,    0,],
+            [ 211,  252,  285,  317,  349,  383,  419,  458,  503,  554,  608,  665,  731,  809,  912, 1072,],
+            [ 402,  470,  522,  571,  621,  671,  724,  778,  835,  902,  979, 1065, 1147, 1241, 1357, 1517,],
+            [ 617,  732,  819,  885,  944, 1001, 1060, 1121, 1186, 1260, 1342, 1425, 1514, 1613, 1723, 1885,],
+            [ 981, 1081, 1172, 1254, 1329, 1403, 1473, 1539, 1609, 1679, 1753, 1826, 1908, 1998, 2106, 2236,],
+            [1334, 1446, 1539, 1626, 1697, 1763, 1828, 1890, 1954, 2019, 2087, 2160, 2238, 2328, 2420, 2526,],
+            [1830, 1959, 2056, 2134, 2198, 2254, 2303, 2349, 2397, 2448, 2500, 2560, 2632, 2715, 2823, 2966,],
+            [2247, 2361, 2434, 2496, 2550, 2600, 2647, 2694, 2742, 2791, 2846, 2904, 2966, 3049, 3155, 3256,],
+            [2347, 2481, 2583, 2674, 2767, 2874, 3005, 3202,    0,    0,    0,    0,    0,    0,    0,    0,],
+            [3140, 3246, 3326, 3395, 3458, 3524, 3601, 3709,    0,    0,    0,    0,    0,    0,    0,    0,],
+        ]),
+    }
 
     vec_gain_quantization = np.array([
         -1100,  -850,  -650,  -510,  -415,  -335,  -275,  -220,
@@ -46,22 +63,23 @@ class CELPDecoder:
          1.062,  1.117,  1.193,  1.289,  1.394,  1.540,  1.765,  1.991,
     ])
 
-    def __init__(self, sample_rate=8000):
+    def __init__(self, lsf_lut='suddle', sample_rate=8000):
+        self.lsf_lut = lsf_lut
+        self.lsf_vector_quantization = self.lsf_vector_quantizers[lsf_lut]
         self.sample_rate = sample_rate
         self.subframe_length = sample_rate // 200
         self.pos = 0
 
-    @classmethod
-    def decode_params(cls, raw_frame):
+    def decode_params(self, raw_frame):
         """Extracts the parameters from the raw packet according to offsets and widths."""
         bits = np.unpackbits(raw_frame, bitorder='little')
         decoded_frame = np.empty((30, ), dtype=np.int32)
-        for n in range(len(cls.offsets)-2):
-            slice = bits[cls.offsets[n]:cls.offsets[n+1]]
+        for n in range(len(self.offsets)-2):
+            slice = bits[self.offsets[n]:self.offsets[n+1]]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
-        lsf = cls.lsf_vector_quantizers[np.arange(10), decoded_frame[:10]]
-        pitch_gain = cls.ltp_gain_quantization[decoded_frame[10:14]]
-        vector_gain = cls.vec_gain_quantization[decoded_frame[14:18]]
+        lsf = self.lsf_vector_quantization[np.arange(10), decoded_frame[:10]]
+        pitch_gain = self.ltp_gain_quantization[decoded_frame[10:14]]
+        vector_gain = self.vec_gain_quantization[decoded_frame[14:18]]
         pitch_idx = decoded_frame[18:22]
         vector_idx = decoded_frame[22:26]
         return lsf, pitch_gain, vector_gain, pitch_idx, vector_idx

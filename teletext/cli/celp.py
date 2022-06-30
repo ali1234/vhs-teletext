@@ -12,13 +12,15 @@ def celp():
 @celp.command()
 @click.option('-f', '--frame', type=int, default=None, help='Frame selection.')
 @click.option('-o', '--output', type=click.File('wb'), help='Write audio to WAV file.')
+@click.option('-l', '--lsf-lut', type=click.Choice(CELPDecoder.lsf_vector_quantizers.keys()), default='suddle', help='LSF vector look-up table.')
 @packetreader(filtered='data')
-def play(frame, output, packets):
+def play(frame, output, lsf_lut, packets):
     """Play data from CELP packets. Warning: Will make a horrible noise."""
+    dec = CELPDecoder(lsf_lut=lsf_lut)
     if output is not None:
-        CELPDecoder().convert(output, packets, frame=frame)
+        dec.convert(output, packets, frame=frame)
     else:
-        CELPDecoder().play(packets, frame=frame)
+        dec.play(packets, frame=frame)
 
 
 @celp.command()
