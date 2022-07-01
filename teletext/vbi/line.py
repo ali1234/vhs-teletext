@@ -241,9 +241,9 @@ class Line(object):
                 bytes_array[10:] = self.p.match(bits_array[96:368])
             elif m.row < 26:
                 if eight_bit:
-                    bytes_array[2:] = self.p.match(bits_array[32:368])
-                else:
                     bytes_array[2:] = self.f.match(bits_array[32:368])
+                else:
+                    bytes_array[2:] = self.p.match(bits_array[32:368])
             elif m.row == 27:
                 if d.dc < 4:
                     bytes_array[3:40] = self.h.match(bits_array[40:352])
