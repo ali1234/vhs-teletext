@@ -49,12 +49,23 @@ class CELPDecoder:
         ]),
     }
 
-    vec_gain_quantization = np.array([
-        -1100,  -850,  -650,  -510,  -415,  -335,  -275,  -220,
-         -175,  -135,   -98,   -65,   -35,   -12,    -3,    -1,
-            1,     3,    12,    35,    65,    98,   135,   175,
-          220,   275,   335,   415,   510,   650,   850,  1100,
-    ])
+    vec_gain_quantizers = {
+        # Suddle, chapter 7
+        'audetel': np.array([
+            -1996, -1306, -990, -780, -628, -510, -418, -336,
+            -268, -204, -148, -96, -54, -20, -6, -2,
+            2, 6, 20, 54, 96, 148, 204, 268,
+            336, 418, 510, 628, 780, 990, 1306, 1996,
+        ]),
+
+        # Suddle, chapter 5
+        'unknown': np.array([
+            -1100,  -850,  -650,  -510,  -415,  -335,  -275,  -220,
+             -175,  -135,   -98,   -65,   -35,   -12,    -3,    -1,
+                1,     3,    12,    35,    65,    98,   135,   175,
+              220,   275,   335,   415,   510,   650,   850,  1100,
+        ]),
+    }
 
     ltp_gain_quantization = np.array([
         -0.993, -0.831, -0.693, -0.555, -0.414, -0.229,    0.0,  0.193,
@@ -63,9 +74,10 @@ class CELPDecoder:
          1.062,  1.117,  1.193,  1.289,  1.394,  1.540,  1.765,  1.991,
     ])
 
-    def __init__(self, lsf_lut='suddle', sample_rate=8000):
+    def __init__(self, lsf_lut='suddle', vec_gain_lut='audetel', sample_rate=8000):
         self.lsf_lut = lsf_lut
         self.lsf_vector_quantization = self.lsf_vector_quantizers[lsf_lut]
+        self.vec_gain_quantization = self.vec_gain_quantizers[vec_gain_lut]
         self.sample_rate = sample_rate
         self.subframe_length = sample_rate // 200
         self.pos = 0
