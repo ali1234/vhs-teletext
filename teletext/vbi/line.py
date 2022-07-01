@@ -218,7 +218,7 @@ class Line(object):
         else:
             return None
 
-    def deconvolve(self, mags=range(9), rows=range(32)):
+    def deconvolve(self, mags=range(9), rows=range(32), eight_bit=False):
         """Recover original teletext packet by pattern recognition."""
         if not self.is_teletext:
             return 'rejected'
@@ -240,7 +240,10 @@ class Line(object):
                 bytes_array[3:10] = self.h.match(bits_array[40:112])
                 bytes_array[10:] = self.p.match(bits_array[96:368])
             elif m.row < 26:
-                bytes_array[2:] = self.p.match(bits_array[32:368])
+                if eight_bit:
+                    bytes_array[2:] = self.p.match(bits_array[32:368])
+                else:
+                    bytes_array[2:] = self.f.match(bits_array[32:368])
             elif m.row == 27:
                 if d.dc < 4:
                     bytes_array[3:40] = self.h.match(bits_array[40:352])
@@ -262,7 +265,7 @@ class Line(object):
         else:
             return 'filtered'
 
-    def slice(self, mags=range(9), rows=range(32)):
+    def slice(self, mags=range(9), rows=range(32), eight_bit=False):
         """Recover original teletext packet by threshold and differential."""
         if not self.is_teletext:
             return 'rejected'
@@ -284,13 +287,13 @@ class Line(object):
         else:
             return 'filtered'
 
-def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32), tape_format='vhs'):
+def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32), tape_format='vhs', eight_bit=False):
     if mode == 'slice':
         force_cpu = True
     Line.configure(config, force_cpu, tape_format)
     for number, chunk in chunks:
         try:
-            yield getattr(Line(chunk, number), mode)(mags, rows)
+            yield getattr(Line(chunk, number), mode)(mags, rows, eight_bit)
         except Exception:
             sys.stderr.write(str(number) + '\n')
             raise

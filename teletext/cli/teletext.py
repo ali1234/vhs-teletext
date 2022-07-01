@@ -424,6 +424,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 
 @teletext.command()
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
+@click.option('-8', '--eight-bit', is_flag=True, help='Treat rows 1-25 as 8-bit data without parity check.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
@@ -435,7 +436,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @paginated()
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
+def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eight_bit, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -454,7 +455,11 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, for
         if any((mag_hist, row_hist, rejects)):
             chunks.postfix = StatsList()
 
-    packets = itermap(process_lines, chunks, threads, mode=mode, config=config, force_cpu=force_cpu, mags=mags, rows=rows, tape_format=tape_format)
+    packets = itermap(process_lines, chunks, threads,
+                      mode=mode, config=config, force_cpu=force_cpu,
+                      mags=mags, rows=rows,
+                      tape_format=tape_format,
+                      eight_bit=eight_bit)
 
     if progress and rejects:
         packets = Rejects(packets)
