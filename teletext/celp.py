@@ -2,7 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from spectrum import lsf2poly
 from scipy.signal import lfilter
+from collections import deque
 
+
+class LtpCodebook:
+    def __init__(self, subframe_length):
+        #self.buffer = np.zeros((147, subframe_length), dtype=np.double)
+        #self.pos = 0
+        self.buffer = deque(maxlen=147)
+
+    def insert(self, subframe):
+        self.buffer.extendleft(subframe)
+
+    def get(self, lag):
+        try:
+            return self.buffer[lag + 20]
+        except IndexError:
+            return 0
 
 class CELPDecoder:
     widths = np.array([
@@ -120,20 +136,21 @@ class CELPDecoder:
         frame = np.empty((self.subframe_length * 4,), dtype=np.double)
         subframe_buf = np.empty((self.subframe_length), dtype=np.double)
         for subframe in range(4):
-            gain = vector_gain[subframe]
             for n in range(self.subframe_length):
                 self.pos += 1
-                subframe_buf[n] = self.wave[self.pos % self.sample_rate] * gain * 0.0001
+                subframe_buf[n] = (self.wave[self.pos % self.sample_rate] * vector_gain[subframe]) + (self.ltp_codebook.get(pitch_idx[subframe] - n) * pitch_gain[subframe])
+            self.ltp_codebook.insert(subframe_buf)
             p = subframe * self.subframe_length
             frame[p:p + self.subframe_length] = self.apply_lpc_filter(sub_lsf[subframe], subframe_buf)
 
         self.last_lsf = lsf
-        return np.clip((frame * 32767), -32767, 32767).astype(np.int16)
+        return np.clip(frame, -32767, 32767).astype(np.int16)
 
     def decode_packet_stream(self, packets, frame=None):
         """Decode an entire packet stream, yielding audio frames."""
         self.last_lsf = None
         self.last_z = np.zeros((10, ))
+        self.ltp_codebook = LtpCodebook(self.subframe_length)
         for p in packets:
             if frame is None or frame == 0:
                 yield self.generate_audio(p._array[4:23])
