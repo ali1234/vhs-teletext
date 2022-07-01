@@ -144,7 +144,7 @@ class CELPDecoder:
             frame[p:p + self.subframe_length] = self.apply_lpc_filter(sub_lsf[subframe], subframe_buf)
 
         self.last_lsf = lsf
-        return np.clip(frame, -32767, 32767).astype(np.int16)
+        return np.clip(frame * 0.5, -32767, 32767).astype(np.int16)
 
     def decode_packet_stream(self, packets, frame=None):
         """Decode an entire packet stream, yielding audio frames."""
