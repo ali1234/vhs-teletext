@@ -85,7 +85,7 @@ class CELPDecoder:
     def decode_params(self, raw_frame):
         """Extracts the parameters from the raw packet according to offsets and widths."""
         bits = np.unpackbits(raw_frame, bitorder='little')
-        decoded_frame = np.empty((30, ), dtype=np.int32)
+        decoded_frame = np.empty((30, ), dtype=np.uint8)
         for n in range(len(self.offsets)-2):
             slice = bits[self.offsets[n]:self.offsets[n+1]]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
@@ -102,7 +102,8 @@ class CELPDecoder:
     def apply_lpc_filter(self, lsf, signal):
         """Convert line spectrum frequencies to a filter and apply to the signal."""
         a = lsf2poly(sorted(lsf * 2 * np.pi / self.sample_rate))
-        return lfilter([1], a, signal)
+        result, self.last_z = lfilter([1], a, signal, zi=self.last_z)
+        return result
 
     def generate_audio(self, raw_frame):
         """Generate an audio frame from a raw frame."""
@@ -115,11 +116,18 @@ class CELPDecoder:
                 self.pos += 1
                 frame[(subframe*self.subframe_length) + n] = self.wave[self.pos % self.sample_rate] * gain * 0.0001
 
-        filtered = self.apply_lpc_filter(lsf, frame)
+        filtered = np.empty((self.subframe_length * 4,), dtype=np.double)
+        for subframe in range(4):
+            p = subframe*self.subframe_length
+            filtered[p:p+self.subframe_length] = self.apply_lpc_filter(lsf, frame[p:p+self.subframe_length])
+
+        self.last_lsf = lsf
         return np.clip((filtered * 32767), -32767, 32767).astype(np.int16)
 
     def decode_packet_stream(self, packets, frame=None):
         """Decode an entire packet stream, yielding audio frames."""
+        self.last_lsf = None
+        self.last_z = np.zeros((10, ))
         for p in packets:
             if frame is None or frame == 0:
                 yield self.generate_audio(p._array[4:23])
