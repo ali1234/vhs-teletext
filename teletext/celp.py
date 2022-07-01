@@ -49,6 +49,8 @@ class CELPDecoder:
         ]),
     }
 
+    lsf_weights = np.array([1/8, 3/8, 5/8, 7/8])
+
     vec_gain_quantizers = {
         # Suddle, chapter 7
         'audetel': np.array([
@@ -109,20 +111,24 @@ class CELPDecoder:
         """Generate an audio frame from a raw frame."""
         lsf, pitch_gain, vector_gain, pitch_idx, vector_idx = self.decode_params(raw_frame)
 
-        frame = np.empty((self.subframe_length*4,), dtype=np.double)
+        # interpolate the LSFs
+        if self.last_lsf is None:
+            sub_lsf = np.repeat(lsf, 4).reshape(10, 4).T
+        else:
+            sub_lsf = (self.last_lsf[np.newaxis, :] * self.lsf_weights[::-1, np.newaxis]) + (lsf[np.newaxis, :] * self.lsf_weights[:, np.newaxis])
+
+        frame = np.empty((self.subframe_length * 4,), dtype=np.double)
+        subframe_buf = np.empty((self.subframe_length), dtype=np.double)
         for subframe in range(4):
             gain = vector_gain[subframe]
             for n in range(self.subframe_length):
                 self.pos += 1
-                frame[(subframe*self.subframe_length) + n] = self.wave[self.pos % self.sample_rate] * gain * 0.0001
-
-        filtered = np.empty((self.subframe_length * 4,), dtype=np.double)
-        for subframe in range(4):
-            p = subframe*self.subframe_length
-            filtered[p:p+self.subframe_length] = self.apply_lpc_filter(lsf, frame[p:p+self.subframe_length])
+                subframe_buf[n] = self.wave[self.pos % self.sample_rate] * gain * 0.0001
+            p = subframe * self.subframe_length
+            frame[p:p + self.subframe_length] = self.apply_lpc_filter(sub_lsf[subframe], subframe_buf)
 
         self.last_lsf = lsf
-        return np.clip((filtered * 32767), -32767, 32767).astype(np.int16)
+        return np.clip((frame * 32767), -32767, 32767).astype(np.int16)
 
     def decode_packet_stream(self, packets, frame=None):
         """Decode an entire packet stream, yielding audio frames."""
