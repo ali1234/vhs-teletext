@@ -241,18 +241,20 @@ def scan(packets, lines, frames):
 
 @teletext.command()
 @click.option('-d', '--min-duplicates', type=int, default=3, help='Only squash and output subpages with at least N duplicates.')
+@click.option('-t', '--threshold', type=int, default=-1, help='Max difference for squashing.')
 @click.option('-i', '--ignore-empty', is_flag=True, default=False, help='Ignore the emptiest duplicate packets instead of the earliest.')
 @packetwriter
 @paginated(always=True)
 @packetreader()
-def squash(packets, min_duplicates, pages, subpages, ignore_empty):
+def squash(packets, min_duplicates, threshold, pages, subpages, ignore_empty):
 
     """Reduce errors in t42 stream by using frequency analysis."""
 
     packets = (p for p in packets if not p.is_padding())
     for sp in pipeline.subpage_squash(
             pipeline.paginate(packets, pages=pages, subpages=subpages),
-            min_duplicates=min_duplicates, ignore_empty=ignore_empty
+            min_duplicates=min_duplicates, ignore_empty=ignore_empty,
+            threshold=threshold
     ):
         yield from sp.packets
 

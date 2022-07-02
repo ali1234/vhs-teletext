@@ -55,26 +55,34 @@ def paginate(packets, pages=range(0x900), subpages=range(0x3f80), drop_empty=Fal
 def subpage_group(packet_lists, threshold, ignore_empty):
 
     """Group similar subpages."""
-
     spdict = defaultdict(list)
 
-    if threshold == 'subpage':
-        for pl in packet_lists:
-            if len(pl) > 1:
-                subpage = Subpage.from_packets(pl, ignore_empty=ignore_empty)
-                spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)].append(subpage)
-    else:
-        raise NotImplementedError
+    for pl in packet_lists:
+        if len(pl) > 1:
+            subpage = Subpage.from_packets(pl, ignore_empty=ignore_empty)
+            group = spdict[(subpage.mrag.magazine, subpage.header.page, subpage.header.subpage)]
+            for op in group:
+                if threshold == -1:
+                    op.append(subpage)
+                    break
+                d = subpage.diff(op[0])
+                if d < threshold:
+                    op.append(subpage)
+                    break
+            else:
+                group.append([subpage])
 
-    return list(spdict.values())
+    groups = []
+    for group in spdict.values():
+        groups.extend(group)
+    return groups
 
-def subpage_squash(packet_lists, threshold='subpage', min_duplicates=3, ignore_empty=False):
+
+def subpage_squash(packet_lists, threshold=-1, min_duplicates=3, ignore_empty=False):
 
     """Yields squashed subpages."""
 
-    subpage_lists = subpage_group(packet_lists, threshold, ignore_empty)
-
-    for splist in tqdm(subpage_lists, unit=' Subpages'):
+    for splist in tqdm(subpage_group(packet_lists, threshold, ignore_empty), unit=' Groups'):
         if len(splist) >= min_duplicates:
             numbers = mode(np.stack([np.clip(sp.numbers, -100, -1) for sp in splist]), axis=0)[0][0].astype(np.int64)
             s = Subpage(numbers=numbers)

@@ -26,6 +26,12 @@ class Subpage(Element):
 
         self.duplicates = []
 
+    def diff(self, other):
+        """Try to determine if two subpages are the same."""
+        diff = np.sum(self._array != other._array, axis=1)
+        rows = (self._numbers != -100) & (other._numbers != -100)
+        return np.sum(diff * rows)
+
     @property
     def numbers(self):
         return self._numbers[:]
