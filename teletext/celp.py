@@ -209,7 +209,7 @@ class CELPDecoder:
         d1 = np.sum(data, axis=0)
         p = np.arange(152)
 
-        fig, ax = plt.subplots(5, 2)
+        fig, ax = plt.subplots(6, 2)
 
         # plot the bit counts (top plots)
         for n in range(cls.offsets.shape[0]-1):
@@ -220,10 +220,16 @@ class CELPDecoder:
         # plot vector and pitch parameters over time
         for x in range(2):
             frame = data[:, x, :]
-            for y, o in enumerate([10, 14, 18, 22], start=1):
+            for y, o in enumerate([10, 14, 18, 22], start=2):
                 bits = frame[:,cls.offsets[o]:cls.offsets[o+4]].reshape(-1, cls.widths[o+1])
                 a = np.packbits(bits, axis=-1, bitorder='little').flatten()
                 ax[y][x].plot(a[:10000], linewidth=0.1)
+                if y == 3:
+                    hm = frame[:, cls.offsets[26]:cls.offsets[30]].reshape(-1, cls.widths[27])
+                    hm = np.packbits(hm, axis=-1, bitorder='little').flatten()
+                    for ham in range(8):
+                        h = np.histogram(a[np.where(hm == ham)]>>1, np.arange(17))
+                        ax[1][x].bar(np.arange(16), h[0])
 
         fig.tight_layout()
         plt.show()
