@@ -4,6 +4,7 @@ from spectrum import lsf2poly
 import numpy as np
 from scipy.signal import lfilter
 from collections import deque
+from tqdm import tqdm
 
 hamming7_dec = np.array([
     [ 0x00, 0x10, 0x10, 0x14, 0x10, 0x11, 0x18, 0x12 ],
@@ -38,6 +39,20 @@ class LtpCodebook:
             return self.buffer[lag + 20]
         except IndexError:
             return 0
+
+
+class CELPStats:
+    def __init__(self, decoder):
+        self.decoder = decoder
+
+    def __str__(self):
+        result = f', L:{self.decoder.lsf_error:.0f}%, VG:{self.decoder.vector_gain_error:.0f}%'
+        # reset the error counters
+        self.decoder.lsf_errors = 0
+        self.decoder.vector_gain_errors = 0
+        self.decoder.subframes = 0
+        return result
+
 
 class CELPDecoder:
     widths = np.array([
@@ -118,12 +133,24 @@ class CELPDecoder:
         self.sample_rate = sample_rate
         self.subframe_length = sample_rate // 200
         self.pos = 0
-        self.errors = 0
+        self.vector_gain_errors = 0
+        self.lsf_errors = 0
         self.subframes = 0
+
+    @property
+    def lsf_error(self):
+        return 100.0 * self.lsf_errors / self.subframes
+
+    @property
+    def vector_gain_error(self):
+        return 100.0 * self.vector_gain_errors / self.subframes
+
+    def stats(self):
+        return CELPStats(self)
 
     def vector_parity(self, data, parity):
         hamm = hamming7_dec[data>>1, parity]
-        self.errors += np.sum(hamm>>4)
+        self.vector_gain_errors += np.sum(hamm >> 4)
         return ((hamm&0xf)<<1)|(data&1)
 
     def decode_params(self, raw_frame):
@@ -134,6 +161,8 @@ class CELPDecoder:
             slice = bits[self.offsets[n]:self.offsets[n+1]]
             decoded_frame[n] = np.packbits(slice, bitorder='little')
         lsf = self.lsf_vector_quantization[np.arange(10), decoded_frame[:10]]
+        if np.any(np.diff(lsf) < 0):
+            self.lsf_errors += 4
         pitch_gain = self.ltp_gain_quantization[decoded_frame[10:14]]
         #vector_gain = self.vec_gain_quantization[decoded_frame[14:18]]  # no hamming correction
         vector_gain = self.vec_gain_quantization[self.vector_parity(decoded_frame[14:18], decoded_frame[26:30])]

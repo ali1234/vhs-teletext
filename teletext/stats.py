@@ -91,7 +91,7 @@ class ErrorHistogram(Histogram):
 
     def __iter__(self):
         for p in self._packets:
-            self.insert(np.sum(p.errors.reshape(6, -1), axis=1))
+            self.insert(np.sum(p.vector_gain_errors.reshape(6, -1), axis=1))
             yield p
 
     def __str__(self):

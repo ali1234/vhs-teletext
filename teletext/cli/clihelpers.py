@@ -33,16 +33,16 @@ def filterparams(enabled=True):
         return f
     return fp
 
-def progressparams(progress=None, mag_hist=None, row_hist=None, err_hist=None):
-
+def progressparams(progress=True, mag_hist=False, row_hist=False, err_hist=False):
     def p(f):
-        for d in [
-            click.option('--progress/--no-progress', default=progress, help='Display progress bar.'),
-            click.option('--mag-hist/--no-mag-hist', default=mag_hist, help='Display magazine histogram.'),
-            click.option('--row-hist/--no-row-hist', default=row_hist, help='Display row histogram.'),
-            click.option('--err-hist/--no-err-hist', default=err_hist, help='Display error distribution.'),
-        ][::-1]:
-            f = d(f)
+        if err_hist is not None:
+            f = click.option('--err-hist/--no-err-hist', default=err_hist, help='Display error distribution.')(f)
+        if row_hist is not None:
+            f = click.option('--row-hist/--no-row-hist', default=row_hist, help='Display row histogram.')(f)
+        if mag_hist is not None:
+            f = click.option('--mag-hist/--no-mag-hist', default=mag_hist, help='Display magazine histogram.')(f)
+        if progress is not None:
+            f = click.option('--progress/--no-progress', default=progress, help='Display progress bar.')(f)
         return f
     return p
 
@@ -91,7 +91,7 @@ def chunkreader(f):
         return f(chunker=chunker, *args, **kwargs)
     return wrapper
 
-def packetreader(filtered=True):
+def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, err_hist=False, pass_progress=False):
     if filtered == 'data':
         filterdec = dcnparams
     else:
@@ -102,9 +102,9 @@ def packetreader(filtered=True):
         @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
         @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
         @filterdec
-        @progressparams()
+        @progressparams(progress=progress, mag_hist=mag_hist, row_hist=row_hist, err_hist=err_hist)
         @wraps(f)
-        def wrapper(chunker, wst, ts, progress, mag_hist, row_hist, err_hist, *args, **kwargs):
+        def wrapper(chunker, wst, ts, progress, *args, **kwargs):
 
             if wst and (ts is not None):
                 raise click.UsageError('--wst and --ts can not be specified at the same time.')
@@ -122,9 +122,13 @@ def packetreader(filtered=True):
             if progress is None:
                 progress = True
 
+            mag_hist = kwargs.pop('mag_hist', None)
+            row_hist = kwargs.pop('row_hist', None)
+            err_hist = kwargs.pop('err_hist', None)
+
             if progress:
                 chunks = tqdm(chunks, unit='P', dynamic_ncols=True)
-                if any((mag_hist, row_hist)):
+                if pass_progress or any((mag_hist, row_hist, err_hist)):
                     chunks.postfix = StatsList()
 
             packets = (Packet(data, number) for number, data in chunks)
@@ -139,17 +143,21 @@ def packetreader(filtered=True):
                 rows = (30 + (dcn>>3),)
                 packets = (p for p in packets if p.mrag.magazine in mags and p.mrag.row in rows)
 
-            if progress and mag_hist:
-                packets = MagHistogram(packets)
-                chunks.postfix.append(packets)
-            if progress and row_hist:
-                packets = RowHistogram(packets)
-                chunks.postfix.append(packets)
-            if progress and err_hist:
-                packets = ErrorHistogram(packets)
-                chunks.postfix.append(packets)
+            if progress:
+                if mag_hist:
+                    packets = MagHistogram(packets)
+                    chunks.postfix.append(packets)
+                if row_hist:
+                    packets = RowHistogram(packets)
+                    chunks.postfix.append(packets)
+                if err_hist:
+                    packets = ErrorHistogram(packets)
+                    chunks.postfix.append(packets)
 
-            return f(packets=packets, *args, **kwargs)
+            if pass_progress:
+                return f(progress=chunks, packets=packets, *args, **kwargs)
+            else:
+                return f(packets=packets, *args, **kwargs)
 
         return wrapper
 
