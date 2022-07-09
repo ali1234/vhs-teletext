@@ -18,6 +18,22 @@ except ImportError:
     plop = None
 
 
+class BasedIntType(click.ParamType):
+    name = "integer"
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, int):
+            return value
+
+        try:
+            if value[:2].lower() == "0x":
+                return int(value[2:], 16)
+            return int(value, 10)
+        except ValueError:
+            self.fail(f"{value!r} is not a valid integer", param, ctx)
+
+BasedInt = BasedIntType()
+
 def dcnparams(f):
     return click.option('-d', '--dcn', 'dcn', type=int, required=True, help='Data channel to read from.')(f)
 
@@ -100,7 +116,7 @@ def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, e
     def pr(f):
         @chunkreader
         @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
-        @click.option('--ts', type=int, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
+        @click.option('--ts', type=BasedInt, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
         @filterdec
         @progressparams(progress=progress, mag_hist=mag_hist, row_hist=row_hist, err_hist=err_hist)
         @wraps(f)
