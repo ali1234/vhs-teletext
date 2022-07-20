@@ -37,7 +37,7 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
 def teletext(unicode):
     """Teletext stream processing toolkit."""
     if unicode:
-        from . import printer
+        from teletext import printer
         printer._unicode13 = True
 
 
