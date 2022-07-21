@@ -51,6 +51,7 @@ class Interactive(object):
         self.last_header = None
         self.inputtmp = [None, None, None]
         self.inputstate = 0
+        self.need_clear = False
         self.hold = False
         self.reveal = False
 
@@ -101,6 +102,8 @@ class Interactive(object):
             self.magazine = self.inputtmp[0]
             self.page = (self.inputtmp[1] << 4) | self.inputtmp[2]
             self.inputtmp = [None, None, None]
+            self.last_header = None
+            self.need_clear = True
 
     def do_hold(self):
         self.hold = not self.hold
@@ -112,6 +115,7 @@ class Interactive(object):
             self.inputtmp[2] = None
         else:
             self.set_input_field('P%d%02x' % (self.magazine, self.page))
+            self.need_clear = True
 
     def do_reveal(self):
         self.reveal = not self.reveal
@@ -139,9 +143,11 @@ class Interactive(object):
         if self.inputstate == 0 and not self.hold:
             if packet.mrag.magazine == self.magazine:
                 if packet.mrag.row == 0:
+                    if packet.header.page == self.page:
+                        if self.need_clear or packet.header.control & 0x8:
+                            self.scr.clear()
+                            self.need_clear = False
                     self.last_header = packet.header.page
-                    if self.last_header == self.page:
-                        self.scr.clear()
                     self.addstr(packet)
                     self.set_input_field('P%d%02X' % (self.magazine, self.page))
                 elif self.last_header == self.page and packet.mrag.row < 25:
