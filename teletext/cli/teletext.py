@@ -315,12 +315,13 @@ def servicedir(directory):
 
 @teletext.command()
 @click.argument('input', type=click.File('rb'), default='-')
-def interactive(input):
+@click.option('-p', '--page', 'initial_page', type=str, default='100', help='Initial page.')
+def interactive(input, initial_page):
 
     """Interactive teletext emulator."""
 
     from teletext import interactive
-    interactive.main(input)
+    interactive.main(input, int(initial_page, 16))
 
 
 @teletext.command()

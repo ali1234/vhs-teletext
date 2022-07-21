@@ -42,13 +42,17 @@ class Interactive(object):
     colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
                4: curses.COLOR_BLUE, 5: curses.COLOR_MAGENTA, 6: curses.COLOR_CYAN, 7: curses.COLOR_WHITE}
 
-    def __init__(self, packet_iter, scr):
+    def __init__(self, packet_iter, scr, initial_page=0x100):
         self.scr = scr
 
         self.packet_iter = packet_iter
 
-        self.magazine = 1
-        self.page = 0
+        if initial_page is None:
+            self.magazine = 1
+            self.page = 0
+        else:
+            self.magazine = initial_page >> 8
+            self.page = initial_page & 0xff
         self.last_subpage = None
         self.last_header = None
         self.inputtmp = [None, None, None]
@@ -69,7 +73,7 @@ class Interactive(object):
         self.scr.nodelay(1)
         curses.curs_set(0)
 
-        self.set_input_field('P100')
+        self.set_input_field('P%d%02x' % (self.magazine, self.page))
 
     def set_concealed_pairs(self, show=False):
         for n in range(16):
@@ -173,7 +177,7 @@ class Interactive(object):
             time.sleep(0.01)
 
 
-def main(input):
+def main(input, initial_page):
     locale.setlocale(locale.LC_ALL, '')
 
     input_dup = os.fdopen(os.dup(input.fileno()), 'rb')
@@ -187,7 +191,7 @@ def main(input):
     packets = (Packet(data, number) for number, data in chunks)
 
     def main(scr):
-        Interactive(packets, scr).main()
+        Interactive(packets, scr, initial_page=initial_page).main()
 
     try:
         curses.wrapper(main)
