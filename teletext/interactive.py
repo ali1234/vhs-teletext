@@ -170,7 +170,7 @@ class Interactive(object):
             self.do_input(self.scr.getch())
 
             self.scr.refresh()
-            time.sleep(0.02)
+            time.sleep(0.01)
 
 
 def main(input):
