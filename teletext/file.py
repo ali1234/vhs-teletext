@@ -47,18 +47,22 @@ def _chunks(f, size, flines, frange, seek):
 
 
 def chunks(f, size, start, step, flines=16, frange=(0, 16), seek=True):
-    c = _chunks(f, size, flines, frange, seek)
-    try:
-        for _ in range(start):
-            next(c)
-        while True:
-            yield next(c)
-            for i in range(step-1):
+    while True:
+        c = _chunks(f, size, flines, frange, seek)
+        try:
+            for _ in range(start):
                 next(c)
-    except StopIteration:
-        return
+            while True:
+                yield next(c)
+                for i in range(step-1):
+                    next(c)
+        except StopIteration:
+            if seek:
+                f.seek(0, os.SEEK_SET)
+            else:
+                return
 
-def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=range(0, 16)):
+def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, frange=range(0, 16), loop=False):
     seekable = False
     try:
         if hasattr(f, 'fileno') and stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
@@ -82,7 +86,7 @@ def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, fran
         # chunks() always seeks to the start
         pass
 
-    r = PossiblyInfiniteRange(start, stop, step, limit)
+    r = PossiblyInfiniteRange(start, None if loop else stop, step, limit)
     i = zip(r, chunks(f, size, start, step, flines, frange, seek=seekable))
     if hasattr(r, '__len__'):
         return LenWrapper(i, len(r))

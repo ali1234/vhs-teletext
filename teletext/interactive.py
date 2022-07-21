@@ -183,7 +183,7 @@ def main(input):
         f = open("/dev/tty", 'r')
     os.dup2(f.fileno(), 0)
 
-    chunks = FileChunker(input_dup, 42)
+    chunks = FileChunker(input_dup, 42, loop=True)
     packets = (Packet(data, number) for number, data in chunks)
 
     def main(scr):
