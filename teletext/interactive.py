@@ -28,6 +28,8 @@ class ParserNcurses(Parser):
 
     def emitcharacter(self, c):
         colour = Interactive.colours[self._state['fg']] | Interactive.colours[self._state['bg']] << 3
+        if self._state['conceal']:
+            colour += 64
         self._scr.addstr(self._row, self._pos, c, curses.color_pair(colour+1) | (curses.A_BLINK if self._state['flash'] else 0))
         self._pos += 1
 
@@ -59,6 +61,7 @@ class Interactive(object):
         if x < 41 or y < 25:
             raise TerminalTooSmall(x, y)
 
+        curses.start_color()
         for n in range(64):
             curses.init_pair(n + 1, Interactive.colours[n & 0x7], Interactive.colours[n >> 3])
         self.set_concealed_pairs()
@@ -69,6 +72,11 @@ class Interactive(object):
         self.set_input_field('P100')
 
     def set_concealed_pairs(self, show=False):
+        for n in range(16):
+            # workaround for ncurses bug where pairs are only refreshed if their previous
+            # fg and bg are both not black. one of the temp colours here must be not black
+            # and one must be different to the actual desired colours.
+            curses.init_pair(n + 1 + 64, 0, 1)
         for n in range(64):
             curses.init_pair(n + 1 + 64, Interactive.colours[n & 0x7] if show else Interactive.colours[n >> 3],
                              Interactive.colours[n >> 3])
