@@ -79,7 +79,8 @@ def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, fran
         f.seek(0, os.SEEK_SET)
 
     except io.UnsupportedOperation:
-        f.read(size * start)
+        # chunks() always seeks to the start
+        pass
 
     r = PossiblyInfiniteRange(start, stop, step, limit)
     i = zip(r, chunks(f, size, start, step, flines, frange, seek=seekable))
