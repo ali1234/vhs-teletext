@@ -153,7 +153,7 @@ class Interactive(object):
                 if packet.mrag.row == 0:
                     if packet.header.page == self.page:
                         if self.need_clear or packet.header.control & 0x8:
-                            self.scr.clear()
+                            self.scr.erase()
                             self.need_clear = False
                     self.last_header = packet.header.page
                     self.addstr(packet)
