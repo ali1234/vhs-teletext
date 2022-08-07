@@ -173,6 +173,14 @@ def diff(a, b, mags, rows):
 
 
 @teletext.command()
+@packetreader(pass_progress=True)
+def stats(progress, packets):
+    import teletext.trietest
+
+    teletext.trietest.main(progress, packets)
+
+
+@teletext.command()
 @packetwriter
 @packetreader()
 def finders(packets):
