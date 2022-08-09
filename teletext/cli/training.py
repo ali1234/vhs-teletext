@@ -4,8 +4,7 @@ import os
 import click
 from tqdm import tqdm
 
-from teletext.cli.clihelpers import carduser, chunkreader, \
-    command
+from teletext.cli.clihelpers import carduser, chunkreader
 from teletext.file import FileChunker
 from teletext.mp import itermap
 from teletext.packet import Packet, np
@@ -107,7 +106,8 @@ def build(input, output, mode, bits):
 
 
 @training.command()
-def similarities():
+@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+def similarities(tape_format):
     from teletext.vbi.pattern import Pattern
 
     pattern = Pattern(os.path.dirname(__file__) + '/vbi/data-' + tape_format + '/parity.dat')
