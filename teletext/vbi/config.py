@@ -136,3 +136,6 @@ class Config(object):
 
         # fft
         self.fftbins = [0, 47, 54, 97, 104, 147, 154, 197, 204]
+
+    def __repr__(self):
+        return f'{type(self).__name__}: {self.__dict__}'
