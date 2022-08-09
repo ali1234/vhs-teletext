@@ -25,6 +25,6 @@ class TestPacket(unittest.TestCase):
         self.packet.mrag.row = 31
         self.assertEqual(self.packet.type, 'independent data')
         self.packet.mrag.row = 30
-        self.assertEqual(self.packet.type, 'unknown')
+        self.assertEqual(self.packet.type, 'independent data')
         self.packet.mrag.magazine = 8
         self.assertEqual(self.packet.type, 'broadcast')
