@@ -30,12 +30,30 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
 
-@click.group()
+@click.group(invoke_without_command=True, no_args_is_help=True)
 @profileopts
 @click.option('-u', '--unicode', is_flag=True, help='Use experimental Unicode 13.0 Terminal graphics.')
 @click.version_option()
-def teletext(unicode):
+@click.help_option()
+@click.option('--help-all', is_flag=True, help='Show help for all subcommands.')
+@click.pass_context
+def teletext(ctx, unicode, help_all):
     """Teletext stream processing toolkit."""
+    if help_all:
+        print(teletext.get_help(ctx))
+
+        def help_recurse(group, ctx):
+            for scmd in group.list_commands(ctx):
+                cmd = group.get_command(ctx, scmd)
+                nctx = click.Context(cmd, ctx, scmd)
+                if isinstance(cmd, click.Group):
+                    help_recurse(cmd, nctx)
+                else:
+                    print()
+                    print(cmd.get_help(nctx))
+
+        help_recurse(teletext, ctx)
+
     if unicode:
         from teletext import printer
         printer._unicode13 = True
