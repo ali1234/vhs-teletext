@@ -49,8 +49,8 @@ def teletext(ctx, unicode, help_all):
                 if isinstance(cmd, click.Group):
                     help_recurse(cmd, nctx)
                 else:
-                    print()
-                    print(cmd.get_help(nctx))
+                    click.echo()
+                    click.echo(cmd.get_help(nctx))
 
         help_recurse(teletext, ctx)
 
