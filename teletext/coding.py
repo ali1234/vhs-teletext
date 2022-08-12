@@ -29,7 +29,7 @@ import numpy as np
 
 
 def thue_morse(n, even=True):
-    arr = np.array([even], dtype=np.bool)
+    arr = np.array([even], dtype=bool)
     for i in range(0, n):
         arr = np.append(arr,~arr)
     return arr

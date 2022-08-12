@@ -11,7 +11,7 @@ class ParityEncodeTestCase(unittest.TestCase):
     def _test_array(self, array: np.ndarray):
 
         encoded = parity_encode(array)
-        self.assertEqual(encoded.dtype, np.int)
+        self.assertEqual(encoded.dtype, int)
         self.assertEqual(array.shape, encoded.shape, 'Encoded data has wrong shape')
 
         #bitcounts = np.sum(np.unpackbits(encoded, axis=1), axis=1)
@@ -21,7 +21,7 @@ class ParityEncodeTestCase(unittest.TestCase):
         self.assertFalse(any(errors), 'Encoded data has false errors.')
 
         decoded = parity_decode(encoded)
-        self.assertEqual(decoded.dtype, np.int)
+        self.assertEqual(decoded.dtype, int)
         self.assertTrue(all(decoded == array), 'Decoded data does not match original.')
 
         for b in range(8):
