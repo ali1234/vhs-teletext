@@ -11,8 +11,8 @@ import click
 from tqdm import tqdm
 
 from teletext.charset import g0
-from teletext.cli.clihelpers import packetreader, packetwriter, paginated, progressparams, filterparams, carduser, chunkreader, \
-    command, profileopts
+from teletext.cli.clihelpers import packetreader, packetwriter, paginated, \
+    progressparams, filterparams, carduser, chunkreader
 from teletext.file import FileChunker
 from teletext.mp import itermap
 from teletext.packet import Packet, np
@@ -31,7 +31,6 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
 
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
-@profileopts
 @click.option('-u', '--unicode', is_flag=True, help='Use experimental Unicode 13.0 Terminal graphics.')
 @click.version_option()
 @click.help_option()

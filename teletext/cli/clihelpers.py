@@ -245,39 +245,3 @@ def packetwriter(f):
             pass
 
     return wrapper
-
-
-def profileopts(f):
-    if plop is not None:
-        @click.option('--profile', type=str, default=None)
-        @click.pass_context
-        @wraps(f)
-        def group(ctx, profile, *args, **kwargs):
-            ctx.ensure_object(dict)
-            ctx.obj['PROFILE'] = profile
-            return f(*args, **kwargs)
-        return group
-    else:
-        return f
-
-
-def command(group, *args, **kwargs):
-    def deco(f):
-        @group.command(*args, **kwargs)
-        @click.pass_context
-        @wraps(f)
-        def cmd(ctx, *_args, **_kwargs):
-            if plop is not None and ctx.obj['PROFILE'] is not None:
-                # disable tqdm monitor thread as it messes with the profiling
-                tqdm.monitor_interval = 0
-                p = plop.Collector()
-                p.start()
-                try:
-                    return f(*_args, **_kwargs)
-                finally:
-                    p.stop()
-                    plop.FlamegraphFormatter().store(p, ctx.obj['PROFILE'])
-            else:
-                return f(*_args, **_kwargs)
-        return cmd
-    return deco

@@ -2,7 +2,7 @@ import click
 import numpy as np
 from tqdm import tqdm
 
-from teletext.cli.clihelpers import command, carduser, chunkreader
+from teletext.cli.clihelpers import carduser, chunkreader
 
 @click.group()
 def vbi():
