@@ -60,6 +60,7 @@ class Interactive(object):
         self.need_clear = False
         self.hold = False
         self.reveal = False
+        self.links = [(7, 255), (7, 255), (7, 255), (7, 255)]
 
         y, x = self.scr.getmaxyx()
         if x < 41 or y < 25:
@@ -87,6 +88,12 @@ class Interactive(object):
 
     def set_input_field(self, str, clr=0):
         self.scr.addstr(0, 3, str, curses.color_pair(clr))
+
+    def go_page(self, magazine, page):
+        self.inputstate = 0
+        self.magazine = magazine
+        self.page = page
+        self.set_input_field('P%d%02x' % (self.magazine, self.page))
 
     def addstr(self, packet):
         r = packet.mrag.row
@@ -146,6 +153,14 @@ class Interactive(object):
             self.do_hold()
         elif c == ord('r'):
             self.do_reveal()
+        elif c == ord('z'):
+            self.go_page(self.links[0].magazine, self.links[0].page)
+        elif c == ord('x'):
+            self.go_page(self.links[1].magazine, self.links[1].page)
+        elif c == ord('c'):
+            self.go_page(self.links[2].magazine, self.links[2].page)
+        elif c == ord('v'):
+            self.go_page(self.links[3].magazine, self.links[3].page)
         elif c == ord('q'):
             self.running = False
 
@@ -162,8 +177,12 @@ class Interactive(object):
                     self.last_header = packet.header.page
                     self.addstr(packet)
                     self.set_input_field('P%d%02X' % (self.magazine, self.page))
-                elif self.last_header == self.page and packet.mrag.row < 25:
-                    self.addstr(packet)
+                elif self.last_header == self.page:
+                    if packet.mrag.row < 25:
+                        self.addstr(packet)
+                    elif packet.mrag.row == 27:
+                        self.links = packet.fastext.links
+                        #print(self.links)
 
     def main(self):
         self.running = True
