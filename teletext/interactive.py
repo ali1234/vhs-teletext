@@ -153,13 +153,13 @@ class Interactive(object):
             self.do_hold()
         elif c == ord('r'):
             self.do_reveal()
-        elif c == ord('z'):
+        elif c == ord('h'):
             self.go_page(self.links[0].magazine, self.links[0].page)
-        elif c == ord('x'):
+        elif c == ord('j'):
             self.go_page(self.links[1].magazine, self.links[1].page)
-        elif c == ord('c'):
+        elif c == ord('k'):
             self.go_page(self.links[2].magazine, self.links[2].page)
-        elif c == ord('v'):
+        elif c == ord('l'):
             self.go_page(self.links[3].magazine, self.links[3].page)
         elif c == ord('q'):
             self.running = False
