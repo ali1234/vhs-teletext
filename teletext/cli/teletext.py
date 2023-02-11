@@ -465,7 +465,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
     else:
         from teletext.vbi.line import Line
 
-        Line.configure(config, force_cpu=True, tape_format=tape_format)
+        Line.configure(config, force_cpu=True, try_opencl=False, tape_format=tape_format)
 
         if n_lines is not None:
             chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, n_lines, range(n_lines))
@@ -482,6 +482,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @click.option('-8', '--eight-bit', is_flag=True, help='Treat rows 1-25 as 8-bit data without parity check.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
+@click.option('-O', '--try-opencl', is_flag=True, default=False, help='Try to use OpenCL acceleration.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @click.option('-k', '--keep-empty', is_flag=True, help='Insert empty packets in the output when line could not be deconvolved.')
 @carduser(extended=True)
@@ -491,7 +492,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @paginated()
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eight_bit, force_cpu, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
+def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eight_bit, force_cpu, try_opencl, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -511,7 +512,8 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eig
             chunks.postfix = StatsList()
 
     packets = itermap(process_lines, chunks, threads,
-                      mode=mode, config=config, force_cpu=force_cpu,
+                      mode=mode, config=config,
+                      force_cpu=force_cpu, try_opencl=try_opencl,
                       mags=mags, rows=rows,
                       tape_format=tape_format,
                       eight_bit=eight_bit)

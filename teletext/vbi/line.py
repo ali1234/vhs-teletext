@@ -39,26 +39,37 @@ class Line(object):
     config: Config
 
     configured = False
-    cuda_ready = False
+    gpu_ready = False
 
     @classmethod
-    def configure(cls, config, force_cpu=False, tape_format='vhs'):
+    def configure(cls, config, force_cpu=False, try_opencl=False, tape_format='vhs'):
         datadir = pathlib.Path(__file__).parent / 'data' / tape_format
         h = datadir / 'hamming.dat'
         p = datadir / 'parity.dat'
         f = datadir / 'full.dat'
         cls.config = config
         if not force_cpu:
-            try:
-                from .patterncuda import PatternCUDA
-                cls.h = PatternCUDA(h)
-                cls.p = PatternCUDA(p)
-                cls.f = PatternCUDA(f)
-                cls.cuda_ready = True
-            except Exception as e:
-                sys.stderr.write(str(e) + '\n')
-                sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
-        if not cls.cuda_ready:
+            if not try_opencl:
+                try:
+                    from .patterncuda import PatternCUDA
+                    cls.h = PatternCUDA(h)
+                    cls.p = PatternCUDA(p)
+                    cls.f = PatternCUDA(f)
+                    cls.gpu_ready = True
+                except Exception as e:
+                    sys.stderr.write(str(e) + '\n')
+                    sys.stderr.write('CUDA init failed. Using slow CPU method instead.\n')
+            else:
+                try:
+                    from .patternopencl import PatternOpenCL
+                    cls.h = PatternOpenCL(h)
+                    cls.p = PatternOpenCL(p)
+                    cls.f = PatternOpenCL(f)
+                    cls.gpu_ready = True
+                except Exception as e:
+                    sys.stderr.write(str(e) + '\n')
+                    sys.stderr.write('OpenCL init failed. Using slow CPU method instead.\n')
+        if not cls.gpu_ready:
             cls.h = Pattern(h)
             cls.p = Pattern(p)
             cls.f = Pattern(f)
@@ -287,10 +298,10 @@ class Line(object):
         else:
             return 'filtered'
 
-def process_lines(chunks, mode, config, force_cpu=False, mags=range(9), rows=range(32), tape_format='vhs', eight_bit=False):
+def process_lines(chunks, mode, config, force_cpu=False, try_opencl=False, mags=range(9), rows=range(32), tape_format='vhs', eight_bit=False):
     if mode == 'slice':
         force_cpu = True
-    Line.configure(config, force_cpu, tape_format)
+    Line.configure(config, force_cpu, try_opencl, tape_format)
     for number, chunk in chunks:
         try:
             yield getattr(Line(chunk, number), mode)(mags, rows, eight_bit)
