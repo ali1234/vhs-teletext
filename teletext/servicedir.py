@@ -22,13 +22,17 @@ class ServiceDir(Service):
         self._dir = directory
 
     def file_changed(self, f, deleted=False):
-        m = int(f.parent.name[0])
-        p = int(f.parent.name[1:], 16)
-        s = int(f.stem, 16)
-        if deleted:
-            del self.magazines[m].pages[p].subpages[s]
+        try:
+            m = int(f.parent.name[0])
+            p = int(f.parent.name[1:], 16)
+            s = int(f.stem, 16)
+        except ValueError:
+            pass
         else:
-            self.magazines[m].pages[p].subpages[s] = Subpage.from_file(f.open('rb'))
+            if deleted:
+                del self.magazines[m].pages[p].subpages[s]
+            else:
+                self.magazines[m].pages[p].subpages[s] = Subpage.from_file(f.open('rb'))
 
     def __enter__(self):
         self.observer = Observer()
