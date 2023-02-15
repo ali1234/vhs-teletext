@@ -11,7 +11,7 @@ try:
     class PatternCUDATestCase(unittest.TestCase):
 
         def setUp(self):
-            p = pathlib.Path(__file__).parent.parent.parent / 'vbi' / 'data' / 'vhs' / 'parity.dat'
+            p = pathlib.Path(__file__).parent.parent.parent / 'teletext' / 'vbi' / 'data' / 'vhs' / 'parity.dat'
             self.pattern = Pattern(p)
             self.patterncuda = PatternCUDA(p)
 
