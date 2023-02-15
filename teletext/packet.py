@@ -64,6 +64,10 @@ class Packet(Element):
         return Fastext(self._array[2:], self.mrag)
 
     @property
+    def triplets(self):
+        return Triplets(self._array[2:], self.mrag)
+
+    @property
     def broadcast(self):
         return BroadcastData(self._array[2:], self.mrag)
 
@@ -78,6 +82,8 @@ class Packet(Element):
             return f'   P{self.mrag.magazine}{self.header.to_ansi(colour)}'
         elif t == 'display':
             return self.displayable.to_ansi(colour)
+        elif t == 'page enhancement':
+            return self.triplets.to_ansi(colour)
         elif t == 'fastext':
             return self.fastext.to_ansi(colour)
         elif t == 'broadcast':
