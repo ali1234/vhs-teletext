@@ -134,8 +134,9 @@ class Subpage(Element):
         parts = ['0']
         parts.append(base64.b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit, b'-_').decode('ascii'))
         parts.append(f'PN={self.mrag.magazine}{self.header.page:02x}')
-        # TODO: PS
-        parts.append(f'SC={self.header.subpage:04x}')
+        c = self.header.control
+        parts.append(f'PS={(c>>1) | ((c&1)<<13):x}')
+        parts.append(f'SC={self.header.subpage:x}')
         if self.has_packet(25):
             parts.append('X25=' + base64.b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit, b'-_').decode('ascii'))
         if self.has_packet(26):
