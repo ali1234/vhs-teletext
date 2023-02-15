@@ -118,6 +118,10 @@ class Subpage(Element):
         return s
 
     @classmethod
+    def from_url(cls, url):
+        s = cls()
+
+    @classmethod
     def from_file(cls, f):
         chunks = FileChunker(f, 42)
         packets = (Packet(data, number) for number, data in chunks)
@@ -139,8 +143,9 @@ class Subpage(Element):
         parts.append(f'SC={self.header.subpage:x}')
         if self.has_packet(25):
             parts.append('X25=' + base64.b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit, b'-_').decode('ascii'))
-        if self.has_packet(26):
-            pass # TODO: X26
+        for d in range(16):
+            if self.has_packet(26, d):
+                pass # TODO: X26
         if self.has_packet(27, 0):
             parts.append('X270=' + ''.join([f'{l.magazine}{l.page:02x}{l.subpage:04x}' for l in self.fastext.links]) + f'{self.fastext.control:1x}')
         if self.has_packet(28, 0):
