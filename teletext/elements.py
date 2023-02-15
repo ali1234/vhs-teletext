@@ -191,6 +191,21 @@ class Header(Page):
         return e
 
 
+class Triplet(Element):
+
+    def __init__(self, array):
+        super().__init__((3,), array)
+
+    def __str__(self):
+        return f'triplet'
+
+    @property
+    def errors(self):
+        e = super().errors
+        e[:] = hamming8_errors(self._array[:])
+        return e
+
+
 class PageLink(Page):
 
     def __init__(self, array, mrag):
@@ -253,6 +268,27 @@ class DesignationCode(Element):
     def errors(self):
         e = np.zeros_like(self._array)
         e[0] = hamming8_errors(self._array[0])
+        return e
+
+
+class Triplets(DesignationCode):
+
+    def __init__(self, array, mrag):
+        super().__init__((40,), array)
+        self._mrag = mrag
+
+    @property
+    def triplets(self):
+        return tuple(Triplet(self._array[n:n+3]) for n in range(1, 40, 3))
+
+    def to_ansi(self, colour=True):
+        return f'DC={self.dc:x} ' + ' '.join((str(triplet) for triplet in self.triplets))
+
+    @property
+    def errors(self):
+        e = super().errors
+        for t,n in zip(self.triplets, range(1, 40, 3)):
+            e[n:n+3] = t.errors
         return e
 
 
