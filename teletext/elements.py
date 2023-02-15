@@ -250,7 +250,7 @@ class PageLink(Page):
     @property
     def errors(self):
         e = super().errors
-        e[2:8] = hamming8_errors(self._array[2:8])
+        e[:] = hamming8_errors(self._array[:])
         return e
 
 
@@ -325,7 +325,7 @@ class Fastext(DesignationCode):
     @property
     def errors(self):
         e = super().errors
-        for l,n in zip(self.links, range(1, 37, 6)):
+        for l,n in zip(self.links, range(1, 36, 6)):
             e[n:n+6] = l.errors
         return e
 
