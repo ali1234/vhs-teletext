@@ -119,7 +119,27 @@ class Subpage(Element):
 
     @classmethod
     def from_url(cls, url):
-        s = cls()
+        s = cls(prefill=True)
+        parts = url.split(':')
+        Element((25, 40), s._array[0:25, 2:]).sevenbit = base64.urlsafe_b64decode(parts[1]+'==')
+        for p in parts[2:]:
+            l, d = p.split('=', maxsplit=1)
+            if l == 'PN':
+                s.mrag.magazine = int(d[0], 16)
+                s.header.page = int(d[1:3], 16)
+            elif l == 'PS':
+                pass # TODO
+            elif l == 'SC':
+                pass  # TODO
+            elif l == 'X25':
+                pass  # TODO
+            elif l == 'X270':
+                pass  # TODO
+            elif l == 'X280':
+                pass  # TODO
+            elif l == 'X284':
+                pass  # TODO
+        return s
 
     @classmethod
     def from_file(cls, f):

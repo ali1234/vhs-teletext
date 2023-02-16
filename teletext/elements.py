@@ -36,6 +36,13 @@ class Element(object):
     def sevenbit(self):
         return np.packbits(np.unpackbits(self._array).reshape(-1, 8)[:, 1:].flatten()).tobytes()
 
+    @sevenbit.setter
+    def sevenbit(self, b):
+        a = np.frombuffer(b, dtype=np.uint8)
+        s = self._array.size * 7
+        u = np.unpackbits(a)[:s].reshape(-1, 7)
+        self._array[:] = np.packbits(u, axis=-1).reshape(self._array.shape) >> 1
+
     @property
     def errors(self):
         raise NotImplementedError
