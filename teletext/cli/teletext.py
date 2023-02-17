@@ -356,6 +356,38 @@ def urls(packets, editor, pages, subpages):
     for s in subpages:
         print(f'{editor}{s.url}')
 
+@teletext.command()
+@click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
+@click.option('-f', '--font', type=click.File('rb'), help='PCF font for rendering.')
+@paginated(always=True)
+@packetreader()
+def images(packets, outdir, font, pages, subpages):
+
+    """Paginate a t42 stream render to images."""
+
+    try:
+        from teletext.image import subpage_to_image, load_glyphs
+    except ModuleNotFoundError as e:
+        if e.name == 'PIL':
+            raise click.UsageError(
+                f'{e.msg}. PIL is not installed. Image generation is not available.')
+        else:
+            raise e
+
+    from teletext.service import Service
+
+    glyphs = load_glyphs(font)
+
+    packets = (p for p in packets if  not p.is_padding())
+    svc = Service.from_packets(p for p in packets if not p.is_padding())
+
+    for s in tqdm(list(svc.all_subpages), unit="subpage"):
+        image = subpage_to_image(s, glyphs)
+        image.save(pathlib.Path(outdir) / f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x}.png')
+        if image._missing_glyphs:
+            missing = ', '.join(f'{repr(c)} {hex(ord(c))}' for c in image._missing_glyphs)
+            print(f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x} missing characters: {missing}')
+
 
 @teletext.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)

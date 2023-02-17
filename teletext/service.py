@@ -90,6 +90,13 @@ class Service(object):
             yield next(self)
 
     @property
+    def all_subpages(self):
+        for m in self.magazines.values():
+            for p in m.pages.values():
+                for s in p.subpages.values():
+                    yield s
+
+    @property
     def pages_set(self):
         return set(f'{m}{p:02x}' for m, mag in self.magazines.items() for p, _ in mag.pages.items())
 
