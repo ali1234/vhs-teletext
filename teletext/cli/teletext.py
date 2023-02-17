@@ -381,12 +381,15 @@ def images(packets, outdir, font, pages, subpages):
     packets = (p for p in packets if  not p.is_padding())
     svc = Service.from_packets(p for p in packets if not p.is_padding())
 
-    for s in tqdm(list(svc.all_subpages), unit="subpage"):
+    subpages = tqdm(list(svc.all_subpages), unit="subpage")
+    for s in subpages:
         image = subpage_to_image(s, glyphs)
+        filename = f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x}.png'
+        subpages.set_description(filename, refresh=False)
         image.save(pathlib.Path(outdir) / f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x}.png')
         if image._missing_glyphs:
             missing = ', '.join(f'{repr(c)} {hex(ord(c))}' for c in image._missing_glyphs)
-            print(f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x} missing characters: {missing}')
+            print(f'{filename} missing characters: {missing}')
 
 
 @teletext.command()

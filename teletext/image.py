@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from teletext.parser import Parser
 
@@ -60,7 +62,12 @@ class PrinterImage(Parser):
             self.missing.add(c)
         else:
             data = np.choose(glyph, (self._state['bg'], self._state['fg']))
-            self.image.paste(Image.fromarray(data.astype(np.uint8), "P"), (self.column*12, 0))
+            i = Image.fromarray(data.astype(np.uint8), "P")
+            i = i.resize((
+                i.width * (2 if self._state['dw'] else 1),
+                i.height * (2 if self._state['dh'] else 1),
+            ))
+            self.image.paste(i, (self.column*12, 0))
         self.column += 1
 
     def parse(self):
@@ -69,7 +76,7 @@ class PrinterImage(Parser):
 
 
 def subpage_to_image(s, glyphs):
-    img = Image.new("P", (12*41, 26*10))
+    img = Image.new("P", (12*40, 25*10))
     missing = set()
     img.putpalette([
         0, 0, 0,
@@ -83,12 +90,23 @@ def subpage_to_image(s, glyphs):
     ])
     prnt = PrinterImage(s.header.displayable._array, glyphs)
     missing.update(prnt.parse())
-    img.paste(prnt.image, (12*8, 5))
+    img.paste(prnt.image, (12*8, 0))
 
-    for p in s.packets:
-        prnt = PrinterImage(p.displayable._array, glyphs)
-        missing.update(prnt.parse())
-        img.paste(prnt.image, (0, (p.mrag.row*10)+5))
+    for i in range(0, 24):
+        # only draw the line if previous line does not contain double height code
+        if i == 0 or np.all(s.displayable[i - 1, :] != 0x0d):
+            prnt = PrinterImage(s.displayable[i, :], glyphs)
+            missing.update(prnt.parse())
+            img.paste(prnt.image, (0, (i+1)*10))
 
+    img = img.resize((img.width, img.height*2))
+    img = img.convert("RGB").resize((math.floor(img.width*1.2), img.height))
+    result = Image.new("RGB", (720,576))
+    result.paste(img, (
+        (result.width - img.width) // 2,
+        (result.height - img.height) // 2,
+    ))
+    img = result
     img._missing_glyphs = missing
+
     return img

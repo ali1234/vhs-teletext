@@ -91,9 +91,9 @@ class Service(object):
 
     @property
     def all_subpages(self):
-        for m in self.magazines.values():
-            for p in m.pages.values():
-                for s in p.subpages.values():
+        for km, m in sorted(self.magazines.items()):
+            for kp, p in sorted(m.pages.items()):
+                for ks, s in sorted(p.subpages.items()):
                     yield s
 
     @property
