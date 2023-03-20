@@ -61,8 +61,8 @@ Then it is divided into "bytes". Each one is compared against the training
 tables, including a few bits before and after. The closest match is the most
 likely original signal.
 
-This algorithm can be performed in parallel using CUDA. This allows deconvolution
-to run in near realtime with a GTX 780.
+This algorithm can be performed in parallel using CUDA or OpenCL. This allows
+deconvolution to run in near realtime with a GTX 780.
 
 See TRAINING.md for more.
 

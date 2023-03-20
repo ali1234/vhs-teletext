@@ -31,6 +31,10 @@ To install with optional dependencies run:
 If CUDA or pyenchant are not available for your platform simply omit them
 from the install command.
 
+In order to use OpenCL you need to install pyopencl and the appropriate
+opencl runtime for your card.  Then run the deconvolve command with the '-O'
+option.
+
 In order for the output to be rendered correctly you need to use a specific
 font and terminal:
 
