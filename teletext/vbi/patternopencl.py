@@ -34,6 +34,25 @@ class PatternOpenCL(Pattern):
         result[ridx] += (d*d);
       }
     }
+
+    __kernel void minerr(global float* input, global int* indexes, int npatterns)
+    {
+      int ch = get_global_id(0);
+      int start = npatterns * ch;
+
+      int bestidx = 0;
+      float bestval = input[start];
+
+      for (int i=1;i<npatterns;i++) {
+        float val = input[start+i];
+        if (val < bestval) {
+          bestval = val;
+          bestidx = i;
+        }
+      }
+      indexes[ch] = bestidx;
+    }
+
     """).build()
 
     def __init__(self, filename):
@@ -52,10 +71,10 @@ class PatternOpenCL(Pattern):
         # output of the correlate
         self.result_match = cl.Buffer(openclctx, mf.READ_WRITE, 4*40*self.n)
 
-        # numpy copy of the output of correlate
-        self.result_match_np = np.zeros((40 , self.n), dtype=np.float32)
-
-        # output of the post process
+        # output of the min pass - an integer index to which pattern was best
+        # for each character
+        self.result_minidx = cl.Buffer(openclctx, mf.WRITE_ONLY, 4*40)
+        # and a copy of that for np
         self.result_minidx_np = np.zeros(40, dtype=np.uint32)
 
     def match(self, inp):
@@ -66,22 +85,19 @@ class PatternOpenCL(Pattern):
         # copy data in
         cl.enqueue_copy(self.queue, self.input_match, inp.astype(np.float32))
         # call corellate
+        # Output is one row per character, with one value per pattern
         self.prg.correlate(self.queue, (l, self.n), None,
                            self.input_match, self.patterns_gpu, self.result_match,
                            np.int32(self.start), np.int32(self.end))
 
-        cl.enqueue_copy(self.queue, self.result_match_np, self.result_match)
+        # Run min pass
+        # Output is a set of indexes giving the best pattern per character
+        self.prg.minerrr(self.queue, (l,), None,
+                         self.result_match, self.result_minidx,
+                         np.int32(self.n))
 
-        for chridx in range(l):
-          minidx = 0
-          minval = self.result_match_np[chridx, 0]
-          for patternidx in range(self.n):
-              val = self.result_match_np[chridx, patternidx]
-              if val < minval:
-                  minval = val
-                  minidx = patternidx
-
-          self.result_minidx_np[chridx] = minidx;
+        # and get the index values back from OpenCL
+        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx)
 
         return self.bytes[self.result_minidx_np[:l],0]
 
