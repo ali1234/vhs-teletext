@@ -73,7 +73,7 @@ class PatternOpenCL(Pattern):
         self.input_match = cl.Buffer(openclctx, mf.READ_WRITE, 4*((40*8)+16))
 
         # output of the correlate
-        self.result_match = cl.Buffer(openclctx, mf.READ_WRITE, 4*40*self.n)
+        self.result_match = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.n)
 
         # output of the min pass - an integer index to which pattern was best
         # for each character
