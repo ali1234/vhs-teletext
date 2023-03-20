@@ -61,6 +61,10 @@ class PatternOpenCL(Pattern):
         self.queue = cl.CommandQueue(openclctx)
 
         mf = cl.mem_flags
+
+        self.kernel_correlate = self.prg.correlate
+        self.kernel_min = self.prg.minerr
+
         # patterns is already float32 (see Pattern __init__)
         self.patterns_gpu = cl.Buffer(openclctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.patterns)
 
@@ -83,21 +87,27 @@ class PatternOpenCL(Pattern):
         y = min(1024//x, self.n)
 
         # copy data in
-        cl.enqueue_copy(self.queue, self.input_match, inp.astype(np.float32))
+        e_copy = cl.enqueue_copy(self.queue, self.input_match, inp.astype(np.float32), is_blocking = False)
         # call corellate
         # Output is one row per character, with one value per pattern
-        self.prg.correlate(self.queue, (l, self.n), None,
-                           self.input_match, self.patterns_gpu, self.result_match,
-                           np.int32(self.start), np.int32(self.end))
+        self.kernel_correlate.set_args(self.input_match, self.patterns_gpu, self.result_match,
+                                       np.int32(self.start), np.int32(self.end))
+
+        e_corr = cl.enqueue_nd_range_kernel(self.queue, self.kernel_correlate,
+                                            (l, self.n), None,
+                                            wait_for = (e_copy,))
 
         # Run min pass
         # Output is a set of indexes giving the best pattern per character
-        self.prg.minerrr(self.queue, (l,), None,
-                         self.result_match, self.result_minidx,
-                         np.int32(self.n))
+        self.kernel_min.set_args(self.result_match, self.result_minidx,
+                                 np.int32(self.n))
+
+        e_min = cl.enqueue_nd_range_kernel(self.queue, self.kernel_min,
+                                           (l,), None,
+                                           wait_for = (e_corr,))
 
         # and get the index values back from OpenCL
-        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx)
+        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min,))
 
         return self.bytes[self.result_minidx_np[:l],0]
 
