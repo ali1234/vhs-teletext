@@ -52,6 +52,12 @@ class PatternOpenCL(Pattern):
         # output of the correlate
         self.result_match = cl.Buffer(openclctx, mf.READ_WRITE, 4*40*self.n)
 
+        # numpy copy of the output of correlate
+        self.result_match_np = np.zeros((40 , self.n), dtype=np.float32)
+
+        # output of the post process
+        self.result_minidx_np = np.zeros(40, dtype=np.uint32)
+
     def match(self, inp):
         l = (len(inp)//8)-2
         x = l & -l # highest power of two which divides l, up to 8
@@ -63,6 +69,19 @@ class PatternOpenCL(Pattern):
         self.prg.correlate(self.queue, (l, self.n), None,
                            self.input_match, self.patterns_gpu, self.result_match,
                            np.int32(self.start), np.int32(self.end))
-        # TODO do a min pass to find smallest (start with numpy?)
-        #raise Exception("Not yet implemented (match)")
+
+        cl.enqueue_copy(self.queue, self.result_match_np, self.result_match)
+
+        for chridx in range(l):
+          minidx = 0
+          minval = self.result_match_np[chridx, 0]
+          for patternidx in range(self.n):
+              val = self.result_match_np[chridx, patternidx]
+              if val < minval:
+                  minval = val
+                  minidx = patternidx
+
+          self.result_minidx_np[chridx] = minidx;
+
+        return self.bytes[self.result_minidx_np[:l],0]
 
