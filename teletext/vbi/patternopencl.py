@@ -35,24 +35,64 @@ class PatternOpenCL(Pattern):
       }
     }
 
-    __kernel void minerr(global float* input, global int* indexes, int npatterns)
+    // Each workitem takes one character x npatterns/minpar values
+    // and finds the minimum, writing one value and index into the
+    // temporaries
+    // The temporaries are 40 characters wide
+    // Done as a 2D parallel, X is character,
+    // Y is npatterns/minpar chunk of correlate results
+    __kernel void minerr1(global float* input,
+                         global float* tmp_val, global int* tmp_idx,
+                         int npatterns, int minpar)
     {
       int ch = get_global_id(0);
-      int start = npatterns * ch;
+      int width = get_global_size(0);
+      int patblock = get_global_id(1);
+      int patstep = npatterns / minpar;
+      int patstart = patblock * patstep;
+      int patend = patstart + patstep;
 
-      int bestidx = 0;
-      float bestval = input[start];
+      int inindex = patstart + npatterns*ch;
+      int bestidx = patstart;
+      float bestval = input[inindex];
 
-      for (int i=1;i<npatterns;i++) {
-        float val = input[start+i];
+      for (int p=patstart; p<patend; p++, inindex+=1) {
+        float val = input[inindex];
         if (val < bestval) {
           bestval = val;
-          bestidx = i;
+          bestidx = p;
+        }
+      }
+
+      int tidx = patblock*width + ch;
+      tmp_idx[tidx] = bestidx;
+      tmp_val[tidx] = bestval;
+    }
+
+    // Each workitem takes one character x minpar values and finds the
+    // minimum of the temporary minima and writes the index
+    // Done as a 1D parallel over the characters
+    __kernel void minerr2(global float* tmp_val, global int* tmp_idx,
+                          global int* indexes,
+                          int minpar)
+    {
+      int ch = get_global_id(0);
+      int width = get_global_size(0);
+
+      int iidx = ch;
+      int bestidx = tmp_idx[iidx];
+      float bestval = tmp_val[iidx];
+
+      iidx+=width;
+      for (int i=1;i<minpar;i++,iidx+=width) {
+        float val = tmp_val[iidx];
+        if (val < bestval) {
+          bestidx = tmp_idx[iidx];
+          bestval = val;
         }
       }
       indexes[ch] = bestidx;
     }
-
     """).build()
 
     def __init__(self, filename):
@@ -63,7 +103,8 @@ class PatternOpenCL(Pattern):
         mf = cl.mem_flags
 
         self.kernel_correlate = self.prg.correlate
-        self.kernel_min = self.prg.minerr
+        self.kernel_min1 = self.prg.minerr1
+        self.kernel_min2 = self.prg.minerr2
 
         # patterns is already float32 (see Pattern __init__)
         self.patterns_gpu = cl.Buffer(openclctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=self.patterns)
@@ -74,6 +115,13 @@ class PatternOpenCL(Pattern):
 
         # output of the correlate
         self.result_match = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.n)
+
+        # How much to split the min search by vertically
+        self.minpar = 256
+
+        # Temporaries used during parallel min (value and index)
+        self.mintmp_val = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.minpar)
+        self.mintmp_idx = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.minpar)
 
         # output of the min pass - an integer index to which pattern was best
         # for each character
@@ -97,17 +145,31 @@ class PatternOpenCL(Pattern):
                                             (l, self.n), None,
                                             wait_for = (e_copy,))
 
-        # Run min pass
-        # Output is a set of indexes giving the best pattern per character
-        self.kernel_min.set_args(self.result_match, self.result_minidx,
-                                 np.int32(self.n))
+        # Run min pass 1
+        # squashes the set of patterns down into minpar minima
+        assert (self.n % self.minpar) == 0
 
-        e_min = cl.enqueue_nd_range_kernel(self.queue, self.kernel_min,
-                                           (l,), None,
-                                           wait_for = (e_corr,))
+        self.kernel_min1.set_args(self.result_match,
+                                  self.mintmp_val, self.mintmp_idx,
+                                  np.int32(self.n), np.int32(self.minpar))
+
+        e_min1 = cl.enqueue_nd_range_kernel(self.queue, self.kernel_min1,
+                                            (l,self.minpar), None,
+                                            wait_for = (e_corr,))
+
+        # Run min pass 2
+        # squashes the temporaries down to a final minimum index for each char
+        self.kernel_min2.set_args(self.mintmp_val, self.mintmp_idx,
+                                  self.result_minidx,
+                                  np.int32(self.minpar))
+
+        e_min2 = cl.enqueue_nd_range_kernel(self.queue, self.kernel_min2,
+                                            (l,), None,
+                                            wait_for = (e_min1,))
+
 
         # and get the index values back from OpenCL
-        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min,))
+        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min2,))
 
         return self.bytes[self.result_minidx_np[:l],0]
 
