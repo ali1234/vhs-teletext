@@ -481,8 +481,8 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-8', '--eight-bit', is_flag=True, help='Treat rows 1-25 as 8-bit data without parity check.')
 @click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
-@click.option('-C', '--force-cpu', is_flag=True, help='Disable CUDA even if it is available.')
-@click.option('-O', '--try-opencl', is_flag=True, default=False, help='Try to use OpenCL acceleration.')
+@click.option('-C', '--force-cpu', is_flag=True, help='Disable GPU even if it is available.')
+@click.option('-O', '--prefer-opencl', is_flag=True, default=False, help='Use OpenCL even if CUDA is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @click.option('-k', '--keep-empty', is_flag=True, help='Insert empty packets in the output when line could not be deconvolved.')
 @carduser(extended=True)
@@ -492,7 +492,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @paginated()
 @progressparams(progress=True, mag_hist=True)
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
-def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eight_bit, force_cpu, try_opencl, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
+def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eight_bit, force_cpu, prefer_opencl, threads, keep_empty, progress, mag_hist, row_hist, err_hist, rejects, tape_format):
 
     """Deconvolve raw VBI samples into Teletext packets."""
 
@@ -502,7 +502,7 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eig
     from teletext.vbi.line import process_lines
 
     if force_cpu:
-        sys.stderr.write('CUDA disabled by user request.\n')
+        sys.stderr.write('GPU disabled by user request.\n')
 
     chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
 
@@ -513,7 +513,7 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eig
 
     packets = itermap(process_lines, chunks, threads,
                       mode=mode, config=config,
-                      force_cpu=force_cpu, try_opencl=try_opencl,
+                      force_cpu=force_cpu, prefer_opencl=prefer_opencl,
                       mags=mags, rows=rows,
                       tape_format=tape_format,
                       eight_bit=eight_bit)
