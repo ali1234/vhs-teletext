@@ -37,6 +37,7 @@ setup(
     extras_require={
         'spellcheck': ['pyenchant'],
         'CUDA': ['pycuda', 'scikit-cuda'],
+        'OpenCL': ['pyopencl'],
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
         'qt': ['PyQt5'],
