@@ -54,8 +54,8 @@ def teletext(ctx, unicode, help_all):
         help_recurse(teletext, ctx)
 
     if unicode:
-        from teletext import printer
-        printer._unicode13 = True
+        from teletext import parser
+        parser._unicode13 = True
 
 
 teletext.add_command(training)
