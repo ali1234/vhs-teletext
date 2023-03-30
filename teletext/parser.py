@@ -1,5 +1,3 @@
-import re
-
 from . import charset
 
 _unicode13 = False
