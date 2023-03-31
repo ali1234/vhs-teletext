@@ -465,7 +465,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
     else:
         from teletext.vbi.line import Line
 
-        Line.configure(config, force_cpu=True, try_opencl=False, tape_format=tape_format)
+        Line.configure(config, force_cpu=True, tape_format=tape_format)
 
         if n_lines is not None:
             chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, n_lines, range(n_lines))
