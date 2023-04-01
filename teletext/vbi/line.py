@@ -50,9 +50,14 @@ class Line(object):
             cls.p = Pattern(datadir / 'parity.dat')
             cls.f = Pattern(datadir / 'full.dat')
             return True
+        except ModuleNotFoundError as e:
+            if e.name.startswith(method):
+                pass
+            else:
+                raise
         except Exception as e:
             sys.stderr.write(str(e) + '\n')
-            sys.stderr.write(method if method else 'CPU' + ' init failed.\n')
+            sys.stderr.write((method if method else 'CPU') + ' init failed.\n')
             return False
 
     @classmethod
