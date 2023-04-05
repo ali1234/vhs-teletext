@@ -28,7 +28,7 @@ def generate(output):
 @training.command()
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
-@carduser()
+@carduser(extended=True)
 @chunkreader
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
@@ -117,7 +117,7 @@ def similarities(tape_format):
 
 @training.command()
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
-@carduser()
+@carduser(extended=True)
 @chunkreader
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
