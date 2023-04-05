@@ -63,7 +63,7 @@ def progressparams(progress=True, mag_hist=False, row_hist=False, err_hist=False
     return p
 
 
-def carduser(extended=True):
+def carduser(extended=False):
     def c(f):
         if extended:
             for d in [
