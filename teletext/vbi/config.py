@@ -109,6 +109,8 @@ class Config(object):
             if v is not None:
                 setattr(self, k, v)
 
+        self.frame_lines = self.field_lines * 2
+
         self.sample_rate += self.sample_rate_adjust
 
         # width of a bit in samples (float)
