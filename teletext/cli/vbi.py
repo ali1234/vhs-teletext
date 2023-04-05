@@ -1,4 +1,5 @@
 import click
+import pathlib
 import numpy as np
 from tqdm import tqdm
 
@@ -8,7 +9,6 @@ from teletext.cli.clihelpers import carduser, chunkreader
 def vbi():
     """Tools for analysing raw VBI samples."""
     pass
-
 
 
 @vbi.command()
@@ -62,3 +62,34 @@ def plot(chunker, config):
     from teletext.gui.vbiplot import vbiplot
 
     vbiplot(chunker, config)
+
+
+@vbi.command()
+@carduser()
+@chunkreader
+@click.argument('output', type=click.File('wb'))
+@click.option('--progress/--no-progress', default=True, help='Display progress bar.')
+def copy(chunker, config, progress, output):
+    """Copy input to output"""
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+    if progress:
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
+    for n, c in chunks:
+        output.write(c)
+
+
+@vbi.command()
+@carduser()
+@chunkreader
+@click.argument('output', type=click.Path(), required=True)
+@click.option('--progress/--no-progress', default=True, help='Display progress bar.')
+def linesplit(chunker, config, progress, output):
+    """Split VBI file into one file per line"""
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+    if progress:
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
+    output = pathlib.Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+    files = [(output / f'{n:02x}.vbi').open("wb") for n in range(config.frame_lines)]
+    for number, chunk in chunks:
+        files[number % config.frame_lines].write(chunk)
