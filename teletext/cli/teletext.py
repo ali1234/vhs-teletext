@@ -363,7 +363,7 @@ def urls(packets, editor, pages, subpages):
 @packetreader()
 def images(packets, outdir, font, pages, subpages):
 
-    """Paginate a t42 stream render to images."""
+    """Generate images for the input stream."""
 
     try:
         from teletext.image import subpage_to_image, load_glyphs
