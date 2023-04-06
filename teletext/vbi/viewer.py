@@ -102,6 +102,12 @@ class VBIViewer(object):
                 print(l.deconvolve().debug.decode('utf8')[:-1], 'er:', l.roll, l._reason)
             else:
                 print(l._reason)
+            a = np.frombuffer(l._original_bytes, dtype=np.uint8)
+            d = np.diff(a.astype(np.int16))
+            md = np.mean(np.abs(d))
+            steps = np.floor(np.linspace(0, 2048 - 5, num=11)).astype(np.uint32)[[1, 5, 9]]
+            s = np.sort(a)
+            print(md, s[steps])
             sys.stdout.flush()
 
     def dumpline(self, x, y, teletext):

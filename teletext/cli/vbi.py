@@ -93,3 +93,19 @@ def linesplit(chunker, config, progress, output):
     files = [(output / f'{n:02x}.vbi').open("wb") for n in range(config.frame_lines)]
     for number, chunk in chunks:
         files[number % config.frame_lines].write(chunk)
+
+
+@vbi.command()
+@carduser()
+@chunkreader
+@click.argument('output', type=click.Path(), required=True)
+@click.option('--progress/--no-progress', default=True, help='Display progress bar.')
+def cluster(chunker, config, progress, output):
+    """Split VBI file into clusters of similar lines"""
+    import teletext.vbi.clustering
+    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+    if progress:
+        chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
+    output = pathlib.Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+    teletext.vbi.clustering.batch_cluster(chunks, output)
