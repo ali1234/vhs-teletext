@@ -18,7 +18,7 @@ openclctx = cl.create_some_context(interactive=False)
 
 class PatternOpenCL(Pattern):
     prg = cl.Program(openclctx, """
-    __kernel void correlate(global float* input, global float* patterns, global float* result,
+    __kernel void correlate(global float* restrict input, global float* restrict patterns, global float* restrict result,
                             int range_low, int range_high)
     {
       int x = get_global_id(0);
@@ -41,8 +41,8 @@ class PatternOpenCL(Pattern):
     // The temporaries are 40 characters wide
     // Done as a 2D parallel, X is character,
     // Y is npatterns/minpar chunk of correlate results
-    __kernel void minerr1(global float* input,
-                         global float* tmp_val, global int* tmp_idx,
+    __kernel void minerr1(global float* restrict input,
+                         global float* restrict tmp_val, global int* restrict tmp_idx,
                          int npatterns, int minpar)
     {
       int ch = get_global_id(0);
@@ -72,8 +72,8 @@ class PatternOpenCL(Pattern):
     // Each workitem takes one character x minpar values and finds the
     // minimum of the temporary minima and writes the index
     // Done as a 1D parallel over the characters
-    __kernel void minerr2(global float* tmp_val, global int* tmp_idx,
-                          global int* indexes,
+    __kernel void minerr2(global float* restrict tmp_val, global int* restrict tmp_idx,
+                          global int* restrict indexes,
                           int minpar)
     {
       int ch = get_global_id(0);
