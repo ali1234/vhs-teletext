@@ -109,3 +109,13 @@ def cluster(chunker, config, progress, output):
     output = pathlib.Path(output)
     output.mkdir(parents=True, exist_ok=True)
     teletext.vbi.clustering.batch_cluster(chunks, output)
+
+
+@vbi.command()
+@carduser()
+@click.argument('map', type=click.File('rb'), required=True)
+@click.argument('output', type=click.File('wb'), required=True)
+def rendermap(config, map, output):
+    """Render cluster map to image"""
+    import teletext.vbi.clustering
+    teletext.vbi.clustering.rendermap(config, map, output)

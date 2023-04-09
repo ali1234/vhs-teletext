@@ -9,13 +9,13 @@ def cluster(a, clusters=None, steps=None):
     if clusters is None:
         clusters = defaultdict(list)
     if steps is None:
-        steps = np.floor(np.linspace(0, a.shape[1]-5, num=11)).astype(np.uint32)[[1, 5, 9]]
+        steps = np.floor(np.linspace(0, a.shape[1]-5, num=11)).astype(np.uint32)[[1, 5, 10]]
     v = np.empty((a.shape[0], 4), dtype=np.uint8)
     v[:, 0] = np.floor(np.mean(np.abs(np.diff(a.astype(np.int16), axis=1)), axis=1)).astype(np.uint8)
-    v[:, 1:] = np.sort(a, axis=1)[:, steps] >> 4
+    v[:, 1:] = np.diff(np.sort(a, axis=1)[:, steps] >> 4, axis=1, prepend=0)
     for vv, aa in zip(v, a):
         clusters[vv.tobytes()].append(aa)
-    return clusters
+    return v, clusters
 
 
 def batched(iterable, n):
@@ -32,13 +32,32 @@ def batched(iterable, n):
 def batch_cluster(chunks, output):
     output = pathlib.Path(output)
 
-    for batch in batched(chunks, 10000):
-        a = np.stack(list(np.frombuffer(i[1], dtype=np.uint8) for i in batch))
-        clusters = cluster(a)
-        for k, v in clusters.items():
-            p = output / f'{hexlify(k).decode("utf8")}.vbi'
-            with p.open('ab') as f:
-                for l in v:
-                    f.write(l.tobytes())
+    with (output / 'map.bin').open('wb') as mapfile:
 
+        for batch in batched(chunks, 10000):
+            a = np.stack(list(np.frombuffer(i[1], dtype=np.uint8) for i in batch))
+            map, clusters = cluster(a)
+            mapfile.write(map.tobytes())
+            for k, v in clusters.items():
+                p = output / f'{hexlify(k).decode("utf8")}.vbi'
+                with p.open('ab') as f:
+                    for l in v:
+                        f.write(l.tobytes())
+
+
+def rendermap(config, map, output):
+    from PIL import Image
+    import math
+    a = np.fromfile(map, dtype=np.uint8).reshape(-1, config.frame_lines, 4)
+    rows = []
+    frames = 25 * 60
+    for n in range(0, a.shape[0], frames):
+        r = a[n:n+frames]
+        if r.shape[0] < frames:
+            r = np.concatenate([r, np.zeros((frames-r.shape[0], config.frame_lines, 4), dtype=np.uint8)], axis=0)
+        r = np.swapaxes(r, 0, 1)
+        rows.append(r)
+    i = np.concatenate(rows, axis=0) * 20
+    i = Image.fromarray(i[:,:,[0, 2, 3]], mode="YCbCr").convert("RGB")
+    i.save(output)
 
