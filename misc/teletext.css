@@ -1,54 +1,56 @@
-body {background: black;}
+@import url("teletext-noscanlines.css");
 
-a {color: inherit; text-decoration: inherit;}
-a:hover {color: orange;} a:active {color: red;}
-:focus { outline: 0; }
-@font-face {font-family:teletext2; src:url('teletext2.ttf')}
-@font-face {font-family:teletext4; src:url('teletext4.ttf')}
+/* scanlines */
 
 .subpage {
-    position:relative; top:0; left:0;
-    float:left; white-space: pre; color:white;background:black;
-	font-family: teletext2;	font-size:30px; line-height:30px;
-	border: solid black 10px;
-    border-bottom: solid black 20px;
-    text-shadow: 0 0 1.5px;
-    //letter-spacing: -0.25px;
-    //filter:blur(0.5px) brightness(120%);
+    /* This gradient looks worse but can be rendered at 2 (physical) pixels. */
+    --gradient-small: repeating-linear-gradient(
+                            to top,
+                            rgba(0,0,0,0.8) 0px,
+                            transparent 1px,
+                            transparent 2px,
+                            rgba(0,0,0,0.8) 3px
+                        );
+    
+    /* This gradient looks better but can't be rendered at 2 (physical) pixels. */
+    --gradient-big: repeating-linear-gradient(
+                        to top,
+                        rgba(0,0,0,1),
+                        transparent 25%,
+                        transparent 75%,
+                        rgba(0,0,0,1) 100%
+                    );
 }
 
-.subpage:after{
-    content: "";
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    z-index:10;
 
-    background: -webkit-repeating-linear-gradient(
-        top,
-        rgba(0,0,0,0.60) 0px,
-        transparent 1px,
-        transparent 2px,
-        rgba(0,0,0,0.60) 3px
-    );
-
-    background-size: 100% 100%;
-    pointer-events:none;
+/* Small size: 245px x 250px, 1 x 1 scaling */
+@media (max-width: 660px) {
+    .subpage { font-size:10px; }
+    .subpage:after { background-image: none; }
 }
 
-.row {
-    display: flex;
+/* Medium size: 490px x 500px, 2 x 2 scaling, scanlines possible */
+@media (min-width: 660px) and (max-width: 980px) {
+    .subpage { font-size:20px; }
+    .subpage:after{
+        background-size: 2px 2px;
+        background-image: var(--gradient-small);
+    }
+    /* Use the nicer gradient on hidpi/retina displays. */
+    /* This is only necessary when 2x2 scaling. */
+    @media (min-resolution: 2dppx) {
+        .subpage:after{
+            background-image: var(--gradient-big);
+        }
+    }
 }
 
-.f0{color:black;} .f1{color:red;} .f2{color:#00ff00;} .f3{color:yellow;}
-.f4{color:blue;} .f5{color:magenta;} .f6{color:cyan;} .f7{color:white;}
-
-.b0{background:black;} .b1{background:red;} .b2{background:#00ff00;} .b3{background:yellow;}
-.b4{background:blue;} .b5{background:magenta;} .b6{background:cyan;} .b7{background:white;}
-
-.dh{font-family: teletext4; font-size:200%; line-height:100%;}
-
-.fl{text-decoration: blink}
+/* Large size: 735 x 750px, 3 x 3 scaling, scanlines possible */
+@media (min-width: 980px) {
+    .subpage { font-size:30px; }
+    .subpage:after{
+        /* At 3x3 scaling and above, the big gradient looks better. */
+        background-image: var(--gradient-big);
+        background-size: 3px 3px;
+    }
+}
