@@ -100,7 +100,8 @@ def linesplit(chunker, config, progress, output):
 @chunkreader
 @click.argument('output', type=click.Path(), required=True)
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
-def cluster(chunker, config, progress, output):
+@click.option('--prefix', type=str, default="", help='Prefix for cluster file names.')
+def cluster(chunker, config, progress, output, prefix):
     """Split VBI file into clusters of similar lines"""
     import teletext.vbi.clustering
     chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
@@ -108,7 +109,7 @@ def cluster(chunker, config, progress, output):
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
     output = pathlib.Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    teletext.vbi.clustering.batch_cluster(chunks, output)
+    teletext.vbi.clustering.batch_cluster(chunks, output, prefix)
 
 
 @vbi.command()

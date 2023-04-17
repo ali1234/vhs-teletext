@@ -29,17 +29,17 @@ def batched(iterable, n):
         yield batch
 
 
-def batch_cluster(chunks, output):
+def batch_cluster(chunks, output, prefix=""):
     output = pathlib.Path(output)
 
-    with (output / 'map.bin').open('wb') as mapfile:
+    with (output / f'{prefix}map.bin').open('wb') as mapfile:
 
         for batch in batched(chunks, 10000):
             a = np.stack(list(np.frombuffer(i[1], dtype=np.uint8) for i in batch))
             map, clusters = cluster(a)
             mapfile.write(map.tobytes())
             for k, v in clusters.items():
-                p = output / f'{hexlify(k).decode("utf8")}.vbi'
+                p = output / f'{prefix}{hexlify(k).decode("utf8")}.vbi'
                 with p.open('ab') as f:
                     for l in v:
                         f.write(l.tobytes())
@@ -58,6 +58,6 @@ def rendermap(config, map, output):
         r = np.swapaxes(r, 0, 1)
         rows.append(r)
     i = np.concatenate(rows, axis=0) * 20
-    i = Image.fromarray(i[:,:,[0, 2, 3]], mode="YCbCr").convert("RGB")
+    i = Image.fromarray(i[:,:,[0, 2, 3]], mode="RGB")
     i.save(output)
 
