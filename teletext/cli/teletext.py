@@ -125,11 +125,12 @@ def grep(packets, pages, subpages, paginate, regex, v, i, n, keep_empty):
 
 
 @teletext.command(name='list')
+@click.option('-c', '--count', is_flag=True, help='Show counts of each entry.')
 @click.option('-s', '--subpages', is_flag=True, help='Also list subpages.')
 @paginated(always=True, filtered=False)
 @packetreader()
 @progressparams(progress=True, mag_hist=True)
-def _list(packets, subpages):
+def _list(packets, count, subpages):
 
     """List pages present in a t42 stream."""
 
@@ -151,6 +152,12 @@ def _list(packets, subpages):
     except KeyboardInterrupt:
         print('\n')
     finally:
+        if count:
+            maxdigits = len(str(max(seen.values())))
+            formatstr="{page}/{count:0" + str(maxdigits) +"}"
+        else:
+            formatstr="{page}"
+        seen = list(map(lambda e: formatstr.format(page = e[0], count = e[1]), seen.items()))
         print('\n'.join(textwrap.wrap(' '.join(sorted(seen)))))
 
 
