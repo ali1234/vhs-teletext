@@ -137,14 +137,17 @@ def _list(packets, subpages):
 
     packets = (p for p in packets if not p.is_padding())
 
-    seen = set()
+    seen = {}
     try:
         for pl in pipeline.paginate(packets):
             s = Subpage.from_packets(pl)
             identifier = f'{s.mrag.magazine}{s.header.page:02x}'
             if subpages:
                 identifier += f':{s.header.subpage:04x}'
-            seen.add(identifier)
+            if identifier in seen:
+                seen[identifier]+=1
+            else:
+                seen[identifier]=1
     except KeyboardInterrupt:
         print('\n')
     finally:
