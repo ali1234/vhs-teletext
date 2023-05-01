@@ -26,11 +26,12 @@ class PatternOpenCL(Pattern):
       int iidx = x * 8;
       int ridx = (x * get_global_size(1)) + y;
       int pidx = y * 24;
+      float d;
 
       result[ridx] = 0;
 
       for (int i=range_low;i<range_high;i++) {
-        float d = input[iidx+i] - patterns[pidx+i];
+        d = input[iidx+i] - patterns[pidx+i];
         result[ridx] += (d*d);
       }
     }
@@ -55,9 +56,10 @@ class PatternOpenCL(Pattern):
       int inindex = patstart + npatterns*ch;
       int bestidx = patstart;
       float bestval = input[inindex];
+      float val;
 
       for (int p=patstart; p<patend; p++, inindex+=1) {
-        float val = input[inindex];
+        val = input[inindex];
         if (val < bestval) {
           bestval = val;
           bestidx = p;
@@ -82,10 +84,11 @@ class PatternOpenCL(Pattern):
       int iidx = ch;
       int bestidx = tmp_idx[iidx];
       float bestval = tmp_val[iidx];
+      float val;
 
       iidx+=width;
       for (int i=1;i<minpar;i++,iidx+=width) {
-        float val = tmp_val[iidx];
+        val = tmp_val[iidx];
         if (val < bestval) {
           bestidx = tmp_idx[iidx];
           bestval = val;
