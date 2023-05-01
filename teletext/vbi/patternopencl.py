@@ -169,7 +169,12 @@ class PatternOpenCL(Pattern):
         self.result_match = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.n)
 
         # How much to split the min search by vertically
-        self.minpar = 256
+        # DANGER: Heuristic, probably varies by hardware, possibly want to
+        # vary on len(inp) as well and opencl hardware config
+        if self.n > 32768:
+            self.minpar = 1024
+        else:
+            self.minpar = 512
 
         # Temporaries used during parallel min (value and index)
         self.mintmp_val = cl.Buffer(openclctx, mf.HOST_NO_ACCESS, 4*40*self.minpar)
