@@ -172,7 +172,7 @@ class PatternOpenCL(Pattern):
 
 
         # and get the index values back from OpenCL
-        cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min2,))
-
+        e_out = cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min2,))
+        e_out.wait()
         return self.bytes[self.result_minidx_np[:l],0]
 
