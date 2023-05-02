@@ -11,6 +11,7 @@
 
 import numpy as np
 import pyopencl as cl
+import sys
 
 from .pattern import Pattern
 
@@ -144,7 +145,12 @@ class PatternOpenCL(Pattern):
     def __init__(self, filename):
         Pattern.__init__(self, filename)
 
-        self.queue = cl.CommandQueue(openclctx)
+        self.profile = 0
+
+        if self.profile:
+          self.queue = cl.CommandQueue(openclctx, properties = cl.command_queue_properties.PROFILING_ENABLE)
+        else:
+          self.queue = cl.CommandQueue(openclctx)
 
         mf = cl.mem_flags
 
@@ -217,5 +223,18 @@ class PatternOpenCL(Pattern):
         # and get the index values back from OpenCL
         e_out = cl.enqueue_copy(self.queue, self.result_minidx_np, self.result_minidx, wait_for = (e_min2,))
         e_out.wait()
+
+        if self.profile:
+          print('s/e: {}/{} n: {} len: {}  / total: {} Copy: {} correlate: {} min1: {} min2: {} copy-out: {}'.format(
+              self.start, self.end,
+              self.n, len(inp),
+              e_out.profile.end-e_copy.profile.start,
+              e_copy.profile.end-e_copy.profile.start,
+              e_corr.profile.end-e_corr.profile.start,
+              e_min1.profile.end-e_min1.profile.start,
+              e_min2.profile.end-e_min2.profile.start,
+              e_out.profile.end-e_out.profile.start),
+
+              file=sys.stderr)
         return self.bytes[self.result_minidx_np[:l],0]
 
