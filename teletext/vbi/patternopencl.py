@@ -29,9 +29,12 @@ class PatternOpenCL(Pattern):
       float d;
 
       result[ridx] = 0;
+      input+=iidx+range_low;
+      patterns+=pidx+range_low;
+      range_high-=range_low;
 
-      for (int i=range_low;i<range_high;i++) {
-        d = input[iidx+i] - patterns[pidx+i];
+      for (int i=0;i<range_high;i++) {
+        d = input[i] - patterns[i];
         result[ridx] += (d*d);
       }
     }
