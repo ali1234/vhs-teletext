@@ -28,15 +28,23 @@ class PatternOpenCL(Pattern):
       int pidx = y * 24;
       float d;
 
-      result[ridx] = 0;
       input+=iidx+range_low;
       patterns+=pidx+range_low;
       range_high-=range_low;
 
-      for (int i=0;i<range_high;i++) {
-        d = input[i] - patterns[i];
-        result[ridx] += (d*d);
+      int i=0;
+      float res = 0;
+      float4 vd;
+      for (;(i+3)<range_high;i+=4) {
+        vd = vload4(0, input+i) - vload4(0, patterns+i);
+        res += dot(vd, vd);
       }
+
+      for (;i<range_high;i++) {
+        d = input[i] - patterns[i];
+        res += (d*d);
+      }
+      result[ridx] = res;
     }
 
     // Each workitem takes one character x npatterns/minpar values
