@@ -67,13 +67,28 @@ class PatternOpenCL(Pattern):
       int inindex = patstart + npatterns*ch;
       int bestidx = patstart;
       float bestval = input[inindex];
-      float val;
+      float4 vv;
 
-      for (int p=patstart; p<patend; p++, inindex+=1) {
-        val = input[inindex];
-        if (val < bestval) {
-          bestval = val;
-          bestidx = p;
+      for (int p=patstart; (p+3) < patend; p+=4, inindex+=4) {
+        vv = vload4(0, input+inindex);
+        if (any(vv < bestval)) {
+          // Someone is negative, figure out who
+          if (vv.s0 < bestval) {
+            bestidx = p;
+            bestval = vv.s0;
+          }
+          if (vv.s1 < bestval) {
+            bestidx = p+1;
+            bestval = vv.s1;
+          }
+          if (vv.s2 < bestval) {
+            bestidx = p+2;
+            bestval = vv.s2;
+          }
+          if (vv.s3 < bestval) {
+            bestidx = p+3;
+            bestval = vv.s3;
+          }
         }
       }
 
