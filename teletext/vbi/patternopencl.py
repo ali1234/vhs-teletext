@@ -97,14 +97,31 @@ class PatternOpenCL(Pattern):
       float bestval = tmp_val[iidx];
       float val;
 
-      iidx+=width;
-      for (int i=1;i<minpar;i++,iidx+=width) {
-        val = tmp_val[iidx];
-        if (val < bestval) {
-          bestidx = tmp_idx[iidx];
-          bestval = val;
+      int i = 0;
+
+      for (;(i+3)<minpar;i+=4,iidx+=4*width) {
+        float4 vv = (float4)(tmp_val[iidx+0*width], tmp_val[iidx+1*width], tmp_val[iidx+2*width], tmp_val[iidx+3*width]);
+        if (any(vv < bestval)) {
+          // Someone is negative, figure out who
+          if (vv.s0 < bestval) {
+            bestidx = tmp_idx[iidx];
+            bestval = vv.s0;
+          }
+          if (vv.s1 < bestval) {
+            bestidx = tmp_idx[iidx+width];
+            bestval = vv.s1;
+          }
+          if (vv.s2 < bestval) {
+            bestidx = tmp_idx[iidx+2*width];
+            bestval = vv.s2;
+          }
+          if (vv.s3 < bestval) {
+            bestidx = tmp_idx[iidx+3*width];
+            bestval = vv.s3;
+          }
         }
       }
+
       indexes[ch] = bestidx;
     }
     """).build()
