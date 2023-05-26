@@ -15,13 +15,14 @@ def vbi():
 @click.argument('output', type=click.Path(writable=True))
 @click.option('-d', '--diff', is_flag=True, help='User first differential of samples.')
 @click.option('-s', '--show', is_flag=True, help='Show image when complete.')
+@click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
 @chunkreader
-def histogram(output, diff, show, chunker, config):
+def histogram(output, diff, show, chunker, config, n_lines):
     from PIL import Image
     import colorsys
 
-    n_lines = len(list(config.field_range))*2
+    n_lines = n_lines or len(list(config.field_range))*2
     line_length = config.line_length - (1 if diff else 0)
     result = np.zeros((n_lines, 256, line_length), dtype=np.uint32)
     sel = np.arange(line_length)
@@ -109,7 +110,7 @@ def cluster(chunker, config, progress, output, prefix):
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
     output = pathlib.Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    teletext.vbi.clustering.batch_cluster(chunks, output, prefix)
+    teletext.vbi.clustering.batch_cluster(chunks, output, prefix, config.field_lines * 2)
 
 
 @vbi.command()
