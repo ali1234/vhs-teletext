@@ -61,8 +61,16 @@ def histogram(output, diff, show, chunker, config, n_lines):
 @chunkreader
 def plot(chunker, config):
     from teletext.gui.vbiplot import vbiplot
-
     vbiplot(chunker, config)
+
+
+@vbi.command()
+@carduser(extended=True)
+@click.argument('input', type=click.Path(readable=True), required=True)
+@click.argument('sampledir', type=click.Path(writable=True), required=True)
+def classifygui(input, sampledir, config):
+    from teletext.gui.classify import classify_gui
+    classify_gui(input, sampledir, config)
 
 
 @vbi.command()
