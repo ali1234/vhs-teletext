@@ -30,6 +30,10 @@ if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
 
 
+datadir = pathlib.Path(__file__).parent.parent / 'vbi' / 'data'
+tape_formats = [f.name for f in datadir.iterdir() if f.is_dir()]
+
+
 @click.group(invoke_without_command=True, no_args_is_help=True)
 @click.option('-u', '--unicode', is_flag=True, help='Use experimental Unicode 13.0 Terminal graphics.')
 @click.version_option()
@@ -457,7 +461,7 @@ def record(output, device, config):
 
 @teletext.command()
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(tape_formats), default='vhs', help='Source VCR format.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
 @chunkreader
@@ -490,7 +494,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @teletext.command()
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-8', '--eight-bit', is_flag=True, help='Treat rows 1-25 as 8-bit data without parity check.')
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(tape_formats), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable GPU even if it is available.')
 @click.option('-O', '--prefer-opencl', is_flag=True, default=False, help='Use OpenCL even if CUDA is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
