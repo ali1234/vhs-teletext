@@ -21,12 +21,12 @@ class Window(QtWidgets.QMainWindow):
         self.files = []
         for f in self.dir.iterdir():
             if f.is_file() and f.suffix == '.vbi':
-                s = f.stat().st_size // self.config.line_length
+                s = f.stat().st_size // self.config.line_bytes
                 self.files.append((f, s))
             elif f.is_dir():
                 for g in f.iterdir():
                     if g.is_file() and g.suffix == '.vbi':
-                        s = g.stat().st_size // self.config.line_length
+                        s = g.stat().st_size // self.config.line_bytes
                         self.files.append((g, s))
 
         print(len(self.files))

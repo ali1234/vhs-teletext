@@ -114,7 +114,7 @@ def linesplit(chunker, config, progress, output):
 def cluster(chunker, config, progress, output, prefix):
     """Split VBI file into clusters of similar lines"""
     import teletext.vbi.clustering
-    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+    chunks = chunker(config.line_bytes, config.field_lines, config.field_range)
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
     output = pathlib.Path(output)

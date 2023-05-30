@@ -141,3 +141,7 @@ class Config(object):
 
     def __repr__(self):
         return f'{type(self).__name__}: {self.__dict__}'
+
+    @property
+    def line_bytes(self):
+        return self.line_length * np.dtype(self.dtype).itemsize
