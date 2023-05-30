@@ -68,9 +68,10 @@ def plot(chunker, config):
 @carduser(extended=True)
 @click.argument('input', type=click.Path(readable=True), required=True)
 @click.argument('sampledir', type=click.Path(writable=True), required=True)
-def classifygui(input, sampledir, config):
+@click.option('-a', '--auto', is_flag=True)
+def classifygui(input, sampledir, auto, config):
     from teletext.gui.classify import classify_gui
-    classify_gui(input, sampledir, config)
+    classify_gui(input, sampledir, auto, config)
 
 
 @vbi.command()
