@@ -72,7 +72,7 @@ class PatternCUDA(Pattern):
         TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
         EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         */
-        #include <pycuda-complex.hpp>   
+ 
         __global__ void minmax_row_kernel(float* mat, float* target,
                                           unsigned int* idx_target,
                                           unsigned int width,
