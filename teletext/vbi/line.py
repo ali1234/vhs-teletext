@@ -78,9 +78,7 @@ class Line(object):
         self._original /= 256 ** (np.dtype(self.config.dtype).itemsize-1)
         self._original_bytes = data
 
-        resample_tmp = np.empty((self.config.line_length+self.config.resample_pad,), dtype=np.float32)
-        resample_tmp[:self.config.line_length] = self._original
-        resample_tmp[self.config.line_length:] = 0
+        resample_tmp = np.pad(self._original, (0, self.config.resample_pad), 'constant', constant_values=(0,0))
 
         self._resampled = np.pad(resample(resample_tmp, self.config.resample_tgt)[:self.config.resample_size], (0, 64), 'edge')
 
