@@ -1,4 +1,5 @@
 import math
+import pathlib
 
 import numpy as np
 
@@ -145,3 +146,6 @@ class Config(object):
     @property
     def line_bytes(self):
         return self.line_length * np.dtype(self.dtype).itemsize
+
+    __datadir = pathlib.Path(__file__).parent.parent / 'vbi' / 'data'
+    tape_formats = [f.name for f in __datadir.iterdir() if f.is_dir()]

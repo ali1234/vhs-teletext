@@ -22,16 +22,13 @@ from teletext import pipeline
 from teletext.cli.training import training
 from teletext.cli.vbi import vbi
 from teletext.cli.celp import celp
+from teletext.vbi.config import Config
 
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
     import ctypes
     kernel32 = ctypes.windll.kernel32
     kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
-
-
-datadir = pathlib.Path(__file__).parent.parent / 'vbi' / 'data'
-tape_formats = [f.name for f in datadir.iterdir() if f.is_dir()]
 
 
 @click.group(invoke_without_command=True, no_args_is_help=True)
@@ -461,7 +458,7 @@ def record(output, device, config):
 
 @teletext.command()
 @click.option('-p', '--pause', is_flag=True, help='Start the viewer paused.')
-@click.option('-f', '--tape-format', type=click.Choice(tape_formats), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(Config.tape_formats), default='vhs', help='Source VCR format.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
 @chunkreader
@@ -494,7 +491,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @teletext.command()
 @click.option('-M', '--mode', type=click.Choice(['deconvolve', 'slice']), default='deconvolve', help='Deconvolution mode.')
 @click.option('-8', '--eight-bit', is_flag=True, help='Treat rows 1-25 as 8-bit data without parity check.')
-@click.option('-f', '--tape-format', type=click.Choice(tape_formats), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(Config.tape_formats), default='vhs', help='Source VCR format.')
 @click.option('-C', '--force-cpu', is_flag=True, help='Disable GPU even if it is available.')
 @click.option('-O', '--prefer-opencl', is_flag=True, default=False, help='Use OpenCL even if CUDA is available.')
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
