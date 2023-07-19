@@ -342,14 +342,14 @@ def servicedir(directory):
 
 
 @teletext.command()
-@click.argument('input', type=click.File('rb'), default='-')
-@click.option('-p', '--page', 'initial_page', type=str, default='100', help='Initial page.')
-def interactive(input, initial_page):
+@click.option('-i', '--initial_page', 'initial_page', type=str, default='100', help='Initial page.')
+@packetreader(loop=True)
+def interactive(packets, initial_page):
 
     """Interactive teletext emulator."""
 
     from teletext import interactive
-    interactive.main(input, int(initial_page, 16))
+    interactive.main(packets, int(initial_page, 16))
 
 
 @teletext.command()
@@ -461,7 +461,7 @@ def record(output, device, config):
 @click.option('-f', '--tape-format', type=click.Choice(Config.tape_formats), default='vhs', help='Source VCR format.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
-@chunkreader
+@chunkreader()
 def vbiview(chunker, config, pause, tape_format, n_lines):
 
     """Display raw VBI samples with OpenGL."""
@@ -498,7 +498,7 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
 @click.option('-k', '--keep-empty', is_flag=True, help='Insert empty packets in the output when line could not be deconvolved.')
 @carduser(extended=True)
 @packetwriter
-@chunkreader
+@chunkreader()
 @filterparams()
 @paginated()
 @progressparams(progress=True, mag_hist=True)
@@ -553,5 +553,3 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eig
             yield from p
     else:
         yield from packets
-
-

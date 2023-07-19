@@ -17,7 +17,7 @@ def vbi():
 @click.option('-s', '--show', is_flag=True, help='Show image when complete.')
 @click.option('-n', '--n-lines', type=int, default=None, help='Number of lines to display. Overrides card config.')
 @carduser(extended=True)
-@chunkreader
+@chunkreader()
 def histogram(output, diff, show, chunker, config, n_lines):
     from PIL import Image
     import colorsys
@@ -58,7 +58,7 @@ def histogram(output, diff, show, chunker, config, n_lines):
 
 @vbi.command()
 @carduser(extended=True)
-@chunkreader
+@chunkreader()
 def plot(chunker, config):
     from teletext.gui.vbiplot import vbiplot
     vbiplot(chunker, config)
@@ -76,7 +76,7 @@ def classifygui(input, sampledir, auto, config):
 
 @vbi.command()
 @carduser()
-@chunkreader
+@chunkreader()
 @click.argument('output', type=click.File('wb'))
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 def copy(chunker, config, progress, output):
@@ -90,7 +90,7 @@ def copy(chunker, config, progress, output):
 
 @vbi.command()
 @carduser()
-@chunkreader
+@chunkreader()
 @click.argument('output', type=click.Path(), required=True)
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 def linesplit(chunker, config, progress, output):
@@ -107,7 +107,7 @@ def linesplit(chunker, config, progress, output):
 
 @vbi.command()
 @carduser()
-@chunkreader
+@chunkreader()
 @click.argument('output', type=click.Path(), required=True)
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--prefix', type=str, default="", help='Prefix for cluster file names.')

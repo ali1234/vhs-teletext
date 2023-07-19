@@ -196,18 +196,14 @@ class Interactive(object):
             time.sleep(0.01)
 
 
-def main(input, initial_page):
+def main(packets, initial_page):
     locale.setlocale(locale.LC_ALL, '')
 
-    input_dup = os.fdopen(os.dup(input.fileno()), 'rb')
     if os.name == 'nt':
         f = open("CON:", 'r')
     else:
         f = open("/dev/tty", 'r')
     os.dup2(f.fileno(), 0)
-
-    chunks = FileChunker(input_dup, 42, loop=True)
-    packets = (Packet(data, number) for number, data in chunks)
 
     def main(scr):
         Interactive(packets, scr, initial_page=initial_page).main()

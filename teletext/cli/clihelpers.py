@@ -86,39 +86,41 @@ def carduser(extended=False):
     return c
 
 
-def chunkreader(f):
-    @click.argument('input', type=click.File('rb'), default='-')
-    @click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.')
-    @click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.')
-    @click.option('--step', type=int, default=1, help='Process every Nth line from the input file.')
-    @click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.')
-    @wraps(f)
-    def wrapper(input, start, stop, step, limit, *args, **kwargs):
+def chunkreader(loop=False):
+    def cr(f):
+        @click.argument('input', type=click.File('rb'), default='-')
+        @click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.')
+        @click.option('--stop', type=int, default=None, help='Stop before the Nth line of the input file.')
+        @click.option('--step', type=int, default=1, help='Process every Nth line from the input file.')
+        @click.option('--limit', type=int, default=None, help='Stop after processing N lines from the input file.')
+        @wraps(f)
+        def wrapper(input, start, stop, step, limit, *args, **kwargs):
 
-        if input.isatty():
-            raise click.UsageError('No input file and stdin is a tty - exiting.', )
+            if input.isatty():
+                raise click.UsageError('No input file and stdin is a tty - exiting.', )
 
-        if 'progress' in kwargs and kwargs['progress'] is None:
-            if hasattr(input, 'fileno') and stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
-                kwargs['progress'] = False
+            if 'progress' in kwargs and kwargs['progress'] is None:
+                if hasattr(input, 'fileno') and stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
+                    kwargs['progress'] = False
 
-        chunker = lambda size, flines=16, frange=range(0, 16): FileChunker(input, size, start, stop, step, limit, flines, frange)
+            chunker = lambda size, flines=16, frange=range(0, 16): FileChunker(input, size, start, stop, step, limit, flines, frange, loop=loop)
 
-        return f(chunker=chunker, *args, **kwargs)
-    return wrapper
+            return f(chunker=chunker, *args, **kwargs)
+        return wrapper
+    return cr
 
-def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, err_hist=False, pass_progress=False):
+def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, err_hist=False, pass_progress=False, loop=False):
     if filtered == 'data':
         filterdec = dcnparams
     else:
         filterdec = filterparams(filtered)
 
     def pr(f):
-        @chunkreader
+        @chunkreader(loop=loop)
         @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
         @click.option('--ts', type=BasedInt, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
         @filterdec
-        @progressparams(progress=progress, mag_hist=mag_hist, row_hist=row_hist, err_hist=err_hist)
+        @progressparams(progress=(progress and not loop), mag_hist=mag_hist, row_hist=row_hist, err_hist=err_hist)
         @wraps(f)
         def wrapper(chunker, wst, ts, progress, *args, **kwargs):
 

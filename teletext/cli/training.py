@@ -29,7 +29,7 @@ def generate(output):
 @click.argument('outdir', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser(extended=True)
-@chunkreader
+@chunkreader()
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
 def split(chunker, outdir, config, threads, progress, rejects):
@@ -65,7 +65,7 @@ def training_squash(output, indir):
 
 
 @training.command()
-@chunkreader
+@chunkreader()
 def showbin(chunker):
     """Visually display an intermediate training bin."""
     import numpy as np
@@ -118,7 +118,7 @@ def similarities(tape_format):
 @training.command()
 @click.option('-t', '--threads', type=int, default=multiprocessing.cpu_count(), help='Number of threads.')
 @carduser(extended=True)
-@chunkreader
+@chunkreader()
 @click.option('--progress/--no-progress', default=True, help='Display progress bar.')
 @click.option('--rejects/--no-rejects', default=True, help='Display percentage of lines rejected.')
 def crifc(chunker, config, threads, progress, rejects):
