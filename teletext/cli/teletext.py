@@ -319,25 +319,29 @@ def spellcheck(packets, language, both, threads):
 
 
 @teletext.command()
+@click.option('-r', '--replace_headers', 'replace_headers', is_flag=True, default=False, help='Replace headers with a live clock.')
+@click.option('-t', '--title', 'title', type=str, default="Teletext ", help='Replace header title field with this string.')
 @packetwriter
 @paginated(always=True, filtered=False)
 @packetreader()
-def service(packets):
+def service(packets, replace_headers, title):
 
     """Build a service carousel from a t42 stream."""
 
     from teletext.service import Service
-    return Service.from_packets(p for p in packets if  not p.is_padding())
+    return Service.from_packets((p for p in packets if  not p.is_padding()), replace_headers, title)
 
 
 @teletext.command()
+@click.option('-r', '--replace_headers', 'replace_headers', is_flag=True, default=False, help='Replace headers with a live clock.')
+@click.option('-t', '--title', 'title', type=str, default=None, help='Replace header title field with this string.')
 @packetwriter
 @click.argument('directory', type=click.Path(exists=True, readable=True, file_okay=False, dir_okay=True))
-def servicedir(directory):
+def servicedir(directory, replace_headers, title):
     """Build a service from a directory of t42 files."""
 
     from teletext.servicedir import ServiceDir
-    with ServiceDir(directory) as s:
+    with ServiceDir(directory, replace_headers, title) as s:
         yield from s
 
 

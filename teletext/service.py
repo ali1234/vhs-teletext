@@ -31,8 +31,8 @@ class Page(object):
 
 
 class Magazine(object):
-    def __init__(self, title='Unnamed  '):
-        self.title = title
+    def __init__(self, title=None):
+        self.title = title or "Unnamed  "
         self.pages = defaultdict(Page)
         self._iter = self._gen()
 
@@ -59,15 +59,15 @@ class Magazine(object):
 
 
 class Service(object):
-    def __init__(self, replace_headers=False):
-        self.magazines = defaultdict(Magazine)
+    def __init__(self, replace_headers=False, title=None):
+        self.magazines = defaultdict(lambda: Magazine(title=title))
         self.priorities = [1,1,1,1,1,1,1,1]
         self.replace_headers = replace_headers
         self._iter = self._gen()
 
     def header(self, title, mag, page):
         t = datetime.datetime.now()
-        return '%9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
+        return '%-9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
 
     def _gen(self):
         while True:
@@ -101,8 +101,8 @@ class Service(object):
         return set(f'{m}{p:02x}' for m, mag in self.magazines.items() for p, _ in mag.pages.items())
 
     @classmethod
-    def from_packets(cls, packets):
-        svc = cls(replace_headers=False)
+    def from_packets(cls, packets, replace_headers=False, title=None):
+        svc = cls(replace_headers=replace_headers, title=title)
         subpages = (Subpage.from_packets(pl) for pl in pipeline.paginate(packets, drop_empty=True))
 
         for s in subpages:

@@ -17,8 +17,8 @@ class ServiceDir(Service):
     Whenever a file is modified it will be reloaded into the
     service for broadcast in the next loop of the magazine.
     """
-    def __init__(self, directory):
-        super().__init__()
+    def __init__(self, directory, replace_headers, title):
+        super().__init__(replace_headers=replace_headers, title=title)
         self._dir = directory
 
     def file_changed(self, f, deleted=False):
