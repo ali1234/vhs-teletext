@@ -343,7 +343,7 @@ def servicedir(directory):
 
 @teletext.command()
 @click.option('-i', '--initial_page', 'initial_page', type=str, default='100', help='Initial page.')
-@packetreader(loop=True)
+@packetreader(loop=True, dup_stdin=True)
 def interactive(packets, initial_page):
 
     """Interactive teletext emulator."""

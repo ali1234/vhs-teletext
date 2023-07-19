@@ -86,7 +86,7 @@ def carduser(extended=False):
     return c
 
 
-def chunkreader(loop=False):
+def chunkreader(loop=False, dup_stdin=False):
     def cr(f):
         @click.argument('input', type=click.File('rb'), default='-')
         @click.option('--start', type=int, default=0, help='Start at the Nth line of the input file.')
@@ -103,20 +103,20 @@ def chunkreader(loop=False):
                 if hasattr(input, 'fileno') and stat.S_ISFIFO(os.fstat(input.fileno()).st_mode):
                     kwargs['progress'] = False
 
-            chunker = lambda size, flines=16, frange=range(0, 16): FileChunker(input, size, start, stop, step, limit, flines, frange, loop=loop)
+            chunker = lambda size, flines=16, frange=range(0, 16): FileChunker(input, size, start, stop, step, limit, flines, frange, loop=loop, dup_stdin=dup_stdin)
 
             return f(chunker=chunker, *args, **kwargs)
         return wrapper
     return cr
 
-def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, err_hist=False, pass_progress=False, loop=False):
+def packetreader(filtered=True, progress=True, mag_hist=False, row_hist=False, err_hist=False, pass_progress=False, loop=False, dup_stdin=False):
     if filtered == 'data':
         filterdec = dcnparams
     else:
         filterdec = filterparams(filtered)
 
     def pr(f):
-        @chunkreader(loop=loop)
+        @chunkreader(loop=loop, dup_stdin=dup_stdin)
         @click.option('--wst', is_flag=True, default=False, help='Input is 43 bytes per packet (WST capture card format.)')
         @click.option('--ts', type=BasedInt, default=None, help='Input is MPEG transport stream. (Specify PID to extract.)')
         @filterdec
