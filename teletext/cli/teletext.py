@@ -353,6 +353,33 @@ def interactive(packets, initial_page):
 
 
 @teletext.command()
+@packetreader(loop=True)
+@click.option('-p', '--port', type=str, default=None)
+def serial(packets, port):
+
+    """Write escaped packets to serial inserter."""
+
+    import serial.tools.list_ports
+
+    if port is None:
+        for comport in serial.tools.list_ports.comports():
+            if comport.vid == 0x2e8a and comport.pid == 0x000a:
+                port = comport.device
+
+    if port is None:
+        raise click.UsageError('No serial inserter found. Specify the path with -p')
+
+    port = serial.Serial(port, timeout=0, rtscts=True)
+
+    for p in packets:
+        buf = p.bytes
+        buf = buf.replace(b'\xfe', b'\xfe\x00')
+        buf = buf.replace(b'\xff', b'\xfe\x01')
+        buf = b'\xff' + buf
+        port.write(buf)
+
+
+@teletext.command()
 @click.option('-e', '--editor', type=str, default='https://zxnet.co.uk/teletext/editor/#',
               show_default=True, help='Teletext editor URL.')
 @paginated(always=True)
