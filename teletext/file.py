@@ -66,7 +66,7 @@ def FileChunker(f, size, start=0, stop=None, step=1, limit=None, flines=16, fran
     seekable = False
     try:
         if hasattr(f, 'fileno') and stat.S_ISFIFO(os.fstat(f.fileno()).st_mode):
-            if dup_stdin and os.name == 'nt' and f.fileno() == 0:
+            if dup_stdin and f.fileno() == 0:
                 f = os.fdopen(os.dup(f.fileno()), 'rb')
             raise io.UnsupportedOperation
 
