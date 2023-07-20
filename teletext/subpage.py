@@ -19,9 +19,10 @@ class Subpage(Element):
             self._numbers = numbers
 
         if prefill:
-            for i in range(1, 25):
+            for i in range(0, 25):
                 self.packet(i).mrag.row = i
                 self._numbers[i] = -1
+            self.header.displayable[:] = 0x20
             self.displayable[:] = 0x20
 
         self.duplicates = []
@@ -76,7 +77,7 @@ class Subpage(Element):
         '''Calculates the actual checksum of the subpage.'''
         c = 0
         if self.has_packet(0):
-            for b in self.header.displayable:
+            for b in self.header.displayable[:24]:
                 c = crc(b, c)
         else:
             for b in [0x20] * 24:
