@@ -11,7 +11,7 @@ from .file import FileChunker
 
 class Subpage(Element):
 
-    def __init__(self, array=None, numbers=None, prefill=False):
+    def __init__(self, array=None, numbers=None, prefill=False, magazine=1):
         super().__init__((26 + (3*16), 42), array)
         if numbers is None:
             self._numbers = np.full((26 + (3*16),), fill_value=-100, dtype=np.int64)
@@ -20,8 +20,10 @@ class Subpage(Element):
 
         if prefill:
             for i in range(0, 25):
-                self.init_packet(i)
+                self.init_packet(i, 0, magazine)
             self.header.displayable[:] = 0x20
+            self.header.subpage = 0
+            self.header.control = 1<<0 # erase
             self.displayable[:] = 0x20
 
         self.duplicates = []
@@ -45,8 +47,9 @@ class Subpage(Element):
     def has_packet(self, row, dc=0):
         return self._numbers[self._slot(row, dc)] > -100
 
-    def init_packet(self, row, dc=0):
+    def init_packet(self, row, dc=0, magazine=1):
         self.packet(row, dc).mrag.row = row
+        self.packet(row, dc).mrag.magazine = magazine
         self._numbers[self._slot(row, dc)] = -1
 
     def packet(self, row, dc=0):
