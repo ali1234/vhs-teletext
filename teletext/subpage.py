@@ -20,8 +20,7 @@ class Subpage(Element):
 
         if prefill:
             for i in range(0, 25):
-                self.packet(i).mrag.row = i
-                self._numbers[i] = -1
+                self.init_packet(i)
             self.header.displayable[:] = 0x20
             self.displayable[:] = 0x20
 
@@ -37,20 +36,25 @@ class Subpage(Element):
     def numbers(self):
         return self._numbers[:]
 
-    def number(self, row, dc=0):
+    def _slot(self, row, dc):
         if row < 26:
-            return self._numbers[row]
+            return row
         else:
-            return self._numbers[((row-26)*16)+26+dc]
-
-    def packet(self, row, dc=0):
-        if row < 26:
-            return Packet(self._array[row, :])
-        else:
-            return Packet(self._array[((row-26)*16)+26+dc, :])
+            return ((row-26)*16)+26+dc
 
     def has_packet(self, row, dc=0):
-        return self.number(row, dc) > -100
+        return self._numbers[self._slot(row, dc)] > -100
+
+    def init_packet(self, row, dc=0):
+        self.packet(row, dc).mrag.row = row
+        self._numbers[self._slot(row, dc)] = -1
+
+    def packet(self, row, dc=0):
+        try:
+            return Packet(self._array[self._slot(row, dc), :])
+        except IndexError:
+            print(row, dc)
+            raise
 
     @property
     def mrag(self):
@@ -80,16 +84,16 @@ class Subpage(Element):
             for b in self.header.displayable[:24]:
                 c = crc(b, c)
         else:
-            for b in [0x20] * 24:
-                c = crc(b, c)
+            for n in range(24):
+                c = crc(0x20, c)
 
         for r in range(1, 26):
             if self.has_packet(r):
-                for b in self.packet(r)[2:]:
+                for b in self.packet(r).displayable:
                     c = crc(b, c)
             else:
-                for b in [0x20] * 40:
-                    c = crc(b, c)
+                for n in range(40):
+                    c = crc(0x20, c)
 
         return c
 
@@ -102,20 +106,18 @@ class Subpage(Element):
         s = cls()
 
         for p in packets:
-            i = None
-            r = p.mrag.row
-            if r < 26:
-                i = r
-            elif r < 29:
-                i = ((r - 26)*16) + p.dc.dc + 26
-            if i is not None:
-                if ignore_empty and s._numbers[i] > -100:
-                    # we've already seen this packet
-                    # if the new one is closer to all spaces than the old one, skip it
-                    if np.sum(s._array[i, :] == 0x80) < np.sum(p[:] == 0x80):
-                        continue
-                s._array[i, :] = p[:]
-                s._numbers[i] = -1 if p.number is None else p.number
+            row = p.mrag.row
+            if row >= 29:
+                continue
+            dc = 0 if row < 26 else p.dc.dc
+            i = s._slot(row, dc)
+            if ignore_empty and s._numbers[i] > -100:
+                # we've already seen this packet
+                # if the new one is closer to all spaces than the old one, skip it
+                if np.sum(s._array[i, :] == 0x80) < np.sum(p[:] == 0x80):
+                    continue
+            s._array[i, :] = p[:]
+            s._numbers[i] = -1 if p.number is None else p.number
         return s
 
     @classmethod

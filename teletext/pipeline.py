@@ -89,8 +89,8 @@ def subpage_squash(packet_lists, threshold=-1, min_duplicates=3, ignore_empty=Fa
             for row in range(29):
                 if row in [26, 27, 28]:
                     for dc in range(16):
-                        if s.number(row, dc) > -100:
-                            packets = [sp.packet(row, dc) for sp in splist if sp.number(row, dc) > -100]
+                        if s.has_packet(row, dc):
+                            packets = [sp.packet(row, dc) for sp in splist if sp.has_packet(row, dc)]
                             arr = np.stack([p[3:] for p in packets])
                             s.packet(row, dc)[:3] = packets[0][:3]
                             if row == 27:
@@ -103,8 +103,8 @@ def subpage_squash(packet_lists, threshold=-1, min_duplicates=3, ignore_empty=Fa
                                 s.packet(row, dc)[4::3] = (result >> 8) & 0xff
                                 s.packet(row, dc)[5::3] = (result >> 16) & 0xff
                 else:
-                    if s.number(row) > -100:
-                        packets = [sp.packet(row) for sp in splist if sp.number(row) > -100]
+                    if s.has_packet(row):
+                        packets = [sp.packet(row) for sp in splist if sp.has_packet(row)]
                         arr = np.stack([p[2:] for p in packets])
                         s.packet(row)[:2] = packets[0][:2]
                         s.packet(row)[2:] = mode(arr, axis=0)[0][0].astype(np.uint8)
