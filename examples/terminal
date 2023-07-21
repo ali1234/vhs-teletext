@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+
+"""
+Runs a command in a simulated terminal and outputs a t42 packet stream on page 100.
+
+examples/terminal "top" | teletext interactive
+"""
+
+import asyncio
+import datetime
+import os
+import pty
+import shlex
+import socket
+import sys
+
+import pyte
+
+from teletext.subpage import Subpage
+
+
+class Terminal:
+    def __init__(self, columns, lines, p_in):
+        self.screen = pyte.Screen(columns, lines)
+        self.screen.set_mode(pyte.modes.LNM)
+        self.screen.write_process_input = lambda data: p_in.write(data.encode())
+        self.stream = pyte.ByteStream()
+        self.stream.attach(self.screen)
+
+    def feed(self, data):
+        self.stream.feed(data)
+
+    def lines(self, all):
+        cursor = self.screen.cursor
+        lines = []
+        r = range(len(self.screen.buffer)) if all else self.screen.dirty
+        for y in r:
+            line = self.screen.buffer[y]
+            data = ''.join(char.data for char in (line[x] for x in range(self.screen.columns)))
+            lines.append((y, data))
+        self.screen.dirty.clear()
+        return lines
+
+    @classmethod
+    def open(cls, command="bash", columns=40, lines=25):
+        p_pid, master_fd = pty.fork()
+        if p_pid == 0:  # Child.
+            argv = shlex.split(command)
+            env = dict(TERM="linux", LC_ALL="en_GB.UTF-8",
+                       COLUMNS=str(columns), LINES=str(lines))
+            os.execvpe(argv[0], argv, env)
+
+        # File-like object for I/O with the child process aka command.
+        p_out = os.fdopen(master_fd, "w+b", 0)
+        return Terminal(columns, lines, p_out), p_pid, p_out
+
+
+terminal, p_pid, p_out = Terminal.open(command=sys.argv[1])
+
+hostname = socket.gethostname()[:12]
+
+def generate(all):
+    """Convert the terminal lines to a Teletext page."""
+    page = Subpage()
+    page.init_packet(0, magazine=1)
+    page.header.control = 1<<4
+    page.header.page = 0
+    page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
+    for l, c in terminal.lines(all):
+        #sys.stderr.write(f'{l} {c}\n')
+        page.init_packet(l+1, magazine=1)
+        page.packet(l+1).displayable.place_string(c)
+    for p in page.packets:
+        sys.stdout.buffer.write(p.to_bytes())
+    sys.stdout.buffer.flush()
+
+
+def on_master_output():
+    """Generate a page with only the lines that have changed as fast as possible."""
+    terminal.feed(p_out.read(65535))
+    generate(all=False)
+
+
+async def refresh():
+    """Generate a full page at fixed intervals."""
+    while True:
+        generate(all=True)
+        await asyncio.sleep(0.5)
+
+
+loop = asyncio.get_event_loop()
+loop.add_reader(p_out, on_master_output)
+loop.create_task(refresh())
+loop.run_forever()
