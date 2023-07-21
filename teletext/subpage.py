@@ -165,7 +165,7 @@ class Subpage(Element):
         parts.append(base64.urlsafe_b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit).decode('ascii').rstrip('='))
         parts.append(f'PN={self.mrag.magazine}{self.header.page:02x}')
         c = self.header.control
-        parts.append(f'PS={(c>>1) | ((c&1)<<13):x}')
+        parts.append(f'PS={(c>>1) | ((c&1)<<14):x}')
         parts.append(f'SC={self.header.subpage:x}')
         if self.has_packet(25):
             parts.append('X25=' + base64.urlsafe_b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit).decode('ascii').rstrip('='))
