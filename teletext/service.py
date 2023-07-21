@@ -75,8 +75,11 @@ class Service(object):
                 for count in range(self.priorities[n&0x7]):
                     packet = next(m)
                     packet.mrag.magazine = n
-                    if self.replace_headers and packet.type == 'header':
-                        packet.header.displayable.place_string(self.header(m.title, n, packet.header.page))
+                    if packet.type == 'header':
+                        packet = Packet(packet._array)
+                        packet.header.control &= 0x77f # clear magazine serial
+                        if self.replace_headers:
+                            packet.header.displayable.place_string(self.header(m.title, n, packet.header.page))
                     yield packet
 
     def __iter__(self):

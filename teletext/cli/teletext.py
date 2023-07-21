@@ -364,6 +364,7 @@ def serial(packets, port):
     """Write escaped packets to serial inserter."""
 
     import serial.tools.list_ports
+    import time
 
     if port is None:
         for comport in serial.tools.list_ports.comports():
