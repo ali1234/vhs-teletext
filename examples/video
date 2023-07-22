@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+import datetime
+import socket
+import sys
+
+import click
+import cv2
+import numpy as np
+import srt
+
+from teletext.subpage import Subpage
+from teletext.coding import parity_encode
+
+@click.command()
+@click.argument('videofile', type=click.Path(readable=True))
+@click.option('-s', '--subs', type=click.File('r'), help="Subtitle file (srt)")
+@click.option('--start', type=int, default=0, help="Start at frame N")
+@click.option('--end', type=int, default=None, help="End at frame N")
+def video(videofile, subs, start, end):
+    hostname = socket.gethostname()[:12]
+
+    # Set up page
+    page = Subpage(prefill=True)
+    page.init_packet(0, magazine=1)
+    page.header.control = 1<<4
+    page.header.page = 0
+
+    # Creating a VideoCapture object to read the video
+    cap = cv2.VideoCapture(videofile)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, start)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frameno = start
+
+    if subs:
+        subs = srt.parse(subs.read())
+
+    sub = next(subs)
+
+    # Loop until the end of the video
+    while (cap.isOpened() and (end is None or frameno <= end)):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        frameno += 1
+
+        frame = cv2.resize(frame, (39*2, 24*3), fx = 0, fy = 0,
+                             interpolation = cv2.INTER_CUBIC)
+
+
+        # conversion of BGR to grayscale is necessary to apply this operation
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # adaptive thresholding to use different threshold
+        # values on different regions of the frame.
+        thresha = cv2.adaptiveThreshold(gray, 1, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                               cv2.THRESH_BINARY, 3, 2)
+
+        threshb = cv2.threshold(gray, 16, 255, cv2.THRESH_BINARY)[1]
+
+        thresh = (thresha * threshb) > 0
+        thresh = thresh.reshape(24, 3, 39, 2).swapaxes(1, 2).reshape(24, 39, 6)
+        thresh = np.packbits(thresh, axis=2, bitorder="little").reshape(24, 39)
+        thresh = thresh + ((thresh >= 0x20) * 0x20) + 0x20
+
+        page.displayable[:, 0] = parity_encode(0x17)
+        page.displayable[:, 1:] = parity_encode(thresh)
+
+
+        page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
+
+        seconds = datetime.timedelta(seconds = frameno / fps)
+        while seconds > sub.end:
+            sub = next(subs)
+        if seconds >= sub.start:
+            x = sub.content.split('\n')
+            w = len(max(x, key=len))
+            o = max(min(38 - w, 2), 0)
+            for n, l in enumerate(x):
+                page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
+
+        for p in page.packets:
+            sys.stdout.buffer.write(p.to_bytes())
+        sys.stdout.buffer.flush()
+
+    # release the video capture object
+    cap.release()
+
+if __name__ == '__main__':
+    video()
