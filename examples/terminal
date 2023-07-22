@@ -42,7 +42,7 @@ class Terminal:
         return lines
 
     @classmethod
-    def open(cls, command="bash", columns=40, lines=25):
+    def open(cls, command="bash", columns=40, lines=24):
         p_pid, master_fd = pty.fork()
         if p_pid == 0:  # Child.
             argv = shlex.split(command)
