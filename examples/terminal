@@ -56,6 +56,7 @@ class Terminal:
 
 
 terminal, p_pid, p_out = Terminal.open(command=sys.argv[1])
+complete = False
 
 hostname = socket.gethostname()[:12]
 
@@ -77,18 +78,24 @@ def generate(all):
 
 def on_master_output():
     """Generate a page with only the lines that have changed as fast as possible."""
-    terminal.feed(p_out.read(65535))
-    generate(all=False)
+    global complete
+    try:
+        terminal.feed(p_out.read(65535))
+        generate(all=False)
+    except OSError:
+        complete = True
+    except Exception:
+        complete = True
+        raise
 
 
 async def refresh():
     """Generate a full page at fixed intervals."""
-    while True:
+    while not complete:
         generate(all=True)
         await asyncio.sleep(0.5)
 
 
 loop = asyncio.get_event_loop()
 loop.add_reader(p_out, on_master_output)
-loop.create_task(refresh())
-loop.run_forever()
+loop.run_until_complete(refresh())
