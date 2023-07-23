@@ -6,11 +6,9 @@ import sys
 
 import click
 import cv2
-import numpy as np
 import srt
 
 from teletext.subpage import Subpage
-from teletext.coding import parity_encode
 
 @click.command()
 @click.argument('videofile', type=click.Path(readable=True))
@@ -45,7 +43,6 @@ def video(videofile, subs, start, end):
         frame = cv2.resize(frame, (39*2, 24*3), fx = 0, fy = 0,
                              interpolation = cv2.INTER_CUBIC)
 
-
         # conversion of BGR to grayscale is necessary to apply this operation
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -53,19 +50,11 @@ def video(videofile, subs, start, end):
         # values on different regions of the frame.
         thresha = cv2.adaptiveThreshold(gray, 1, cv2.ADAPTIVE_THRESH_MEAN_C,
                                                cv2.THRESH_BINARY, 3, 2)
-
         threshb = cv2.threshold(gray, 16, 255, cv2.THRESH_BINARY)[1]
-
         thresh = (thresha * threshb) > 0
-        thresh = thresh.reshape(24, 3, 39, 2).swapaxes(1, 2).reshape(24, 39, 6)
-        thresh = np.packbits(thresh, axis=2, bitorder="little").reshape(24, 39)
-        thresh = thresh + ((thresh >= 0x20) * 0x20) + 0x20
-
-        page.displayable[:, 0] = parity_encode(0x17)
-        page.displayable[:, 1:] = parity_encode(thresh)
-
 
         page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
+        page.displayable.place_bitmap(thresh)
 
         if subs:
             seconds = datetime.timedelta(seconds = frameno / fps)

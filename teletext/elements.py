@@ -104,6 +104,16 @@ class Displayable(ElementParity):
         else:
             self._array[y, x:x + a.shape[0]] = parity_encode(a)
 
+    def place_bitmap(self, bitmap, x=1, y=0, colour=0x17):
+        yp, xp = bitmap.shape
+        yc = yp // 3
+        xc = xp // 2
+        mosaic = bitmap.reshape(yc, 3, xc, 2).swapaxes(1, 2).reshape(yc, xc, 6)
+        mosaic = np.packbits(mosaic, axis=2, bitorder="little").reshape(yc, xc)
+        mosaic = mosaic + ((mosaic >= 0x20) * 0x20) + 0x20
+        self._array[y:y+yc, x-1] = parity_encode(colour)
+        self._array[y:y+yc, x:x+xc] = parity_encode(mosaic)
+
     def to_ansi(self, colour=True):
         if len(self._array.shape) == 1:
             return str(PrinterANSI(self._array, colour))
