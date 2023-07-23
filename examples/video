@@ -34,8 +34,7 @@ def video(videofile, subs, start, end):
 
     if subs:
         subs = srt.parse(subs.read())
-
-    sub = next(subs)
+        sub = next(subs)
 
     # Loop until the end of the video
     while (cap.isOpened() and (end is None or frameno <= end)):
@@ -68,15 +67,16 @@ def video(videofile, subs, start, end):
 
         page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
 
-        seconds = datetime.timedelta(seconds = frameno / fps)
-        while seconds > sub.end:
-            sub = next(subs)
-        if seconds >= sub.start:
-            x = sub.content.split('\n')
-            w = len(max(x, key=len))
-            o = max(min(38 - w, 2), 0)
-            for n, l in enumerate(x):
-                page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
+        if subs:
+            seconds = datetime.timedelta(seconds = frameno / fps)
+            while seconds > sub.end:
+                sub = next(subs)
+            if seconds >= sub.start:
+                x = sub.content.split('\n')
+                w = len(max(x, key=len))
+                o = max(min(38 - w, 2), 0)
+                for n, l in enumerate(x):
+                    page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
 
         for p in page.packets:
             sys.stdout.buffer.write(p.to_bytes())
