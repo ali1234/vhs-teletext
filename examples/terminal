@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-"""
-Runs a command in a simulated terminal and outputs a t42 packet stream on page 100.
-
-examples/terminal "top" | teletext interactive
-"""
-
 import asyncio
 import datetime
 import os
@@ -14,21 +8,22 @@ import shlex
 import socket
 import sys
 
+import click
 import pyte
 
 from teletext.subpage import Subpage
 
 
 class Terminal:
-    def __init__(self, columns, lines, p_in):
+    def __init__(self, columns, lines, p_fd):
+        self.p_fd = p_fd
         self.screen = pyte.Screen(columns, lines)
         self.screen.set_mode(pyte.modes.LNM)
-        self.screen.write_process_input = lambda data: p_in.write(data.encode())
+        self.screen.write_process_input = lambda data: self.p_fd.write(data.encode())
         self.stream = pyte.ByteStream()
         self.stream.attach(self.screen)
-
-    def feed(self, data):
-        self.stream.feed(data)
+        self.hostname = socket.gethostname()[:12]
+        self.complete=False
 
     def lines(self, all):
         cursor = self.screen.cursor
@@ -54,48 +49,50 @@ class Terminal:
         p_out = os.fdopen(master_fd, "w+b", 0)
         return Terminal(columns, lines, p_out), p_pid, p_out
 
+    def generate(self, all):
+        """Convert the terminal lines to a Teletext page."""
+        page = Subpage()
+        page.init_packet(0, magazine=1)
+        page.header.control = 1<<4
+        page.header.page = 0
+        page.header.displayable.place_string('%-12s' % (self.hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
+        for l, c in self.lines(all):
+            #sys.stderr.write(f'{l} {c}\n')
+            page.init_packet(l+1, magazine=1)
+            page.packet(l+1).displayable.place_string(c)
+        for p in page.packets:
+            sys.stdout.buffer.write(p.to_bytes())
+        sys.stdout.buffer.flush()
 
-terminal, p_pid, p_out = Terminal.open(command=sys.argv[1])
-complete = False
+    def on_master_output(self):
+        """Generate a page with only the lines that have changed as fast as possible."""
+        try:
+            self.stream.feed(self.p_fd.read(65535))
+            self.generate(all=False)
+        except OSError:
+            self.complete = True
+        except Exception:
+            self.complete = True
+            raise
 
-hostname = socket.gethostname()[:12]
-
-def generate(all):
-    """Convert the terminal lines to a Teletext page."""
-    page = Subpage()
-    page.init_packet(0, magazine=1)
-    page.header.control = 1<<4
-    page.header.page = 0
-    page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
-    for l, c in terminal.lines(all):
-        #sys.stderr.write(f'{l} {c}\n')
-        page.init_packet(l+1, magazine=1)
-        page.packet(l+1).displayable.place_string(c)
-    for p in page.packets:
-        sys.stdout.buffer.write(p.to_bytes())
-    sys.stdout.buffer.flush()
-
-
-def on_master_output():
-    """Generate a page with only the lines that have changed as fast as possible."""
-    global complete
-    try:
-        terminal.feed(p_out.read(65535))
-        generate(all=False)
-    except OSError:
-        complete = True
-    except Exception:
-        complete = True
-        raise
+    async def refresh(self):
+        """Generate a full page at fixed intervals."""
+        while not self.complete:
+            self.generate(all=True)
+            await asyncio.sleep(0.5)
 
 
-async def refresh():
-    """Generate a full page at fixed intervals."""
-    while not complete:
-        generate(all=True)
-        await asyncio.sleep(0.5)
+@click.command()
+@click.argument("command", type=str)
+def terminal(command):
+    """
+    Runs a command in a simulated terminal and outputs a t42 packet stream on page 100.
+    """
+    term, p_pid, p_out = Terminal.open(command=command)
+    loop = asyncio.get_event_loop()
+    loop.add_reader(p_out, term.on_master_output)
+    loop.run_until_complete(term.refresh())
 
 
-loop = asyncio.get_event_loop()
-loop.add_reader(p_out, on_master_output)
-loop.run_until_complete(refresh())
+if __name__ == '__main__':
+    terminal()
