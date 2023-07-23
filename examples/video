@@ -7,8 +7,9 @@ import click
 import cv2
 import srt
 
-from teletext.subpage import Subpage
 from teletext.cli.clihelpers import packetwriter
+from teletext.subpage import Subpage
+
 
 @click.command()
 @click.argument('videofile', type=click.Path(readable=True))
@@ -17,6 +18,11 @@ from teletext.cli.clihelpers import packetwriter
 @click.option('--end', type=int, default=None, help="End at frame N")
 @packetwriter
 def video(videofile, subs, start, end):
+    """
+    Converts a video into a page stream. Also supports SRT subtitles.
+    Can set a start and end position in frames. Also works with images
+    because OpenCV treats them as videos with one frame.
+    """
     hostname = socket.gethostname()[:12]
 
     # Set up page
