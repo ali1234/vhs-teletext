@@ -106,6 +106,11 @@ class Displayable(ElementParity):
 
     def place_bitmap(self, bitmap, x=1, y=0, colour=0x17):
         yp, xp = bitmap.shape
+        yr = yp % 3
+        xr = xp % 2
+        if yr or xr:
+            bitmap = np.pad(bitmap, ((0, (3-yr)%3), (0, (2-xr)%2)))
+            yp, xp = bitmap.shape
         yc = yp // 3
         xc = xp // 2
         mosaic = bitmap.reshape(yc, 3, xc, 2).swapaxes(1, 2).reshape(yc, xc, 6)
