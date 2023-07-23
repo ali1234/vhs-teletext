@@ -9,12 +9,14 @@ import cv2
 import srt
 
 from teletext.subpage import Subpage
+from teletext.cli.clihelpers import packetwriter
 
 @click.command()
 @click.argument('videofile', type=click.Path(readable=True))
 @click.option('-s', '--subs', type=click.File('r'), help="Subtitle file (srt)")
 @click.option('--start', type=int, default=0, help="Start at frame N")
 @click.option('--end', type=int, default=None, help="End at frame N")
+@packetwriter
 def video(videofile, subs, start, end):
     hostname = socket.gethostname()[:12]
 
@@ -67,9 +69,7 @@ def video(videofile, subs, start, end):
                 for n, l in enumerate(x):
                     page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
 
-        for p in page.packets:
-            sys.stdout.buffer.write(p.to_bytes())
-        sys.stdout.buffer.flush()
+        yield from page.packets
 
     # release the video capture object
     cap.release()
