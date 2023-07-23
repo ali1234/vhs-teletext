@@ -2,7 +2,6 @@
 
 import datetime
 import socket
-import sys
 
 import click
 import cv2
@@ -32,6 +31,7 @@ def video(videofile, subs, start, end):
     fps = cap.get(cv2.CAP_PROP_FPS)
     frameno = start
 
+    sub = None
     if subs:
         subs = srt.parse(subs.read())
         sub = next(subs)
@@ -40,6 +40,9 @@ def video(videofile, subs, start, end):
     while (cap.isOpened() and (end is None or frameno <= end)):
         # Capture frame-by-frame
         ret, frame = cap.read()
+        if not ret: # eof
+            break
+
         frameno += 1
 
         frame = cv2.resize(frame, (39*2, 24*3), fx = 0, fy = 0,
@@ -55,19 +58,23 @@ def video(videofile, subs, start, end):
         threshb = cv2.threshold(gray, 16, 255, cv2.THRESH_BINARY)[1]
         thresh = (thresha * threshb) > 0
 
-        page.header.displayable.place_string('%-12s' % (hostname) + datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S"))
+        dt = datetime.datetime.now().strftime(" %a %d %b\x03%H:%M/%S")
+        page.header.displayable.place_string('%-12s' % (hostname) + dt)
         page.displayable.place_bitmap(thresh)
 
-        if subs:
+        if sub:
             seconds = datetime.timedelta(seconds = frameno / fps)
-            while seconds > sub.end:
-                sub = next(subs)
-            if seconds >= sub.start:
-                x = sub.content.split('\n')
-                w = len(max(x, key=len))
-                o = max(min(38 - w, 2), 0)
-                for n, l in enumerate(x):
-                    page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
+            try:
+                while seconds > sub.end:
+                    sub = next(subs)
+                if sub and seconds >= sub.start:
+                    x = sub.content.split('\n')
+                    w = len(max(x, key=len))
+                    o = max(min(38 - w, 2), 0)
+                    for n, l in enumerate(x):
+                        page.packet(n+21).displayable.place_string(('\x06' + l + '\x17')[:(40-o)], x=o)
+            except StopIteration:
+                sub = None
 
         yield from page.packets
 
