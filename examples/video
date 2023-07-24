@@ -26,10 +26,13 @@ def video(videofile, subs, start, end):
     hostname = socket.gethostname()[:12]
 
     # Set up page
-    page = Subpage(prefill=True)
-    page.init_packet(0, magazine=1)
+    page = Subpage(prefill=True, magazine=1)
     page.header.control = 1<<4
     page.header.page = 0
+    # init fastext so we can use row 24
+    page.init_packet(27, magazine=1)
+    page.packet(27).fastext.dc = 0
+    page.packet(27).fastext.control = 0xf
 
     # Creating a VideoCapture object to read the video
     cap = cv2.VideoCapture(videofile)
