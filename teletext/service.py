@@ -69,6 +69,9 @@ class Service(object):
         t = datetime.datetime.now()
         return '%-9s%1d%02x' % (title, mag, page) + t.strftime(" %a %d %b\x03%H:%M/%S")
 
+    def insert_page(self, page):
+        self.magazines[page.mrag.magazine].pages[page.header.page].subpages[page.header.subpage] = page
+
     def _gen(self):
         while True:
             for n,m in sorted(self.magazines.items()):
