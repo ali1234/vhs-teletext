@@ -31,7 +31,7 @@ setup(
         ],
     },
     install_requires=[
-        'numpy', 'scipy', 'matplotlib', 'click', 'tqdm',  'pyzmq', 'watchdog', 'spectrum', 'miniaudio', 'pyserial',
+        'numpy', 'scipy', 'matplotlib', 'click', 'tqdm',  'pyzmq', 'watchdog', 'pyserial',
         'windows-curses;platform_system=="Windows"',
     ],
     extras_require={
@@ -41,5 +41,6 @@ setup(
         'viewer': ['PyOpenGL'],
         'profiler': ['plop'],
         'qt': ['PyQt5'],
+        'audio': ['spectrum', 'miniaudio'],
     }
 )
