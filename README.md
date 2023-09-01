@@ -13,7 +13,7 @@ https://al.zerostem.io/~al/teletext/
 
 And more at:
 
-http://archive.teletextarchaeologist.org
+http://www.teletextarchive.com
 
 And:
 
