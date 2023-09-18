@@ -1,0 +1,218 @@
+#!/usr/bin/env python
+
+import random
+
+import click
+import numpy as np
+from PIL import Image, ImageDraw
+
+from teletext.cli.clihelpers import packetwriter
+from teletext.service import Service
+from teletext.subpage import Subpage
+
+
+class Maze:
+    directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+    def __init__(self, width=8, height=6):
+        self.width = width
+        self.height = height
+        self.data = np.zeros((2*height-1, 2*width-1), dtype=np.uint8)
+        self.data[::2, ::2] = 1
+        self.connect(0, 0, 0, 1)
+        self.connect(self.width-1, self.height-1, 0, -1)
+        self.generate(self.width//2, self.height//2, {(0, 0), (self.width-1, self.height-1)})
+
+    def valid(self, px, py):
+        return 0 <= px < self.width and 0 <= py < self.height
+
+    def connect(self, px, py, dx, dy):
+        self.data[(2*py)+dy, (2*px)+dx] = 1
+
+    def generate(self, x, y, visited):
+        visited.add((x, y))
+        for d in random.sample(self.directions, 4):
+            print(x, y, d)
+            nx, ny = x+d[0], y+d[1]
+            if self.valid(nx, ny) and (nx, ny) not in visited:
+                self.connect(x, y, *d)
+                self.generate(nx, ny, visited)
+
+    def connections(self, px, py, dx, dy):
+        ldx, ldy = -dy, dx
+        rdx, rdy = dy, -dx
+        left = []
+        right = []
+        while True:
+            if self.valid(px+ldx, py+ldy):
+                left.append(self.data[(2*py)+ldy, (2*px)+ldx])
+            else:
+                left.append(0)
+            if self.valid(px+rdx, py+rdy):
+                right.append(self.data[(2*py)+rdy, (2*px)+rdx])
+            else:
+                right.append(0)
+            if self.valid(px+dx, py+dy) and self.data[(2*py)+dy, (2*px)+dx]:
+                px += dx
+                py += dy
+            else:
+                break
+        return left, right
+
+    def bitmap(self, left, right):
+        w, h = 39*2, 23*3
+        hh = h - 1
+        ww = w - 1
+        bitmap = Image.new("1", (w, h))
+
+        def ox(o, l):
+            o = min(o, (ww//2)-4)
+            return o + 4 if l else ww-o-4
+
+        def oy(o, t):
+            o = min(o, (hh//2))
+            return o if t else hh-o
+
+        def draw_p(x1, y1, x2, y2, l):
+            x1 = ox(x1, l)
+            x2 = ox(x2, l)
+            for t in (True, False):
+                y1 = oy(y1, t)
+                y2 = oy(y2, t)
+                draw.line((x1, y1, x2, y2), fill=1)
+
+        def draw_h(x1, x2, y, l):
+            return draw_p(x1, y, x2, y, l)
+
+        def draw_d(xy1, xy2, l):
+            return draw_p(xy1, xy1, xy2, xy2, l)
+
+        def draw_v(xy, l):
+            x = ox(xy, l)
+            draw.line((x, oy(xy, True), x, oy(xy, False)), fill=1)
+
+        def draw_side(n, o1, o2, o3, l, p):
+            if p:
+                draw_h(o2, o3, o3, l)
+                draw_v(o2, l)
+                if n+1 < len(left):
+                    draw_v(o3, l)
+            else:
+                draw_d(o2, o3, l)
+            draw_d(o1, o2, l)
+
+        def calc_o(n):
+            return (n * 22) - 16 - ((n*(n+1)*2))
+
+        draw = ImageDraw.Draw(bitmap)
+        for n, (l, r) in enumerate(zip(left, right)):
+            o1 = calc_o(n)
+            o2 = o1 + max(0, 6 - n)
+            o3 = max(o1, calc_o(n+1))
+            draw_side(n, o1, o2, o3, True, l)
+            draw_side(n, o1, o2, o3, False, r)
+
+        o = calc_o(len(left))
+        draw_h(o, ww, o, True)
+        draw_h(o, ww, o, False)
+        if not left[-1]:
+            draw_v(o, True)
+        if not right[-1]:
+            draw_v(o, False)
+
+        return np.array(bitmap)
+
+    def view_to_mrag(self, px, py, dx, dy):
+        return self.directions.index((dx, dy)) + 2, py + (px << 4)
+
+    def view(self, px, py, dx, dy):
+        m, p = self.view_to_mrag(px, py, dx, dy)
+        page = Subpage(prefill=True, magazine=m)
+        page.header.page = p
+        page.header.control = 0
+        left, right = self.connections(px, py, dx, dy)
+
+        page.displayable.place_bitmap(np.array(self.bitmap(left[:5], right[:5])))
+
+        # cheat mode / debug dump
+        # put revealo maps on every wall
+        if True and len(left) == 1:
+            x = (38 - self.data.shape[1])//2
+            y = (23 - self.data.shape[0])//2
+            for n, r in enumerate(self.data[::-1]):
+                page.displayable.place_string('\x07\x18' + ''.join('.' if p else ' ' for p in r) + '\x17', x=x, y=y+n)
+            dn = ['^', '>', 'v', '<'][self.directions.index((dx, dy))]
+            page.displayable.place_string(dn, x=px*2+x+2, y=self.data.shape[0]+y-1-(2*py))
+
+        # create fastext links
+        # TODO: add some helpers to make this easier
+        page.displayable.place_string('\x01TurnLeft\x02StepForward\x03TurnRight\x06StepBack', y=23)
+
+        page.init_packet(27, magazine=m)
+        page.packet(27).fastext.dc = 0
+        page.packet(27).fastext.control = 0xf
+
+        lm, lp = self.view_to_mrag(px, py, -dy, dx)
+        page.packet(27).fastext.links[0].magazine = lm
+        page.packet(27).fastext.links[0].page = lp
+
+        lm, lp = self.view_to_mrag(px, py, dy, -dx)
+        page.packet(27).fastext.links[2].magazine = lm
+        page.packet(27).fastext.links[2].page = lp
+
+        if self.valid(px+dx, py+dy) and self.data[(2*py)+dy, (2*px)+dx]:
+            lm, lp = self.view_to_mrag(px+dx, py+dy, dx, dy)
+        else:
+            lm, lp = m, p
+        page.packet(27).fastext.links[1].magazine = lm
+        page.packet(27).fastext.links[1].page = lp
+
+        if self.valid(px-dx, py-dy)and self.data[(2*py)-dy, (2*px)-dx]:
+            lm, lp = self.view_to_mrag(px-dx, py-dy, dx, dy)
+        else:
+            lm, lp = m, p
+        page.packet(27).fastext.links[3].magazine = lm
+        page.packet(27).fastext.links[3].page = lp
+
+        return page
+
+    def map(self):
+        page = Subpage(prefill=True, magazine=1)
+        page.header.page = 0
+        page.header.control = 0
+        page.displayable.place_string("\x0d      You are trapped in a maze!       ", y=2)
+        page.displayable.place_string("\x0d   Use the fastext buttons to move.    ", y=4)
+        page.displayable.place_string("\x0d       Press reveal for a hint:        ", y=6)
+
+        page.displayable.place_string('\x12\x18\x24', x=18+(self.data.shape[1]//4), y=8)
+        page.displayable.place_bitmap(self.data[::-1], x=19-(self.data.shape[1]//4), y=9, conceal=True)
+        page.displayable.place_string('\x11\x18\x21', x=17-(self.data.shape[1]//4), y=10+(self.data.shape[0]//3))
+
+        page.displayable.place_string("\x0d              Good luck!               ", y=14)
+        page.displayable.place_string("\x0d       Press any button to begin.      ", y=16)
+        page.displayable.place_string("\x01  Begin  \x02  Begin  \x03  Begin  \x06  Begin  ", y=23)
+
+        page.init_packet(27, magazine=1)
+        page.packet(27).fastext.dc = 0
+        page.packet(27).fastext.control = 0xf
+        for n in range(4):
+            page.packet(27).fastext.links[n].magazine = 2
+            page.packet(27).fastext.links[n].page = 0
+        return page
+
+    def service(self):
+        service = Service(replace_headers=True, title="Maze!")
+        service.insert_page(self.map())
+        for y in range(self.height):
+            for x in range(self.width):
+                for d in self.directions:
+                    service.insert_page(self.view(x, y, *d))
+        return service
+
+@click.command()
+@packetwriter
+def maze():
+    return Maze().service()
+
+if __name__ == '__main__':
+    maze()
