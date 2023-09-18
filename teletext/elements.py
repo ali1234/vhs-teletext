@@ -254,10 +254,10 @@ class PageLink(Page):
         if subpage < 0 or subpage > 0x3f7f:
             raise ValueError('Subpage numbers must be between 0 and 0x3f7f.')
         magazine = self.magazine
-        self._array[2:6] = hamming16_encode([
+        self._array[2:6] = hamming16_encode(np.array([
             (subpage & 0x7f) | ((magazine & 1) << 7),
             (subpage >> 8) | ((magazine & 6) << 6),
-        ])
+        ]))
 
     @magazine.setter
     def magazine(self, magazine):
