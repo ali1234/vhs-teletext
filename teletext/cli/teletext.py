@@ -23,10 +23,6 @@ from teletext.cli.training import training
 from teletext.cli.vbi import vbi
 from teletext.vbi.config import Config
 
-try:
-    from teletext.cli.celp import celp
-except ImportError:
-    pass
 
 if os.name == 'nt' and platform.release() == '10' and platform.version() >= '10.0.14393':
     # Fix ANSI color in Windows 10 version 10.0.14393 (Windows Anniversary Update)
@@ -65,7 +61,12 @@ def teletext(ctx, unicode, help_all):
 
 teletext.add_command(training)
 teletext.add_command(vbi)
-teletext.add_command(celp)
+
+try:
+    from teletext.cli.celp import celp
+    teletext.add_command(celp)
+except ImportError:
+    pass
 
 
 @teletext.command()
