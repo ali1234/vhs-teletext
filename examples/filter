@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+# An example of making a customized filter in Python.
+
+# This is almost a direct copy-paste of the filter subcommand
+# tweaked to run standalone, and with an extra filter that
+# removes non-page packets.
+
+import click
+
+from teletext.cli.clihelpers import packetreader, packetwriter, paginated
+from teletext import pipeline
+
+
+@click.command()
+@packetwriter
+@paginated()
+@click.option('--pagecount', 'n', type=int, default=0, help='Stop after n pages. 0 = no limit. Implies -P.')
+@click.option('-k', '--keep-empty', is_flag=True, help='Keep empty packets in the output.')
+@packetreader()
+def filter(packets, pages, subpages, paginate, n, keep_empty):
+
+    """Demultiplex and display t42 packet streams."""
+
+    if n:
+        paginate = True
+
+    if not keep_empty:
+        packets = (p for p in packets if not p.is_padding())
+
+    # customize the filtering:
+    packets = (p for p in packets if p.mrag.row not in [29, 30, 31])
+
+    if paginate:
+        for pn, pl in enumerate(pipeline.paginate(packets, pages=pages, subpages=subpages), start=1):
+            yield from pl
+            if pn == n:
+                return
+    else:
+        yield from packets
+
+
+if __name__ == '__main__':
+    filter()
