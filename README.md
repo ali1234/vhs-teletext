@@ -46,7 +46,9 @@ Then enable bitmap fonts in your X server:
     sudo rm 70-no-bitmaps.conf
     sudo ln -s ../conf.avail/70-yes-bitmaps.conf .
 
-After doing this you may need to reboot.
+After doing this you may need to rehash:
+
+    xset fp rehash
 
 Finally open a terminal with the required font:
 
