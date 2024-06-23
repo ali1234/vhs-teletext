@@ -31,7 +31,7 @@ setup(
         ],
     },
     install_requires=[
-        'numpy', 'scipy', 'matplotlib', 'click', 'tqdm',  'pyzmq', 'watchdog', 'pyserial',
+        'numpy<2', 'scipy', 'matplotlib', 'click', 'tqdm',  'pyzmq', 'watchdog', 'pyserial',
         'windows-curses;platform_system=="Windows"',
     ],
     extras_require={

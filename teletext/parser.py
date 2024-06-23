@@ -49,7 +49,7 @@ class Parser(object):
             if _unicode13:
                 return charset.g1[c]
             else:
-                return chr(c+0xee00) if self._state['solid'] else chr(c+0xede0)
+                return chr(int(c)+0xee00) if self._state['solid'] else chr(int(c)+0xede0)
         else:
             if not self.localcodepage:
                 return charset.g0["default"][c]

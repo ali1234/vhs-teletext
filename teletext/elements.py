@@ -376,7 +376,7 @@ class Format1(Element):
 
     @property
     def mjd(self):
-        return (bcd8_decode((self._array[3]&0xf)|0x10) * 10000) + (bcd8_decode(self._array[4]) * 100) + bcd8_decode(self._array[5])
+        return (bcd8_decode((int(self._array[3])&0xf)|0x10) * 10000) + (bcd8_decode(int(self._array[4])) * 100) + bcd8_decode(int(self._array[5]))
 
     @property
     def date(self):
