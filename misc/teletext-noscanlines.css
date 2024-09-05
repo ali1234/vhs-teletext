@@ -19,6 +19,9 @@ a:hover {color: orange; } a:active {color: red;}
     filter:blur(0.5px) brightness(120%);
 }
 
+.row{
+    display: flex;
+}
 
 .subpage:after{
     content: "";
