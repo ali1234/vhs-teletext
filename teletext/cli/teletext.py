@@ -373,7 +373,7 @@ def serial(packets, port):
 
     if port is None:
         for comport in serial.tools.list_ports.comports():
-            if comport.vid == 0x2e8a and comport.pid == 0x000a:
+            if comport.vid == 0x2e8a and (comport.pid == 0x000a or comport.pid == 0x0009):
                 port = comport.device
 
     if port is None:
