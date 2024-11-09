@@ -379,7 +379,7 @@ def serial(packets, port):
     if port is None:
         raise click.UsageError('No serial inserter found. Specify the path with -p')
 
-    port = serial.Serial(port, timeout=0, rtscts=True)
+    port = serial.Serial(port, timeout=3, rtscts=True)
 
     for p in packets:
         buf = p.bytes
