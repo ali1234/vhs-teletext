@@ -552,7 +552,7 @@ def deconvolve(chunker, mags, rows, pages, subpages, paginate, config, mode, eig
     if force_cpu:
         sys.stderr.write('GPU disabled by user request.\n')
 
-    chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+    chunks = chunker(config.line_bytes, config.field_lines, config.field_range)
 
     if progress:
         chunks = tqdm(chunks, unit='L', dynamic_ncols=True)
