@@ -74,7 +74,7 @@ class Config(object):
             'field_lines': 18,
             'field_range': range(1, 17),
         },
-        'ddd-tbc': { # domesday duplicator tbc (full fields)
+        'tbc': { # ld-decode/vhs-decode tbc (full fields)
             'sample_rate': 17730000.0,
             'line_length': 1135,
             'line_start_range': (160, 190),
@@ -82,7 +82,7 @@ class Config(object):
             'field_lines': 313,
             'field_range': range(6, 22),
         },
-        'ddd-vbi': {  # domesday duplicator vbi (pre-sliced)
+        'tbc-vbi': {  # ld-decode/vhs-decode tbc (vbi only)
             'sample_rate': 17730000.0,
             'line_length': 1135,
             'line_start_range': (160, 190),
