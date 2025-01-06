@@ -149,7 +149,7 @@ class Line(object):
         if self._fft is None:
             # This test only looks at the bins for the harmonics.
             # It could be made smarter by looking at all bins.
-            self._fft = normalise(gauss(np.abs(np.fft.fft(np.diff(self._original, n=1))[:256]), 4))
+            self._fft = normalise(gauss(np.abs(np.fft.fft(np.diff(self._resampled[:3200], n=1))[:256]), 4))
         return self._fft
 
     def find_start(self):
