@@ -516,9 +516,9 @@ def vbiview(chunker, config, pause, tape_format, n_lines):
         Line.configure(config, force_cpu=True, tape_format=tape_format)
 
         if n_lines is not None:
-            chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, n_lines, range(n_lines))
+            chunks = chunker(config.line_bytes, n_lines, range(n_lines))
         else:
-            chunks = chunker(config.line_length * np.dtype(config.dtype).itemsize, config.field_lines, config.field_range)
+            chunks = chunker(config.line_bytes, config.field_lines, config.field_range)
 
         lines = (Line(chunk, number) for number, chunk in chunks)
 
