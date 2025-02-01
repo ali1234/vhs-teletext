@@ -100,7 +100,7 @@ def subpage_to_image(s, glyphs, background=None, flash_off=False):
     flash_used = False
 
     if not s.header.supress_header:
-        prnt = PrinterImage(s.header.displayable._array, glyphs)
+        prnt = PrinterImage(s.header.displayable._array, glyphs, flash_off=flash_off)
         missing.update(prnt.parse())
         img.paste(prnt.image, (12*8, 0))
         if np.any(s.header.displayable == 0x08):
@@ -109,7 +109,7 @@ def subpage_to_image(s, glyphs, background=None, flash_off=False):
     for i in range(0, 24):
         # only draw the line if previous line does not contain double height code
         if i == 0 or np.all(s.displayable[i - 1, :] != 0x0d):
-            prnt = PrinterImage(s.displayable[i, :], glyphs, box=box)
+            prnt = PrinterImage(s.displayable[i, :], glyphs, flash_off=flash_off, box=box)
             missing.update(prnt.parse())
             img.paste(prnt.image, (0, (i+1)*10))
         if np.any(s.displayable[i - 1, :] == 0x08):
