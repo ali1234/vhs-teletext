@@ -176,8 +176,19 @@ class Header(Page):
 
     @property
     def codepage(self):
-        control = self.control
-        return (control >> 8) & 0x7
+        return (self.control >> 8) & 0x7
+
+    @property
+    def newsflash(self):
+        return bool(self.control & 0x2)
+
+    @property
+    def subtitle(self):
+        return bool(self.control & 0x4)
+
+    @property
+    def supress_header(self):
+        return bool(self.control & 0x8)
 
     @subpage.setter
     def subpage(self, subpage):
@@ -199,7 +210,6 @@ class Header(Page):
         self._array[6:8] = hamming16_encode(control >> 3)
 
     def to_ansi(self, colour=True):
-
         return f'{self.page:02x} {self.displayable.to_ansi(colour)}'
 
     def apply_finders(self):
