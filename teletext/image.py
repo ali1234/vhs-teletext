@@ -47,15 +47,22 @@ def load_glyphs(fp):
 
 class PrinterImage(Parser):
 
-    def __init__(self, tt, glyphs, colour=True, codepage=0):
+    def __init__(self, tt, glyphs, box=False, flash_off=False, colour=True, codepage=0):
         self.colour = colour
         self.column = 0
         self.glyphs = glyphs
-        self.image = Image.new("P", (12*len(tt), 20))
+        self.image = Image.new("P", (12*len(tt), 20), color=8)
         self.missing = set()
+        self.flash_off = flash_off
+        self.flash_used = False
+        self.box = box
         super().__init__(tt)
 
     def emitcharacter(self, c):
+        if self.box and not self._state['boxed']:
+            return
+        if self._state['conceal'] or (self.flash_off and self._state['flash']):
+            c = ' '
         try:
             glyph = self.glyphs[ord(c)]
         except KeyError:
@@ -75,38 +82,52 @@ class PrinterImage(Parser):
         return self.missing
 
 
-def subpage_to_image(s, glyphs):
-    img = Image.new("P", (12*40, 25*10))
+def subpage_to_image(s, glyphs, background=None, flash_off=False):
+    img = Image.new("P", (12*40, 25*10), color=8)
     missing = set()
     img.putpalette([
-        0, 0, 0,
-        255, 0, 0,
-        0, 255, 0,
-        255, 255, 0,
-        0, 0, 255,
-        255, 0, 255,
-        0, 255, 255,
-        255, 255, 255,
-    ])
-    prnt = PrinterImage(s.header.displayable._array, glyphs)
-    missing.update(prnt.parse())
-    img.paste(prnt.image, (12*8, 0))
+        0, 0, 0, 255,
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        255, 255, 0, 255,
+        0, 0, 255, 255,
+        255, 0, 255, 255,
+        0, 255, 255, 255,
+        255, 255, 255, 255,
+        0, 0, 0, 0,
+    ], "RGBA")
+
+    box = s.header.newsflash or s.header.subtitle
+    flash_used = False
+
+    if not s.header.supress_header:
+        prnt = PrinterImage(s.header.displayable._array, glyphs)
+        missing.update(prnt.parse())
+        img.paste(prnt.image, (12*8, 0))
+        if np.any(s.header.displayable == 0x08):
+            flash_used = True
 
     for i in range(0, 24):
         # only draw the line if previous line does not contain double height code
         if i == 0 or np.all(s.displayable[i - 1, :] != 0x0d):
-            prnt = PrinterImage(s.displayable[i, :], glyphs)
+            prnt = PrinterImage(s.displayable[i, :], glyphs, box=box)
             missing.update(prnt.parse())
             img.paste(prnt.image, (0, (i+1)*10))
+        if np.any(s.displayable[i - 1, :] == 0x08):
+            flash_used = True
 
-    img = img.resize((img.width, img.height*2))
-    img = img.convert("RGB").resize((math.floor(img.width*1.2), img.height))
-    result = Image.new("RGB", (720,576))
-    result.paste(img, (
-        (result.width - img.width) // 2,
-        (result.height - img.height) // 2,
+    img = img.convert("RGBA").resize((img.width, img.height*2))
+
+    if background is None:
+        background = Image.new("RGBA", (720, 576), color=(0, 0, 0, 0 if box else 255))
+    else:
+        background = background.convert("RGBA").resize((720, 576))
+
+    background.alpha_composite(img, (
+        (background.width - img.width) // 2,
+        (background.height - img.height) // 2,
     ))
-    img = result
-    img._missing_glyphs = missing
 
-    return img
+    background._missing_glyphs = missing
+    background._flash_used = flash_used
+    return background
