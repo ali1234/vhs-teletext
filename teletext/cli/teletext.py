@@ -434,7 +434,17 @@ def images(packets, outdir, font, pages, subpages):
         image = subpage_to_image(s, glyphs)
         filename = f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x}.png'
         subpages.set_description(filename, refresh=False)
-        image.save(pathlib.Path(outdir) / f'P{s.mrag.magazine}{s.header.page:02x}-{s.header.subpage:04x}.png')
+        if image._flash_used:
+            opts = {
+                'save_all': True,
+                'append_images': [subpage_to_image(s, glyphs, flash_off=True)],
+                'duration': 500,
+                'loop': 0,
+                'disposal': 2,
+            }
+        else:
+            opts = {}
+        image.save(pathlib.Path(outdir) / filename, **opts)
         if image._missing_glyphs:
             missing = ', '.join(f'{repr(c)} {hex(ord(c))}' for c in image._missing_glyphs)
             print(f'{filename} missing characters: {missing}')
