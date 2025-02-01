@@ -83,7 +83,7 @@ class Parser(object):
         self.emitcode()
         self.setstate(**kwargs)
 
-    def parsebyte(self, b):
+    def parsebyte(self, b, prev):
         h, l = int(b&0xf0), int(b&0x0f)
         if h == 0x0:
             if l < 8:
@@ -93,10 +93,16 @@ class Parser(object):
                 self.setafter(flash=True)
             elif l == 0x9: # steady
                 self.setat(flash=False)
-            elif l == 0xa: # end box
-                self.setafter(boxed=False)
-            elif l == 0xb: # start box
-                self.setafter(boxed=True)
+            elif l == 0xa:
+                if prev == 0xa: # end box - set at because we're triggering on the second one
+                    self.setat(boxed=False)
+                else:
+                    self.emitcode()
+            elif l == 0xb:
+                if prev == 0xb: # start box - set at because we're triggering on the second one
+                    self.setat(boxed=True)
+                else:
+                    self.emitcode()
             else: # sizes
                 dh, dw = bool(l&1), bool(l&2)
                 if dh or dw:
@@ -135,5 +141,7 @@ class Parser(object):
 
     def parse(self):
         self.reset()
+        prev = None
         for c in self.tt&0x7f:
-            self.parsebyte(c)
+            self.parsebyte(c, prev)
+            prev = c

@@ -59,22 +59,21 @@ class PrinterImage(Parser):
         super().__init__(tt)
 
     def emitcharacter(self, c):
-        if self.box and not self._state['boxed']:
-            return
-        if self._state['conceal'] or (self.flash_off and self._state['flash']):
-            c = ' '
-        try:
-            glyph = self.glyphs[ord(c)]
-        except KeyError:
-            self.missing.add(c)
-        else:
-            data = np.choose(glyph, (self._state['bg'], self._state['fg']))
-            i = Image.fromarray(data.astype(np.uint8), "P")
-            i = i.resize((
-                i.width * (2 if self._state['dw'] else 1),
-                i.height * (2 if self._state['dh'] else 1),
-            ))
-            self.image.paste(i, (self.column*12, 0))
+        if self._state['boxed'] or not self.box:
+            if self._state['conceal'] or (self.flash_off and self._state['flash']):
+                c = ' '
+            try:
+                glyph = self.glyphs[ord(c)]
+            except KeyError:
+                self.missing.add(c)
+            else:
+                data = np.choose(glyph, (self._state['bg'], self._state['fg']))
+                i = Image.fromarray(data.astype(np.uint8), "P")
+                i = i.resize((
+                    i.width * (2 if self._state['dw'] else 1),
+                    i.height * (2 if self._state['dh'] else 1),
+                ))
+                self.image.paste(i, (self.column*12, 0))
         self.column += 1
 
     def parse(self):
