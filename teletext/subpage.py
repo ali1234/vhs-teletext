@@ -166,9 +166,10 @@ class Subpage(Element):
 
     def mrg_PS(self, transmit=False):
         c = self.header.control
+        c = (c>>1) | ((c&1)<<14)
         if transmit:
             c |= 1<<15
-        return f'{(c>>1) | ((c&1)<<14):x}'
+        return f'{c:x}'
 
     @property
     def mrg_SC(self):
