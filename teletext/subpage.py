@@ -160,13 +160,30 @@ class Subpage(Element):
                 yield Packet(a, number=None if self._numbers[n] < 0 else self._numbers[n])
 
     @property
-    def url(self):
-        parts = ['0']
-        parts.append(base64.urlsafe_b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit).decode('ascii').rstrip('='))
-        parts.append(f'PN={self.mrag.magazine}{self.header.page:02x}')
+    def mrg_PN(self):
+        return f'{self.mrag.magazine}{self.header.page:02x}'
+
+    def mrg_PS(self, transmit=False):
         c = self.header.control
-        parts.append(f'PS={(c>>1) | ((c&1)<<14):x}')
-        parts.append(f'SC={self.header.subpage:x}')
+        if transmit:
+            c |= 1<<15
+        return f'{(c>>1) | ((c&1)<<14):x}'
+
+    @property
+    def mrg_SC(self):
+        return f'{self.header.subpage:x}'
+
+
+
+    @property
+    def url(self):
+        parts = [
+            '0',
+            base64.urlsafe_b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit).decode('ascii').rstrip('='),
+            f'PN={self.mrg_PN}',
+            f'PS={self.mrg_PS()}',
+            f'SC={self.mrg_SC}',
+        ]
         if self.has_packet(25):
             parts.append('X25=' + base64.urlsafe_b64encode(Element((1, 40), self._array[25:26,2:]).sevenbit).decode('ascii').rstrip('='))
         for d in range(16):
@@ -181,6 +198,19 @@ class Subpage(Element):
 
         return ':'.join(parts)
 
+    def to_tti(self, cycle_time=None, transmit=True):
+        parts = [
+            f'PN,{self.mrg_PN}00',
+            f'SC,{self.mrg_SC}',
+            f'PS,{self.mrg_PS(transmit)}',
+        ]
+        if cycle_time is not None:
+            parts.append(f'CT,{cycle_time}')
+
+        parts.extend(f'OL,{line+1},{data}' for line, data in enumerate(self.displayable.to_tti()))
+        links = ','.join(f'{l.magazine}{l.page:02x}' for l in self.fastext.links)
+        parts.append(f'FL,{links}')
+        return '\r\n'.join(parts) + '\r\n'
 
     def to_html(self, pages_set, localcodepage=None):
         lines = []
