@@ -214,7 +214,7 @@ class Subpage(Element):
         parts.extend(f'OL,{line+1},{data}' for line, data in enumerate(self.displayable.to_tti()))
         links = ','.join(f'{l.magazine}{l.page:02x}' for l in self.fastext.links)
         parts.append(f'FL,{links}')
-        return '\r\n'.join(parts) + '\r\n'
+        return ('\r\n'.join(parts) + '\r\n').encode('ascii')
 
     def to_html(self, pages_set, localcodepage=None):
         lines = []

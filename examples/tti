@@ -56,7 +56,7 @@ def tti():
     page.displayable.place_string('\x02\x1d\x04See P123 for info about the heating', 0, 22)
     page.displayable.place_string('\x01Main Index   \x02News    \x03Events    \x06Tools', 0, 23)
 
-    with open('P100.tti', 'w') as f:
+    with open('P100.tti', 'wb') as f:
         f.write(page.to_tti())
 
     print("https://zxnet.co.uk/teletext/editor/#" + page.url)
