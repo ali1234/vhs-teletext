@@ -131,6 +131,15 @@ class Displayable(ElementParity):
                 [str(PrinterANSI(a, colour)) for a in self._array]
             )
 
+    def _tti_escape(self, array):
+        return ''.join(f'\x1b{chr(x|0x60)}' if 0 <= x <= 0x1f else chr(x) for x in (array & 0x7f))
+
+    def to_tti(self):
+        if len(self._array.shape) == 1:
+            return self._tti_escape(self._array)
+        else:
+            return [self._tti_escape(a) for a in self._array]
+
     @property
     def bytes_no_parity(self):
         return (self._array & 0x7f).tobytes()
