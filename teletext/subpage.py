@@ -134,7 +134,8 @@ class Subpage(Element):
                 s.mrag.magazine = int(d[0], 16)
                 s.header.page = int(d[1:3], 16)
             elif l == 'PS':
-                pass # TODO
+                c = int(d, 16)
+                s.header.control = (c<<1) | ((c&1)>>14)
             elif l == 'SC':
                 pass  # TODO
             elif l == 'X25':
@@ -177,9 +178,11 @@ class Subpage(Element):
 
     @property
     def url(self):
+        data = self._array[0:25,2:].copy()
+        data[0, :8] = 0x20
         parts = [
             '0',
-            base64.urlsafe_b64encode(Element((25, 40), self._array[0:25,2:]).sevenbit).decode('ascii').rstrip('='),
+            base64.urlsafe_b64encode(Element((25, 40), data).sevenbit).decode('ascii').rstrip('='),
             f'PN={self.mrg_PN}',
             f'PS={self.mrg_PS()}',
             f'SC={self.mrg_SC}',
