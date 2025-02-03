@@ -132,7 +132,7 @@ class Displayable(ElementParity):
             )
 
     def _tti_escape(self, array):
-        return ''.join(f'\x1b{chr(x|0x60)}' if 0 <= x <= 0x1f else chr(x) for x in (array & 0x7f))
+        return ''.join(f'\x1b{chr(x | 0x40)}' if 0 <= x <= 0x1f else chr(x) for x in (array & 0x7f))
 
     def to_tti(self):
         if len(self._array.shape) == 1:
