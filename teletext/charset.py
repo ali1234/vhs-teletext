@@ -198,7 +198,7 @@ g0 = {'default': {
     0x7E: chr(0x0447),  # CYRILLIC SMALL LETTER CHE
     0x7F: chr(0x25A0),  # BLACK SQUARE
 
-    # Swedish national subset (replaces characters 0x26, 0x40-0x5A, 0x60-0x7A)
+    # Swedish national subset (replaces characters 0x40, 0x5B-0x5F, 0x60, 0x7B-0x7E)
 }, 'swe': {
     0x20: chr(0x0020),  # SPACE
     0x21: chr(0x0021),  # EXCLAMATION MARK
@@ -294,7 +294,7 @@ g0 = {'default': {
     0x7A: chr(0x007A),  # LATIN SMALL LETTER Z
     0x7B: chr(0x00E4),  # LATIN SMALL A WITH DIAERESIS
     0x7C: chr(0x00F6),  # LATIN SMALL O WITH DIAERESIS
-    0x7D: chr(0x212B),  # LATIN SMALL A WITH OVERRING
+    0x7D: chr(0x00E5),  # LATIN SMALL A WITH OVERRING
     0x7E: chr(0x00FC),  # LATIN SMALL U WITH DIAERESIS
     0x7F: chr(0x25A0),  # BLACK SQUARE
 
