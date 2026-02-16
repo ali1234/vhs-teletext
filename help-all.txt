@@ -1,0 +1,745 @@
+Usage: teletext [OPTIONS] COMMAND [ARGS]...
+
+  Teletext stream processing toolkit.
+
+Options:
+  -u, --unicode  Use experimental Unicode 13.0 Terminal graphics.
+  --version      Show the version and exit.
+  --help         Show this message and exit.
+  --help-all     Show help for all subcommands.
+
+Commands:
+  deconvolve   Deconvolve raw VBI samples into Teletext packets.
+  diff         Show side by side difference of two t42 streams.
+  filter       Demultiplex and display t42 packet streams.
+  finders      Apply finders to fix up common packets.
+  grep         Filter packets with a regular expression.
+  html         Generate HTML files from the input stream.
+  images       Generate images for the input stream.
+  interactive  Interactive teletext emulator.
+  list         List pages present in a t42 stream.
+  record       Record VBI samples from a capture device.
+  scan         Filter a t42 stream down to headers and bsdp, with squashing.
+  serial       Write escaped packets to serial inserter.
+  service      Build a service carousel from a t42 stream.
+  servicedir   Build a service from a directory of t42 files.
+  spellcheck   Spell check a t42 stream.
+  split        Split a t42 stream in to multiple files.
+  squash       Reduce errors in t42 stream by using frequency analysis.
+  training     Training and calibration tools.
+  urls         Paginate a t42 stream and print edit.tf URLs.
+  vbi          Tools for analysing raw VBI samples.
+  vbiview      Display raw VBI samples with OpenGL.
+
+Usage: teletext deconvolve [OPTIONS] [INPUT]
+
+  Deconvolve raw VBI samples into Teletext packets.
+
+Options:
+  -M, --mode [deconvolve|slice]   Deconvolution mode.
+  -8, --eight-bit                 Treat rows 1-25 as 8-bit data without parity
+                                  check.
+  -f, --tape-format [betamax|grundig_2x4|vhs]
+                                  Source VCR format.
+  -C, --force-cpu                 Disable GPU even if it is available.
+  -O, --prefer-opencl             Use OpenCL even if CUDA is available.
+  -t, --threads INTEGER           Number of threads.
+  -k, --keep-empty                Insert empty packets in the output when line
+                                  could not be deconvolved.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  -o, --output <CHOICE FILENAME>...
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  -P, --paginate                  Sort rows into contiguous pages.
+  -p, --page TEXT                 Limit output to specific page. Can be
+                                  specified multiple times.
+  -s, --subpage TEXT              Limit output to specific subpage. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --rejects / --no-rejects        Display percentage of lines rejected.
+  --help                          Show this message and exit.
+
+Usage: teletext diff [OPTIONS] A B
+
+  Show side by side difference of two t42 streams.
+
+Options:
+  -m, --mag INTEGER  Limit output to specific magazines. Can be specified
+                     multiple times.
+  -r, --row INTEGER  Limit output to specific rows. Can be specified multiple
+                     times.
+  --help             Show this message and exit.
+
+Usage: teletext filter [OPTIONS] [INPUT]
+
+  Demultiplex and display t42 packet streams.
+
+Options:
+  -o, --output <CHOICE FILENAME>...
+  -P, --paginate                  Sort rows into contiguous pages.
+  -p, --page TEXT                 Limit output to specific page. Can be
+                                  specified multiple times.
+  -s, --subpage TEXT              Limit output to specific subpage. Can be
+                                  specified multiple times.
+  --pagecount INTEGER             Stop after n pages. 0 = no limit. Implies
+                                  -P.
+  -k, --keep-empty                Keep empty packets in the output.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext finders [OPTIONS] [INPUT]
+
+  Apply finders to fix up common packets.
+
+Options:
+  -o, --output <CHOICE FILENAME>...
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext grep [OPTIONS] REGEX [INPUT]
+
+  Filter packets with a regular expression.
+
+Options:
+  -o, --output <CHOICE FILENAME>...
+  -P, --paginate                  Sort rows into contiguous pages.
+  -p, --page TEXT                 Limit output to specific page. Can be
+                                  specified multiple times.
+  -s, --subpage TEXT              Limit output to specific subpage. Can be
+                                  specified multiple times.
+  -v                              Invert matches.
+  -i                              Ignore case.
+  --pagecount INTEGER             Stop after n pages. 0 = no limit. Implies
+                                  -P.
+  -k, --keep-empty                Keep empty packets in the output.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext html [OPTIONS] OUTDIR [INPUT]
+
+  Generate HTML files from the input stream.
+
+Options:
+  -t, --template FILENAME        HTML template.
+  --localcodepage [default|cyr]  Select codepage for Local Code of Practice
+  --start INTEGER                Start at the Nth line of the input file.
+  --stop INTEGER                 Stop before the Nth line of the input file.
+  --step INTEGER                 Process every Nth line from the input file.
+  --limit INTEGER                Stop after processing N lines from the input
+                                 file.
+  --wst                          Input is 43 bytes per packet (WST capture
+                                 card format.)
+  --ts INTEGER                   Input is MPEG transport stream. (Specify PID
+                                 to extract.)
+  -m, --mag INTEGER              Limit output to specific magazines. Can be
+                                 specified multiple times.
+  -r, --row INTEGER              Limit output to specific rows. Can be
+                                 specified multiple times.
+  --progress / --no-progress     Display progress bar.
+  --mag-hist / --no-mag-hist     Display magazine histogram.
+  --row-hist / --no-row-hist     Display row histogram.
+  --err-hist / --no-err-hist     Display error distribution.
+  --help                         Show this message and exit.
+
+Usage: teletext images [OPTIONS] OUTDIR [INPUT]
+
+  Generate images for the input stream.
+
+Options:
+  -f, --font FILENAME         PCF font for rendering.
+  -p, --page TEXT             Limit output to specific page. Can be specified
+                              multiple times.
+  -s, --subpage TEXT          Limit output to specific subpage. Can be
+                              specified multiple times.
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --help                      Show this message and exit.
+
+Usage: teletext interactive [OPTIONS] [INPUT]
+
+  Interactive teletext emulator.
+
+Options:
+  -i, --initial_page TEXT     Initial page.
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --help                      Show this message and exit.
+
+Usage: teletext list [OPTIONS] [INPUT]
+
+  List pages present in a t42 stream.
+
+Options:
+  -c, --count                 Show counts of each entry.
+  -s, --subpages              Also list subpages.
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --help                      Show this message and exit.
+
+Usage: teletext record [OPTIONS] [OUTPUT]
+
+  Record VBI samples from a capture device.
+
+Options:
+  -d, --device FILENAME           Capture device.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --help                          Show this message and exit.
+
+Usage: teletext scan [OPTIONS] [INPUT]
+
+  Filter a t42 stream down to headers and bsdp, with squashing.
+
+Options:
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  -l, --lines INTEGER         Number of recorded lines per frame.
+  -f, --frames INTEGER        Number of frames to squash.
+  --help                      Show this message and exit.
+
+Usage: teletext serial [OPTIONS] [INPUT]
+
+  Write escaped packets to serial inserter.
+
+Options:
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  -p, --port TEXT
+  --help                      Show this message and exit.
+
+Usage: teletext service [OPTIONS] [INPUT]
+
+  Build a service carousel from a t42 stream.
+
+Options:
+  -r, --replace_headers           Replace headers with a live clock.
+  -t, --title TEXT                Replace header title field with this string.
+  -o, --output <CHOICE FILENAME>...
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext servicedir [OPTIONS] DIRECTORY
+
+  Build a service from a directory of t42 files.
+
+Options:
+  -r, --replace_headers           Replace headers with a live clock.
+  -t, --title TEXT                Replace header title field with this string.
+  -o, --output <CHOICE FILENAME>...
+  --help                          Show this message and exit.
+
+Usage: teletext spellcheck [OPTIONS] [INPUT]
+
+  Spell check a t42 stream.
+
+Options:
+  -l, --language TEXT             Language. Default: en_GB
+  -b, --both                      Show packet before and after corrections.
+  -t, --threads INTEGER           Number of threads.
+  -o, --output <CHOICE FILENAME>...
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext split [OPTIONS] PATTERN [INPUT]
+
+  Split a t42 stream in to multiple files.
+
+Options:
+  -p, --page TEXT             Limit output to specific page. Can be specified
+                              multiple times.
+  -s, --subpage TEXT          Limit output to specific subpage. Can be
+                              specified multiple times.
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --help                      Show this message and exit.
+
+Usage: teletext squash [OPTIONS] [INPUT]
+
+  Reduce errors in t42 stream by using frequency analysis.
+
+Options:
+  -d, --min-duplicates INTEGER    Only squash and output subpages with at
+                                  least N duplicates.
+  -t, --threshold INTEGER         Max difference for squashing.
+  -i, --ignore-empty              Ignore the emptiest duplicate packets
+                                  instead of the earliest.
+  -o, --output <CHOICE FILENAME>...
+  -p, --page TEXT                 Limit output to specific page. Can be
+                                  specified multiple times.
+  -s, --subpage TEXT              Limit output to specific subpage. Can be
+                                  specified multiple times.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --wst                           Input is 43 bytes per packet (WST capture
+                                  card format.)
+  --ts INTEGER                    Input is MPEG transport stream. (Specify PID
+                                  to extract.)
+  -m, --mag INTEGER               Limit output to specific magazines. Can be
+                                  specified multiple times.
+  -r, --row INTEGER               Limit output to specific rows. Can be
+                                  specified multiple times.
+  --progress / --no-progress      Display progress bar.
+  --mag-hist / --no-mag-hist      Display magazine histogram.
+  --row-hist / --no-row-hist      Display row histogram.
+  --err-hist / --no-err-hist      Display error distribution.
+  --help                          Show this message and exit.
+
+Usage: teletext training build [OPTIONS] INPUT OUTPUT
+
+  Build pattern tables.
+
+Options:
+  -m, --mode [full|parity|hamming]
+  -b, --bits <INTEGER INTEGER>...
+  --help                          Show this message and exit.
+
+Usage: teletext training crifc [OPTIONS] [INPUT]
+
+  Split training recording into intermediate bins.
+
+Options:
+  -t, --threads INTEGER           Number of threads.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --progress / --no-progress      Display progress bar.
+  --rejects / --no-rejects        Display percentage of lines rejected.
+  --help                          Show this message and exit.
+
+Usage: teletext training generate [OPTIONS] [OUTPUT]
+
+  Generate training samples for raspi-teletext.
+
+Options:
+  --help  Show this message and exit.
+
+Usage: teletext training showbin [OPTIONS] [INPUT]
+
+  Visually display an intermediate training bin.
+
+Options:
+  --start INTEGER  Start at the Nth line of the input file.
+  --stop INTEGER   Stop before the Nth line of the input file.
+  --step INTEGER   Process every Nth line from the input file.
+  --limit INTEGER  Stop after processing N lines from the input file.
+  --help           Show this message and exit.
+
+Usage: teletext training similarities [OPTIONS]
+
+Options:
+  -f, --tape-format [vhs|betamax|grundig_2x4]
+                                  Source VCR format.
+  --help                          Show this message and exit.
+
+Usage: teletext training split [OPTIONS] OUTDIR [INPUT]
+
+  Split training recording into intermediate bins.
+
+Options:
+  -t, --threads INTEGER           Number of threads.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --progress / --no-progress      Display progress bar.
+  --rejects / --no-rejects        Display percentage of lines rejected.
+  --help                          Show this message and exit.
+
+Usage: teletext training squash [OPTIONS] INDIR [OUTPUT]
+
+  Squash the intermediate bins into a single file.
+
+Options:
+  --help  Show this message and exit.
+
+Usage: teletext urls [OPTIONS] [INPUT]
+
+  Paginate a t42 stream and print edit.tf URLs.
+
+Options:
+  -e, --editor TEXT           Teletext editor URL.  [default:
+                              https://zxnet.co.uk/teletext/editor/#]
+  -p, --page TEXT             Limit output to specific page. Can be specified
+                              multiple times.
+  -s, --subpage TEXT          Limit output to specific subpage. Can be
+                              specified multiple times.
+  --start INTEGER             Start at the Nth line of the input file.
+  --stop INTEGER              Stop before the Nth line of the input file.
+  --step INTEGER              Process every Nth line from the input file.
+  --limit INTEGER             Stop after processing N lines from the input
+                              file.
+  --wst                       Input is 43 bytes per packet (WST capture card
+                              format.)
+  --ts INTEGER                Input is MPEG transport stream. (Specify PID to
+                              extract.)
+  -m, --mag INTEGER           Limit output to specific magazines. Can be
+                              specified multiple times.
+  -r, --row INTEGER           Limit output to specific rows. Can be specified
+                              multiple times.
+  --progress / --no-progress  Display progress bar.
+  --mag-hist / --no-mag-hist  Display magazine histogram.
+  --row-hist / --no-row-hist  Display row histogram.
+  --err-hist / --no-err-hist  Display error distribution.
+  --help                      Show this message and exit.
+
+Usage: teletext vbi classifygui [OPTIONS] INPUT SAMPLEDIR
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  -a, --auto
+  --help                          Show this message and exit.
+
+Usage: teletext vbi cluster [OPTIONS] [INPUT] OUTPUT
+
+  Split VBI file into clusters of similar lines
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --progress / --no-progress      Display progress bar.
+  --prefix TEXT                   Prefix for cluster file names.
+  --help                          Show this message and exit.
+
+Usage: teletext vbi copy [OPTIONS] [INPUT] OUTPUT
+
+  Copy input to output
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --progress / --no-progress      Display progress bar.
+  --help                          Show this message and exit.
+
+Usage: teletext vbi histogram [OPTIONS] OUTPUT [INPUT]
+
+Options:
+  -d, --diff                      User first differential of samples.
+  -s, --show                      Show image when complete.
+  -n, --n-lines INTEGER           Number of lines to display. Overrides card
+                                  config.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --help                          Show this message and exit.
+
+Usage: teletext vbi linesplit [OPTIONS] [INPUT] OUTPUT
+
+  Split VBI file into one file per line
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --progress / --no-progress      Display progress bar.
+  --help                          Show this message and exit.
+
+Usage: teletext vbi plot [OPTIONS] [INPUT]
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --help                          Show this message and exit.
+
+Usage: teletext vbi rendermap [OPTIONS] MAP OUTPUT
+
+  Render cluster map to image
+
+Options:
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --help                          Show this message and exit.
+
+Usage: teletext vbiview [OPTIONS] [INPUT]
+
+  Display raw VBI samples with OpenGL.
+
+Options:
+  -p, --pause                     Start the viewer paused.
+  -f, --tape-format [betamax|grundig_2x4|vhs]
+                                  Source VCR format.
+  -n, --n-lines INTEGER           Number of lines to display. Overrides card
+                                  config.
+  -c, --card [bt8x8|cx88|ddd-tbc|ddd-vbi|saa7131]
+                                  Capture device type. Default: bt8x8.
+  --line-length INTEGER           Override capture card samples per line.
+  --sample-rate FLOAT             Override capture card sample rate (Hz).
+  --sample-rate-adjust FLOAT      Adjustment to default capture card sample
+                                  rate (Hz).
+  --extra-roll INTEGER            Shift line by N samples after locking to the
+                                  packet.
+  --line-start-range <INTEGER INTEGER>...
+                                  Override capture card line start offset.
+  --start INTEGER                 Start at the Nth line of the input file.
+  --stop INTEGER                  Stop before the Nth line of the input file.
+  --step INTEGER                  Process every Nth line from the input file.
+  --limit INTEGER                 Stop after processing N lines from the input
+                                  file.
+  --help                          Show this message and exit.
