@@ -54,10 +54,11 @@ class Parser(object):
             if not self.localcodepage:
                 return charset.g0["default"][c]
             else:
-                if not self._esc and self.codepage:
-                    return charset.g0[self.localcodepage][c]
+                if self.codepage:
+                    use_local = not self._esc
                 else:
-                    return charset.g0["default"][c]
+                    use_local = self._esc
+                return charset.g0[self.localcodepage][c] if use_local else charset.g0["default"][c]
 
     def _emitcharacter(self, c):
         getattr(self, 'emitcharacter', lambda x: None)(c)
