@@ -92,11 +92,19 @@ class Config(object):
         },
         'saa7131': {
             'sample_rate': 27000000.0,
-            'line_length': 1440,
-            'line_start_range': (0, 20),
+            'line_length': 2048,
+            'line_start_range': (0, 60),
             'dtype': np.uint8,
-            'field_lines': 16,
+            'field_lines': 17,
             'field_range': range(0, 16),
+        },
+        'cx23885': {
+            'sample_rate': 27000000.0,
+            'line_length': 1440,
+            'line_start_range': (0, 60),
+            'dtype': np.uint8,
+            'field_lines': 18,
+            'field_range': range(1, 17),
         },
     }
 
