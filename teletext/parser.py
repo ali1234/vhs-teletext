@@ -54,7 +54,11 @@ class Parser(object):
             if not self.localcodepage:
                 return charset.g0["default"][c]
             else:
-                if not self._esc and self.codepage:
+                # An explicitly selected subset applies whether or not the header
+                # requests one: the national option bits are widely left at zero,
+                # so gating on them made --localcodepage a no-op on most captures.
+                # The esc/switch code still toggles back to the default set.
+                if not self._esc:
                     return charset.g0[self.localcodepage][c]
                 else:
                     return charset.g0["default"][c]
