@@ -352,13 +352,15 @@ def servicedir(directory, replace_headers, title):
 
 @teletext.command()
 @click.option('-i', '--initial_page', 'initial_page', type=str, default='100', help='Initial page.')
+@click.option('--localcodepage', type=click.Choice(['auto'] + list(g0.keys())), default='auto', show_default=True,
+              help='Select codepage for Local Code of Practice. "auto" selects it from the page header national option bits.')
 @packetreader(loop=True, dup_stdin=True)
-def interactive(packets, initial_page):
+def interactive(packets, initial_page, localcodepage):
 
     """Interactive teletext emulator."""
 
     from teletext import interactive
-    interactive.main(packets, int(initial_page, 16))
+    interactive.main(packets, int(initial_page, 16), localcodepage)
 
 
 @teletext.command()
