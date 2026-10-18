@@ -83,3 +83,20 @@ class TestCmdShowBin(TestCommandTeletext):
 
 class TestCmdBuild(TestCommandTeletext):
     cmd = teletext.cli.training.build
+
+
+try:
+    import teletext.cli.celp
+except ImportError:
+    pass
+else:
+    class TestCmdCelp(TestCommandTeletext):
+        cmd = teletext.cli.celp.celp
+
+
+    class TestCmdCelpPlay(TestCommandTeletext):
+        cmd = teletext.cli.celp.play
+
+
+    class TestCmdCelpPlot(TestCommandTeletext):
+        cmd = teletext.cli.celp.plot

@@ -3,6 +3,7 @@ import os
 import time
 import locale
 
+from . import charset
 from .file import FileChunker
 from .packet import Packet
 from .parser import Parser
@@ -21,10 +22,10 @@ class TerminalTooSmall(Exception):
 
 
 class ParserNcurses(Parser):
-    def __init__(self, tt, scr, row):
+    def __init__(self, tt, scr, row, localcodepage=None):
         self._scr = scr
         self._row = row
-        super().__init__(tt)
+        super().__init__(tt, localcodepage)
 
     def emitcharacter(self, c):
         colour = Interactive.colours[self._state['fg']] | Interactive.colours[self._state['bg']] << 3
@@ -42,8 +43,10 @@ class Interactive(object):
     colours = {0: curses.COLOR_BLACK, 1: curses.COLOR_RED, 2: curses.COLOR_GREEN, 3: curses.COLOR_YELLOW,
                4: curses.COLOR_BLUE, 5: curses.COLOR_MAGENTA, 6: curses.COLOR_CYAN, 7: curses.COLOR_WHITE}
 
-    def __init__(self, packet_iter, scr, initial_page=0x100):
+    def __init__(self, packet_iter, scr, initial_page=0x100, localcodepage='auto'):
         self.scr = scr
+        self.selected_codepage = localcodepage
+        self.localcodepage = None
 
         self.packet_iter = packet_iter
 
@@ -95,12 +98,20 @@ class Interactive(object):
         self.page = page
         self.set_input_field('P%d%02x' % (self.magazine, self.page))
 
+    def set_localcodepage(self, header):
+        if self.selected_codepage == 'auto':
+            subset = charset.codepages.get(header.codepage, 'default')
+        else:
+            subset = self.selected_codepage
+        self.localcodepage = None if subset == 'default' else subset
+
     def addstr(self, packet):
         r = packet.mrag.row
         if r:
-            ParserNcurses(packet.displayable[:], self.scr, r)
+            ParserNcurses(packet.displayable[:], self.scr, r, self.localcodepage)
         else:
-            ParserNcurses(packet.header.displayable[:], self.scr, r)
+            self.set_localcodepage(packet.header)
+            ParserNcurses(packet.header.displayable[:], self.scr, r, self.localcodepage)
 
     def do_alnum(self, i):
         if self.inputstate == 0:
@@ -196,7 +207,7 @@ class Interactive(object):
             time.sleep(0.01)
 
 
-def main(packets, initial_page):
+def main(packets, initial_page, localcodepage='auto'):
     locale.setlocale(locale.LC_ALL, '')
 
     if os.name == 'nt':
@@ -206,7 +217,7 @@ def main(packets, initial_page):
     os.dup2(f.fileno(), 0)
 
     def main(scr):
-        Interactive(packets, scr, initial_page=initial_page).main()
+        Interactive(packets, scr, initial_page=initial_page, localcodepage=localcodepage).main()
 
     try:
         curses.wrapper(main)

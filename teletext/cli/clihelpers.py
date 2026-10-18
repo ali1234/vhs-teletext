@@ -35,7 +35,7 @@ class BasedIntType(click.ParamType):
 BasedInt = BasedIntType()
 
 def dcnparams(f):
-    return click.option('-d', '--dcn', 'dcn', type=int, required=True, help='Data channel to read from.')(f)
+    return click.option('-d', '--dcn', 'dcn', type=int, required=True, help='Data channel (0-15) to read from. Selects packets of magazine DCN&7, row 30 (DCN<8) or 31 (DCN>=8).')(f)
 
 
 def filterparams(enabled=True):

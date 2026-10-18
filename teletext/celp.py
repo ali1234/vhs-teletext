@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 from spectrum import lsf2poly
 import numpy as np
 from scipy.signal import lfilter
-from collections import deque
 from tqdm import tqdm
+
+from teletext.coding import hamming8_decode
+
+odd_parity = np.array([bin(n).count('1') & 1 for n in range(256)], dtype=bool)
 
 hamming7_dec = np.array([
     [ 0x00, 0x10, 0x10, 0x14, 0x10, 0x11, 0x18, 0x12 ],
@@ -26,19 +29,29 @@ hamming7_dec = np.array([
 ], dtype=np.uint8)
 
 class LtpCodebook:
+    """Adaptive (long term prediction) codebook.
+
+    Holds the most recent excitation samples. The vector for a lag L is the
+    excitation from L samples ago. When L is shorter than the subframe, those
+    L samples are repeated, as is usual in CELP decoders.
+    """
+
+    min_lag = 20
+    max_lag = 147
+
     def __init__(self, subframe_length):
-        #self.buffer = np.zeros((147, subframe_length), dtype=np.double)
-        #self.pos = 0
-        self.buffer = deque(maxlen=147)
+        self.subframe_length = subframe_length
+        self.history = np.zeros((self.max_lag, ), dtype=np.double)
 
     def insert(self, subframe):
-        self.buffer.extendleft(subframe)
+        self.history = np.concatenate((self.history, subframe))[-self.max_lag:]
 
     def get(self, lag):
-        try:
-            return self.buffer[lag + 20]
-        except IndexError:
-            return 0
+        """Return the adaptive codebook vector for a lag in samples."""
+        vector = np.empty((self.subframe_length, ), dtype=np.double)
+        for n in range(self.subframe_length):
+            vector[n] = self.history[n - lag] if n < lag else vector[n - lag]
+        return vector
 
 
 class CELPStats:
@@ -99,6 +112,12 @@ class CELPDecoder:
         ]),
     }
 
+    # Suddle's table with the LSF 9 row from Ong. On real recordings Suddle's
+    # LSF 9 row puts LSF 9 on average only 37 Hz above LSF 8 and 700 Hz below
+    # LSF 10; Ong's row puts it in between, 440 Hz above LSF 8.
+    lsf_vector_quantizers['suddle-ong9'] = lsf_vector_quantizers['suddle'].copy()
+    lsf_vector_quantizers['suddle-ong9'][8] = lsf_vector_quantizers['ong'][8]
+
     lsf_weights = np.array([1/8, 3/8, 5/8, 7/8])
 
     vec_gain_quantizers = {
@@ -126,8 +145,32 @@ class CELPDecoder:
          1.062,  1.117,  1.193,  1.289,  1.394,  1.540,  1.765,  1.991,
     ])
 
-    def __init__(self, lsf_lut='suddle', vec_gain_lut='audetel', sample_rate=8000):
+    # The real excitation codebook is not known. These are stand-ins:
+    # 'noise' ignores the vector index and plays running random noise,
+    # 'gaussian' is a fixed random codebook selected by the vector index,
+    # 'clipped' is an overlapping centre-clipped random codebook and 'pame'
+    # adds pitch-adaptive pulse trains in front of it, both as described by
+    # Kondoz, Evans and Suddle (Eurospeech 93). The real codebook, once found,
+    # can be added here as a (256, 40) array.
+    @staticmethod
+    def _clipped_codebook(size=256, length=40, shift=2, threshold=1.2):
+        seq = np.random.default_rng(0).normal(0, 1, size=(size - 1) * shift + length)
+        seq[np.abs(seq) < threshold] = 0
+        book = np.lib.stride_tricks.sliding_window_view(seq, length)[::shift].copy()
+        rms = np.sqrt(np.mean(book ** 2, axis=1, keepdims=True))
+        return book / np.maximum(rms, 1e-9) / np.sqrt(3)
+
+    excitation_codebooks = {
+        'noise': None,
+        'gaussian': np.random.default_rng(0).normal(0, 1 / np.sqrt(3), size=(256, 40)),
+        'clipped': _clipped_codebook.__func__(),
+        'pame': _clipped_codebook.__func__(),
+    }
+
+    def __init__(self, lsf_lut='suddle-ong9', vec_gain_lut='audetel', excitation='pame', sample_rate=8000):
         self.lsf_lut = lsf_lut
+        self.excitation_type = excitation
+        self.excitation_codebook = self.excitation_codebooks[excitation]
         self.lsf_vector_quantization = self.lsf_vector_quantizers[lsf_lut]
         self.vec_gain_quantization = self.vec_gain_quantizers[vec_gain_lut]
         self.sample_rate = sample_rate
@@ -136,14 +179,15 @@ class CELPDecoder:
         self.vector_gain_errors = 0
         self.lsf_errors = 0
         self.subframes = 0
+        self.text_frames = 0
 
     @property
     def lsf_error(self):
-        return 100.0 * self.lsf_errors / self.subframes
+        return 100.0 * self.lsf_errors / max(self.subframes, 1)
 
     @property
     def vector_gain_error(self):
-        return 100.0 * self.vector_gain_errors / self.subframes
+        return 100.0 * self.vector_gain_errors / max(self.subframes, 1)
 
     def stats(self):
         return CELPStats(self)
@@ -171,8 +215,38 @@ class CELPDecoder:
         self.subframes += 4
         return lsf, pitch_gain, vector_gain, pitch_idx, vector_idx
 
-    # wave we're going to play through the filter
-    wave = np.random.uniform(-1, 1, size=(8000, ))
+    # noise played through the filter when no excitation codebook is used
+    wave = np.random.default_rng(0).uniform(-1, 1, size=(8000, ))
+
+    @staticmethod
+    def pulse_vector(phase, spacing, length=40):
+        """Unit pulses every spacing samples, starting at phase."""
+        vec = np.zeros((length, ))
+        vec[phase::spacing] = 1
+        if not vec.any():
+            return vec
+        return vec / np.sqrt(np.mean(vec ** 2)) / np.sqrt(3)
+
+    def excitation(self, vector_idx, lag=None):
+        """Return the excitation vector for an index.
+
+        For 'pame' the first indexes are pulse trains that depend on the
+        pitch lag of the subframe: lag phases with pulses every lag samples,
+        then, if the lag is longer than 40, lag/2 phases with pulses every
+        lag/2 samples. The remaining indexes select the clipped codebook.
+        """
+        if self.excitation_codebook is None:
+            pos = self.pos + np.arange(1, self.subframe_length + 1)
+            self.pos += self.subframe_length
+            return self.wave[pos % self.sample_rate]
+        if self.excitation_type == 'pame' and lag is not None:
+            if vector_idx < lag:
+                return self.pulse_vector(vector_idx, lag, self.subframe_length)
+            half = lag // 2 if lag > 2 * LtpCodebook.min_lag else 0
+            if vector_idx < lag + half:
+                return self.pulse_vector(vector_idx - lag, half, self.subframe_length)
+            return self.excitation_codebook[vector_idx - lag - half]
+        return self.excitation_codebook[vector_idx]
 
     def apply_lpc_filter(self, lsf, signal):
         """Convert line spectrum frequencies to a filter and apply to the signal."""
@@ -191,11 +265,10 @@ class CELPDecoder:
             sub_lsf = (self.last_lsf[np.newaxis, :] * self.lsf_weights[::-1, np.newaxis]) + (lsf[np.newaxis, :] * self.lsf_weights[:, np.newaxis])
 
         frame = np.empty((self.subframe_length * 4,), dtype=np.double)
-        subframe_buf = np.empty((self.subframe_length), dtype=np.double)
         for subframe in range(4):
-            for n in range(self.subframe_length):
-                self.pos += 1
-                subframe_buf[n] = (self.wave[self.pos % self.sample_rate] * vector_gain[subframe]) + (self.ltp_codebook.get(pitch_idx[subframe] - n) * pitch_gain[subframe])
+            lag = pitch_idx[subframe] + LtpCodebook.min_lag
+            subframe_buf = (self.excitation(vector_idx[subframe], lag) * vector_gain[subframe]) + \
+                           (self.ltp_codebook.get(lag) * pitch_gain[subframe])
             self.ltp_codebook.insert(subframe_buf)
             p = subframe * self.subframe_length
             frame[p:p + self.subframe_length] = self.apply_lpc_filter(sub_lsf[subframe], subframe_buf)
@@ -203,16 +276,52 @@ class CELPDecoder:
         self.last_lsf = lsf
         return np.clip(frame * 0.5, -32767, 32767).astype(np.int16)
 
+    @staticmethod
+    def is_text(packet):
+        """True if the packet holds a text message instead of audio.
+
+        Test transmissions and talkback messages ("Audetel Test000001 Zero
+        fade", "Test Talkback 0010 Address =88") are sent as odd parity text
+        in the same packets. Random audio data almost never has odd parity
+        in 34 or more of its 38 bytes.
+        """
+        return np.count_nonzero(odd_parity[packet._array[4:42]]) >= 34
+
+    @staticmethod
+    def is_two_channel(packet):
+        """True if the packet's service byte selects a two channel mode.
+
+        In two channel mode frame 0 of each packet belongs to channel 1 and
+        frame 1 to channel 2. This was verified for service 5 on a recording;
+        service 7 is assumed to work the same way.
+        """
+        if packet.mrag.row != 31:
+            return False
+        service = hamming8_decode(packet._array[2])
+        return service in (5, 7)
+
     def decode_packet_stream(self, packets, frame=None):
-        """Decode an entire packet stream, yielding audio frames."""
+        """Decode an entire packet stream, yielding audio frames.
+
+        frame selects frame 0 or 1 of each packet. If it is None both frames
+        are decoded in order, except in two channel mode, where only frame 0
+        (channel 1) is decoded. Text packets are replaced with silence.
+        """
         self.last_lsf = None
         self.last_z = np.zeros((10, ))
         self.ltp_codebook = LtpCodebook(self.subframe_length)
+        silence = np.zeros((self.subframe_length * 4, ), dtype=np.int16)
         for p in packets:
-            if frame is None or frame == 0:
-                yield self.generate_audio(p._array[4:23])
-            if frame is None or frame == 1:
-                yield self.generate_audio(p._array[23:42])
+            frames = (0, 1) if frame is None else (frame, )
+            if frame is None and self.is_two_channel(p):
+                frames = (0, )
+            text = self.is_text(p)
+            for f in frames:
+                if text:
+                    self.text_frames += 1
+                    yield silence
+                else:
+                    yield self.generate_audio(p._array[4 + (f * 19):23 + (f * 19)])
 
     def stream_pcm(self, packets, frame, device):
         src = self.decode_packet_stream(packets, frame)

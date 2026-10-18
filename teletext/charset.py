@@ -2,6 +2,14 @@
 #	Date:   2018 April 20
 #	Author: Rebecca Bettencourt <support@kreativekorp.com>
 
+# National option bits from the page header (Header.codepage) mapped to g0 subsets.
+# Only subsets which exist in g0 are listed, everything else falls back to default.
+codepages = {
+    0: 'default',
+    2: 'swe',
+    4: 'ger',
+}
+
 g0 = {'default': {
     0x20: chr(0x0020),  # SPACE
     0x21: chr(0x0021),  # EXCLAMATION MARK
@@ -146,7 +154,7 @@ g0 = {'default': {
     0x4A: chr(0x0419),  # CYRILLIC CAPITAL LETTER SHORT I
     0x4B: chr(0x041A),  # CYRILLIC CAPITAL LETTER KA
     0x4C: chr(0x041B),  # CYRILLIC CAPITAL LETTER EL
-    0x4D: chr(0x041C),  # CYRILLIC CAPITAL LETTER EМ
+    0x4D: chr(0x041C),  # CYRILLIC CAPITAL LETTER EM
     0x4E: chr(0x041D),  # CYRILLIC CAPITAL LETTER EN
     0x4F: chr(0x041E),  # CYRILLIC CAPITAL LETTER O
     0x50: chr(0x041F),  # CYRILLIC CAPITAL LETTER PE
@@ -299,6 +307,25 @@ g0 = {'default': {
     0x7F: chr(0x25A0),  # BLACK SQUARE
 
 }}
+
+# German national subset (replaces characters 0x23, 0x40, 0x5B-0x5F, 0x60, 0x7B-0x7E)
+# per ETS 300 706 table 36. Derived from the English set, which differs from it
+# only in those positions.
+g0['ger'] = {
+    **g0['default'],
+    0x23: chr(0x0023),  # NUMBER SIGN
+    0x40: chr(0x00A7),  # SECTION SIGN
+    0x5B: chr(0x00C4),  # LATIN CAPITAL A WITH DIAERESIS
+    0x5C: chr(0x00D6),  # LATIN CAPITAL O WITH DIAERESIS
+    0x5D: chr(0x00DC),  # LATIN CAPITAL U WITH DIAERESIS
+    0x5E: chr(0x005E),  # CIRCUMFLEX ACCENT
+    0x5F: chr(0x005F),  # LOW LINE
+    0x60: chr(0x00B0),  # DEGREE SIGN
+    0x7B: chr(0x00E4),  # LATIN SMALL A WITH DIAERESIS
+    0x7C: chr(0x00F6),  # LATIN SMALL O WITH DIAERESIS
+    0x7D: chr(0x00FC),  # LATIN SMALL U WITH DIAERESIS
+    0x7E: chr(0x00DF),  # LATIN SMALL LETTER SHARP S
+}
 
 #       Name:   Map from Teletext G1 character set to Unicode
 #       Date:   2018 April 20

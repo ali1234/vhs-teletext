@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import pathlib
 
 import click
 from tqdm import tqdm
@@ -9,6 +10,7 @@ from teletext.file import FileChunker
 from teletext.mp import itermap
 from teletext.packet import Packet, np
 from teletext.stats import StatsList, Rejects
+from teletext.vbi.config import Config
 
 
 @click.group()
@@ -106,11 +108,12 @@ def build(input, output, mode, bits):
 
 
 @training.command()
-@click.option('-f', '--tape-format', type=click.Choice(['vhs', 'betamax', 'grundig_2x4']), default='vhs', help='Source VCR format.')
+@click.option('-f', '--tape-format', type=click.Choice(Config.tape_formats), default='vhs', help='Source VCR format.')
 def similarities(tape_format):
+    """Show which letters are hard to tell apart in the parity patterns."""
     from teletext.vbi.pattern import Pattern
 
-    pattern = Pattern(os.path.dirname(__file__) + '/vbi/data-' + tape_format + '/parity.dat')
+    pattern = Pattern(pathlib.Path(__file__).parent.parent / 'vbi' / 'data' / tape_format / 'parity.dat')
 
     print(pattern.similarities())
 
