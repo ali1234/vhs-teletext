@@ -15,7 +15,10 @@ setup(
             'data/vhs/full.dat',
             'data/betamax/parity.dat',
             'data/betamax/hamming.dat',
-            'data/betamax/full.dat'
+            'data/betamax/full.dat',
+            'data/grundig_2x4/parity.dat',
+            'data/grundig_2x4/hamming.dat',
+            'data/grundig_2x4/full.dat'
         ],
         'teletext.gui': [
             'decoder.qml',
